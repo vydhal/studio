@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,37 +10,89 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { PlusCircle, Trash2, GripVertical } from "lucide-react";
 import { produce } from "immer";
+import { useToast } from "@/hooks/use-toast";
+import type { FormSectionConfig, FormFieldConfig } from "@/types";
+import { Loader2 } from "lucide-react";
 
-// This is a visual mock-up with state management.
-// It does not yet persist data or dynamically build the real census form.
 
-interface FormField {
-    id: string;
-    name: string;
-    type: 'text' | 'number' | 'boolean' | 'date' | 'select' | 'file' | 'rating';
-    required: boolean;
-}
+const FORM_CONFIG_STORAGE_KEY = 'censusFormConfig';
 
-interface FormSection {
-    id: string;
-    name: string;
-    fields: FormField[];
-}
+const defaultSections: FormSectionConfig[] = [
+    { 
+        id: 'general', 
+        name: 'Dados Gerais e Modalidades',
+        description: 'Selecione as modalidades de ensino oferecidas.',
+        fields: [
+            { id: 'f_mod_1', name: 'Anos Iniciais', type: 'boolean', required: true, sectionId: 'general' },
+            { id: 'f_mod_2', name: 'Anos Finais', type: 'boolean', required: true, sectionId: 'general' },
+            { id: 'f_mod_3', name: 'EJA', type: 'boolean', required: true, sectionId: 'general' },
+        ] 
+    },
+    { 
+        id: 'infra', 
+        name: 'Infraestrutura',
+        description: 'Adicione as salas de aula e seus detalhes.',
+        fields: [
+            { id: 'f_infra_1', name: 'Nome da Sala', type: 'text', required: true, sectionId: 'infra' },
+            { id: 'f_infra_2', name: 'Nº de Cadeiras', type: 'number', required: false, sectionId: 'infra' },
+        ] 
+    },
+    { 
+        id: 'tech', 
+        name: 'Tecnologia',
+        description: 'Detalhes sobre os recursos tecnológicos da escola.',
+        fields: [
+            { id: 'f_tech_1', name: 'Possui Internet?', type: 'boolean', required: false, sectionId: 'tech' },
+            { id: 'f_tech_2', name: 'Velocidade (Mbps)', type: 'number', required: false, sectionId: 'tech' }
+        ] 
+    },
+];
 
 export function FormEditorSettings() {
-    const [sections, setSections] = useState<FormSection[]>([
-        { id: 'general', name: 'Dados Gerais', fields: [{ id: 'f1', name: 'Nome do Diretor', type: 'text', required: true }] },
-        { id: 'infra', name: 'Infraestrutura', fields: [{ id: 'f2', name: 'Número de Salas', type: 'number', required: true }] },
-        { id: 'tech', name: 'Tecnologia', fields: [{ id: 'f3', name: 'Possui Internet?', type: 'boolean', required: false }] },
-    ]);
+    const { toast } = useToast();
+    const [sections, setSections] = useState<FormSectionConfig[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        try {
+            const storedConfig = localStorage.getItem(FORM_CONFIG_STORAGE_KEY);
+            if (storedConfig) {
+                setSections(JSON.parse(storedConfig));
+            } else {
+                setSections(defaultSections);
+            }
+        } catch (error) {
+            console.error("Failed to parse form config from localStorage", error);
+            setSections(defaultSections);
+        }
+        setLoading(false);
+    }, []);
+
+    const saveConfig = () => {
+        try {
+            localStorage.setItem(FORM_CONFIG_STORAGE_KEY, JSON.stringify(sections));
+            toast({
+                title: "Sucesso!",
+                description: "Configurações do formulário salvas com sucesso.",
+            });
+        } catch (error) {
+            toast({
+                title: "Erro!",
+                description: "Não foi possível salvar as configurações do formulário.",
+                variant: "destructive",
+            });
+        }
+    };
 
     const addField = (sectionIndex: number) => {
         setSections(produce(draft => {
+            const sectionId = draft[sectionIndex].id;
             draft[sectionIndex].fields.push({
-                id: `f${Date.now()}`,
+                id: `f_${Date.now()}`,
                 name: 'Novo Campo',
                 type: 'text',
                 required: false,
+                sectionId: sectionId
             });
         }));
     };
@@ -51,13 +103,15 @@ export function FormEditorSettings() {
         }));
     };
     
-    const updateField = (sectionIndex: number, fieldIndex: number, key: keyof FormField, value: any) => {
+    const updateField = (sectionIndex: number, fieldIndex: number, key: keyof FormFieldConfig, value: any) => {
         setSections(produce(draft => {
             (draft[sectionIndex].fields[fieldIndex] as any)[key] = value;
         }));
     };
 
-    // A real implementation would save `sections` to a database or localStorage.
+    if (loading) {
+        return <p>Carregando editor...</p>;
+    }
 
     return (
         <Card>
@@ -69,8 +123,9 @@ export function FormEditorSettings() {
                             Adicione, edite e remova seções e campos do formulário do censo.
                         </CardDescription>
                     </div>
-                    <Button disabled>
-                        <PlusCircle className="mr-2" /> Nova Seção
+                     <Button onClick={saveConfig} disabled={loading}>
+                        {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Salvar Formulário
                     </Button>
                 </div>
             </CardHeader>
@@ -101,7 +156,7 @@ export function FormEditorSettings() {
                                         <Label htmlFor={`field-type-${field.id}`}>Tipo de Campo</Label>
                                         <Select 
                                             value={field.type} 
-                                            onValueChange={(value: FormField['type']) => updateField(sectionIndex, fieldIndex, 'type', value)}
+                                            onValueChange={(value: FormFieldConfig['type']) => updateField(sectionIndex, fieldIndex, 'type', value)}
                                         >
                                             <SelectTrigger id={`field-type-${field.id}`} className="w-[180px]">
                                                 <SelectValue />
@@ -135,6 +190,9 @@ export function FormEditorSettings() {
                         </div>
                     </div>
                 ))}
+                 <Button variant="outline" disabled>
+                    <PlusCircle className="mr-2 h-4 w-4" /> Nova Seção
+                </Button>
             </CardContent>
         </Card>
     );

@@ -1,4 +1,5 @@
 
+
 export interface School {
   id: string;
   name: string;
@@ -55,12 +56,12 @@ export interface MaintenanceData {
     // Adicionar campos de dados de manutenção aqui futuramente
 }
 
-export type FormSection = 'general' | 'infrastructure' | 'technology' | 'cultural' | 'maintenance' | 'users';
+export type FormSectionPermission = 'general' | 'infrastructure' | 'technology' | 'cultural' | 'maintenance' | 'users';
 
 export interface Role {
     id: string;
     name: string;
-    permissions: FormSection[];
+    permissions: FormSectionPermission[];
 }
 
 export interface UserProfile {
@@ -93,4 +94,22 @@ export interface HomeSettings {
   facebookUrl?: string;
   instagramUrl?: string;
   twitterUrl?: string;
+}
+
+
+// Types for Dynamic Form Builder
+export interface FormFieldConfig {
+    id: string;
+    sectionId: string;
+    name: string;
+    type: 'text' | 'number' | 'boolean' | 'date' | 'select' | 'file' | 'rating';
+    required: boolean;
+    options?: string[]; // For select type
+}
+
+export interface FormSectionConfig {
+    id: string;
+    name: string;
+    description?: string;
+    fields: FormFieldConfig[];
 }

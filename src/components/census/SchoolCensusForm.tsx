@@ -25,64 +25,28 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import type { School } from "@/types";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Loader2, PlusCircle, Trash2, Building, HardHat, Laptop, Palette, Wrench } from "lucide-react";
+import type { School, FormSectionConfig, FormFieldConfig } from "@/types";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from "@/components/ui/card";
+import { Loader2, Building, HardHat, Laptop, Palette, Wrench } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
 
-
-const classroomSchema = z.object({
-  id: z.string(),
-  name: z.string().min(1, "Nome da turma é obrigatório"),
-  studentCapacity: z.coerce.number().min(0, "Capacidade deve ser positiva"),
-  outlets: z.coerce.number().min(0, "Número deve ser positivo"),
-  tvCount: z.coerce.number().min(0, "Número deve ser positivo"),
-  chairCount: z.coerce.number().min(0, "Número deve ser positivo"),
-  fanCount: z.coerce.number().min(0, "Número deve ser positivo"),
-  hasInternet: z.boolean(),
-  hasAirConditioning: z.boolean(),
-});
-
-const teachingModalitySchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  offered: z.boolean(),
-});
-
-const technologyResourceSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  quantity: z.coerce.number().min(0, "Quantidade deve ser positiva"),
-});
-
-const formSchema = z.object({
+// Zod schema for the school selection part, which is always static
+const staticFormSchema = z.object({
   schoolId: z.string().min(1, "Por favor, selecione uma escola."),
-  infrastructure: z.object({
-    classrooms: z.array(classroomSchema).min(1, "Adicione pelo menos uma turma."),
-  }),
-  technology: z.object({
-    resources: z.array(technologyResourceSchema),
-    hasInternetAccess: z.boolean(),
-  }),
-  teachingModalities: z.array(teachingModalitySchema),
+  // The 'dynamicData' part will be validated manually or with a generated schema
+  dynamicData: z.record(z.any()),
 });
 
-const defaultModalities = [
-    { id: '1', name: 'Anos Iniciais', offered: false },
-    { id: '2', name: 'Anos Finais', offered: false },
-    { id: '3', name: 'EJA', offered: false },
-    { id: '4', name: 'Integral', offered: false },
-    { id: '5', name: 'Bilíngue', offered: false },
-];
-
-const defaultTechnologies = [
-    { id: '1', name: 'Kits de Robótica', quantity: 0 },
-    { id: '2', name: 'Chromebooks', quantity: 0 },
-    { id: '3', name: 'Notebooks', quantity: 0 },
-    { id: '4', name: 'Modems', quantity: 0 },
-    { id: '5', name: 'Impressoras', quantity: 0 },
-    { id: '6', name: 'Modems com Defeito', quantity: 0 },
+// Default form configuration if nothing is in localStorage
+const defaultSections: FormSectionConfig[] = [
+    { 
+        id: 'general', 
+        name: 'Dados Gerais',
+        description: 'Seção de dados gerais da escola.',
+        fields: [{ id: 'f_default_1', name: 'Nome do Diretor', type: 'text', required: true, sectionId: 'general' }] 
+    }
 ];
 
 const defaultSchools: School[] = [
@@ -91,7 +55,56 @@ const defaultSchools: School[] = [
     { id: 'school3', name: 'Centro Educacional Modelo 3 (Padrão)', inep: '98765432' },
 ];
 
+const FORM_CONFIG_STORAGE_KEY = 'censusFormConfig';
 const SCHOOLS_STORAGE_KEY = 'schoolList';
+
+const sectionIcons: { [key: string]: React.ElementType } = {
+  general: Building,
+  infra: HardHat,
+  tech: Laptop,
+  cultural: Palette,
+  maint: Wrench,
+};
+
+const DynamicField = ({ control, fieldConfig }: { control: any, fieldConfig: FormFieldConfig }) => {
+    const fieldName = `dynamicData.${fieldConfig.id}`;
+    
+    return (
+        <FormField
+            control={control}
+            name={fieldName}
+            rules={{ required: fieldConfig.required ? "Este campo é obrigatório" : false }}
+            render={({ field, fieldState }) => (
+                <FormItem>
+                    <FormLabel>{fieldConfig.name}</FormLabel>
+                    <FormControl>
+                        <>
+                            {fieldConfig.type === 'text' && <Input {...field} />}
+                            {fieldConfig.type === 'number' && <Input type="number" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} />}
+                            {fieldConfig.type === 'boolean' && (
+                                <div className="flex items-center space-x-2">
+                                    <Checkbox 
+                                        id={fieldName}
+                                        checked={field.value} 
+                                        onCheckedChange={field.onChange} 
+                                    />
+                                    <label
+                                      htmlFor={fieldName}
+                                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                    >
+                                      Sim
+                                    </label>
+                                </div>
+                            )}
+                            {/* Add other field types here */}
+                        </>
+                    </FormControl>
+                    <FormMessage>{fieldState.error?.message}</FormMessage>
+                </FormItem>
+            )}
+        />
+    );
+};
 
 
 export function SchoolCensusForm() {
@@ -99,59 +112,54 @@ export function SchoolCensusForm() {
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [schools, setSchools] = useState<School[]>([]);
+  const [formConfig, setFormConfig] = useState<FormSectionConfig[]>([]);
+  const [isConfigLoading, setIsConfigLoading] = useState(true);
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+  const form = useForm<z.infer<typeof staticFormSchema>>({
+    resolver: zodResolver(staticFormSchema),
     defaultValues: {
       schoolId: "",
-      infrastructure: {
-          classrooms: [{ 
-            id: 'c1', 
-            name: 'Sala 1', 
-            studentCapacity: 0,
-            outlets: 0,
-            tvCount: 0,
-            chairCount: 0,
-            fanCount: 0,
-            hasInternet: false,
-            hasAirConditioning: false
-          }],
-      },
-      technology: {
-          resources: defaultTechnologies,
-          hasInternetAccess: false,
-      },
-      teachingModalities: defaultModalities,
+      dynamicData: {},
     },
   });
 
-  const { fields: classrooms, append: appendClassroom, remove: removeClassroom } = useFieldArray({ control: form.control, name: "infrastructure.classrooms" });
-  const { fields: modalities } = useFieldArray({ control: form.control, name: "teachingModalities" });
-  const { fields: technologies } = useFieldArray({ control: form.control, name: "technology.resources" });
-
   useEffect(() => {
-    // Fetch schools from localStorage
+    // Fetch schools and form config from localStorage
     try {
         const storedSchools = localStorage.getItem(SCHOOLS_STORAGE_KEY);
-        if (storedSchools) {
-            setSchools(JSON.parse(storedSchools));
-        } else {
-            setSchools(defaultSchools);
-        }
+        setSchools(storedSchools ? JSON.parse(storedSchools) : defaultSchools);
+
+        const storedConfig = localStorage.getItem(FORM_CONFIG_STORAGE_KEY);
+        const parsedConfig = storedConfig ? JSON.parse(storedConfig) : defaultSections;
+        setFormConfig(parsedConfig);
+        
+        // Set default values for dynamic fields
+        const defaultDynamicValues: { [key: string]: any } = {};
+        parsedConfig.forEach((section: FormSectionConfig) => {
+            section.fields.forEach((field: FormFieldConfig) => {
+                defaultDynamicValues[field.id] = field.type === 'boolean' ? false : '';
+            });
+        });
+        form.reset({
+            schoolId: form.getValues('schoolId'), // keep existing schoolId
+            dynamicData: defaultDynamicValues,
+        });
+
     } catch (error) {
-        console.error("Failed to load schools from localStorage", error);
+        console.error("Failed to load config from localStorage", error);
         setSchools(defaultSchools);
+        setFormConfig(defaultSections);
+    } finally {
+        setIsConfigLoading(false);
     }
 
     const schoolId = searchParams.get('schoolId');
     if (schoolId) {
         form.setValue('schoolId', schoolId);
-        // Here you would normally fetch existing data for this school
-        // and populate the form.
     }
   }, [searchParams, form]);
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: z.infer<typeof staticFormSchema>) {
     setLoading(true);
     await new Promise(resolve => setTimeout(resolve, 1000));
     console.log("Mock submission:", {
@@ -165,6 +173,17 @@ export function SchoolCensusForm() {
     });
     setLoading(false);
   }
+
+  if (isConfigLoading) {
+      return (
+          <Card>
+              <CardHeader><Skeleton className="h-8 w-1/2" /></CardHeader>
+              <CardContent><Skeleton className="h-40 w-full" /></CardContent>
+              <CardFooter><Skeleton className="h-10 w-full" /></CardFooter>
+          </Card>
+      );
+  }
+
 
   return (
     <Card>
@@ -198,150 +217,34 @@ export function SchoolCensusForm() {
                   />
           </CardHeader>
           <CardContent className="pt-6">
-            <Tabs defaultValue="infra" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 mb-4">
-                  <TabsTrigger value="general"><Building className="mr-2" />Geral</TabsTrigger>
-                  <TabsTrigger value="infra"><HardHat className="mr-2"/>Infraestrutura</TabsTrigger>
-                  <TabsTrigger value="tech"><Laptop className="mr-2"/>Tecnologia</TabsTrigger>
-                  <TabsTrigger value="cultural" disabled><Palette className="mr-2"/>Cultural</TabsTrigger>
-                  <TabsTrigger value="maint" disabled><Wrench className="mr-2"/>Manutenção</TabsTrigger>
+            <Tabs defaultValue={formConfig[0]?.id || 'default'} className="w-full">
+              <TabsList className="grid w-full grid-cols-1 md:grid-cols-3 lg:grid-cols-5 mb-4">
+                  {formConfig.map(section => {
+                      const Icon = sectionIcons[section.id.toLowerCase()] || Building;
+                      return (
+                         <TabsTrigger key={section.id} value={section.id}><Icon className="mr-2"/>{section.name}</TabsTrigger>
+                      )
+                  })}
               </TabsList>
               
-              <TabsContent value="general">
-                  <Card>
-                      <CardHeader><CardTitle>Dados Gerais e Modalidades</CardTitle></CardHeader>
-                      <CardContent className="space-y-4">
-                          <p className="text-muted-foreground">Selecione as modalidades de ensino oferecidas.</p>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                            {modalities.map((field, index) => (
-                              <FormField
-                                key={field.id}
-                                control={form.control}
-                                name={`teachingModalities.${index}.offered`}
-                                render={({ field }) => (
-                                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                                        <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                                        <FormLabel className="font-normal">{modalities[index].name}</FormLabel>
-                                    </FormItem>
-                                )}
-                                />
-                            ))}
-                        </div>
-                      </CardContent>
-                  </Card>
-              </TabsContent>
-
-              <TabsContent value="infra">
-                 <Card>
-                    <CardHeader>
-                        <div className="flex justify-between items-center">
-                            <CardTitle>Infraestrutura - Salas de Aula</CardTitle>
-                             <Button type="button" variant="outline" size="sm" onClick={() => appendClassroom({
-                                id: `c${classrooms.length+1}`,
-                                name: `Sala ${classrooms.length+1}`,
-                                studentCapacity: 0,
-                                outlets: 0,
-                                tvCount: 0,
-                                chairCount: 0,
-                                fanCount: 0,
-                                hasInternet: false,
-                                hasAirConditioning: false
-                            })}>
-                                <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Sala
-                            </Button>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        {classrooms.map((field, index) => (
-                            <div key={field.id} className="p-4 border rounded-md relative space-y-4">
-                            <div className="flex justify-between items-start">
-                                <FormField
-                                    control={form.control}
-                                    name={`infrastructure.classrooms.${index}.name`}
-                                    render={({ field }) => (
-                                    <FormItem className="flex-1 mr-4">
-                                        <FormLabel>Nome da Sala</FormLabel>
-                                        <FormControl><Input placeholder="Ex: Sala 1" {...field} /></FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                    )}
-                                />
-                                <Button type="button" variant="ghost" size="icon" onClick={() => removeClassroom(index)} className="mt-2">
-                                    <Trash2 className="h-4 w-4 text-destructive" />
-                                </Button>
-                            </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                <FormField control={form.control} name={`infrastructure.classrooms.${index}.outlets`} render={({ field }) => (
-                                    <FormItem><FormLabel>Nº de Tomadas</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
-                                )}/>
-                                <FormField control={form.control} name={`infrastructure.classrooms.${index}.tvCount`} render={({ field }) => (
-                                    <FormItem><FormLabel>Nº de TVs</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
-                                )}/>
-                                <FormField control={form.control} name={`infrastructure.classrooms.${index}.chairCount`} render={({ field }) => (
-                                    <FormItem><FormLabel>Nº de Cadeiras</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
-                                )}/>
-                                <FormField control={form.control} name={`infrastructure.classrooms.${index}.studentCapacity`} render={({ field }) => (
-                                    <FormItem><FormLabel>Capacidade Alunos</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
-                                )}/>
-                                <FormField control={form.control} name={`infrastructure.classrooms.${index}.fanCount`} render={({ field }) => (
-                                    <FormItem><FormLabel>Nº de Ventiladores</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
-                                )}/>
-                                </div>
-                                <div className="flex items-center space-x-4">
-                                <FormField control={form.control} name={`infrastructure.classrooms.${index}.hasInternet`} render={({ field }) => (
-                                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                                    <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                                    <FormLabel className="font-normal">Tem Internet</FormLabel>
-                                    </FormItem>
-                                )}/>
-                                <FormField control={form.control} name={`infrastructure.classrooms.${index}.hasAirConditioning`} render={({ field }) => (
-                                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                                    <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                                    <FormLabel className="font-normal">Tem Ar Condicionado</FormLabel>
-                                    </FormItem>
-                                )}/>
-                                </div>
-                            </div>
-                        ))}
-                    </CardContent>
-                 </Card>
-              </TabsContent>
-
-              <TabsContent value="tech">
-                  <Card>
-                      <CardHeader><CardTitle>Recursos Tecnológicos</CardTitle></CardHeader>
-                      <CardContent>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-4">
-                                {technologies.map((field, index) => (
-                                <FormField
-                                    key={field.id}
-                                    control={form.control}
-                                    name={`technology.resources.${index}.quantity`}
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>{technologies[index].name}</FormLabel>
-                                            <FormControl><Input type="number" {...field} /></FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                    />
+              {formConfig.map(section => (
+                 <TabsContent key={section.id} value={section.id}>
+                    <Card>
+                        <CardHeader>
+                          <CardTitle>{section.name}</CardTitle>
+                          {section.description && <CardDescription>{section.description}</CardDescription>}
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {section.fields.map(field => (
+                                    <DynamicField key={field.id} control={form.control} fieldConfig={field} />
                                 ))}
                             </div>
-                            <div className="mt-4">
-                                <FormField
-                                    control={form.control}
-                                    name="technology.hasInternetAccess"
-                                    render={({ field }) => (
-                                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                                            <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                                            <FormLabel className="font-normal">A escola possui acesso à Internet para uso administrativo e pedagógico?</FormLabel>
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>
-                      </CardContent>
-                  </Card>
-              </TabsContent>
+                        </CardContent>
+                    </Card>
+                 </TabsContent>
+              ))}
+             
             </Tabs>
           </CardContent>
           <CardFooter>
