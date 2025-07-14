@@ -6,30 +6,6 @@ import type { SchoolCensusSubmission, School } from "@/types";
 import { MetricsCards } from "./MetricsCards";
 import { ChartsSection } from "./ChartsSection";
 import { SubmissionsTable } from "./SubmissionsTable";
-import { Input } from "@/components/ui/input";
-import {
-  File,
-  Home,
-  LineChart,
-  ListFilter,
-  MoreHorizontal,
-  PanelLeft,
-  PlusCircle,
-  Search,
-  Settings,
-  ShoppingCart,
-  Users2,
-} from "lucide-react"
-
-import { Badge } from "@/components/ui/badge"
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -39,16 +15,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-
 import {
   Tabs,
   TabsContent,
@@ -82,24 +48,16 @@ export function DashboardClient({ submissions, schools }: DashboardClientProps) 
   return (
     <>
         <div className="flex items-center justify-between space-y-2">
-            <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+            <h1 className="text-3xl font-bold tracking-tight font-headline">Dashboard</h1>
             <div className="flex items-center space-x-2">
-                <Button>Exportar</Button>
+                <Button disabled>Exportar</Button>
             </div>
         </div>
-        <div className="flex items-center gap-4">
-            <h2 className="text-lg font-semibold">Visão Geral</h2>
-            <Badge variant="outline">Enviadas: {submissions.length}</Badge>
-            <Badge variant="outline">Pendentes: {pendingSubmissions}</Badge>
-            <Badge variant="outline">Total: {schools.length}</Badge>
-        </div>
+
         <Tabs defaultValue="overview">
-            <TabsList>
+            <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="overview">Visão Geral</TabsTrigger>
-                <TabsTrigger value="submissions">Submissões</TabsTrigger>
-                <TabsTrigger value="form-editor" disabled>Editor de Formulário</TabsTrigger>
-                <TabsTrigger value="home-editor" disabled>Editor da Home</TabsTrigger>
-                <TabsTrigger value="reports" disabled>Relatórios</TabsTrigger>
+                <TabsTrigger value="submissions">Submissões do Censo</TabsTrigger>
             </TabsList>
             <TabsContent value="overview" className="space-y-4">
                 <MetricsCards submissions={submissions} schools={schools} />
@@ -108,9 +66,9 @@ export function DashboardClient({ submissions, schools }: DashboardClientProps) 
             <TabsContent value="submissions" className="space-y-4">
                 <Card>
                     <CardHeader>
-                        <CardTitle>Submissões</CardTitle>
+                        <CardTitle>Submissões do Censo Escolar</CardTitle>
                         <CardDescription>
-                            Gerencie as submissões do censo escolar.
+                            Acompanhe e gerencie as submissões de cada escola.
                         </CardDescription>
                     </CardHeader>
                     <CardContent>

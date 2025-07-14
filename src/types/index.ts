@@ -54,6 +54,21 @@ export interface MaintenanceData {
     // Adicionar campos de dados de manutenção aqui futuramente
 }
 
+export type FormSection = 'general' | 'infrastructure' | 'technology' | 'cultural' | 'maintenance' | 'users';
+
+export interface Role {
+    id: string;
+    name: string;
+    permissions: FormSection[];
+}
+
+export interface UserProfile {
+    id: string;
+    name: string;
+    email: string;
+    roleId: string; // Foreign key to Role
+}
+
 
 export interface SchoolCensusSubmission {
   id: string;
