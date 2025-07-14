@@ -110,7 +110,7 @@ export function HomeContent() {
                             <CardTitle>Coleta de Dados Simplificada</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            Um formulário intuitivo e dinâmico para o censo escolar, facilitando o preenchimento.
+                            <p>Um formulário intuitivo e dinâmico para o censo escolar, facilitando o preenchimento.</p>
                         </CardContent>
                     </Card>
                      <Card>
@@ -119,7 +119,7 @@ export function HomeContent() {
                             <CardTitle>Dashboard Analítico</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            Visualize métricas e gráficos gerados em tempo real a partir dos dados coletados.
+                            <p>Visualize métricas e gráficos gerados em tempo real a partir dos dados coletados.</p>
                         </CardContent>
                     </Card>
                      <Card>
@@ -128,7 +128,7 @@ export function HomeContent() {
                             <CardTitle>Gerenciamento Seguro</CardTitle>
                         </CardHeader>
                         <CardContent>
-                           Autenticação e armazenamento de dados seguros com a robustez do Google Firebase.
+                           <p>Autenticação e armazenamento de dados seguros com a robustez do Google Firebase.</p>
                         </CardContent>
                     </Card>
                 </div>

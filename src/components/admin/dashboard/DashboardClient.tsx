@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { SchoolCensusSubmission, School } from "@/types";
 import { MetricsCards } from "./MetricsCards";
 import { ChartsSection } from "./ChartsSection";
@@ -21,15 +21,85 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs"
+import { Skeleton } from "@/components/ui/skeleton";
 
 
-interface DashboardClientProps {
-  submissions: SchoolCensusSubmission[];
-  schools: School[];
-}
+// Mock data to simulate Firestore fetch
+const getMockSubmissions = (): SchoolCensusSubmission[] => {
+  const now = new Date();
+  return [
+    {
+      id: 'sub1',
+      schoolId: 'school1',
+      general: { status: 'completed' },
+      infrastructure: { 
+        status: 'completed',
+        classrooms: [
+            { id: 'c1', name: 'Sala 1', studentCapacity: 25, outlets: 10, tvCount: 1, chairCount: 25, fanCount: 2, hasInternet: true, hasAirConditioning: false },
+            { id: 'c2', name: 'Sala 2', studentCapacity: 30, outlets: 12, tvCount: 1, chairCount: 30, fanCount: 2, hasInternet: true, hasAirConditioning: true },
+        ]
+      },
+      technology: { 
+        status: 'completed',
+        resources: [{ id: '1', name: 'Chromebooks', quantity: 20 }, { id: '2', name: 'Impressoras', quantity: 2 }],
+        hasInternetAccess: true
+      },
+      cultural: { status: 'pending' },
+      maintenance: { status: 'completed' },
+      teachingModalities: [{ id: '1', name: 'Anos Iniciais', offered: true }, { id: '2', name: 'Anos Finais', offered: true }],
+      submittedAt: new Date(now.setDate(now.getDate() - 1)),
+      submittedBy: 'test-user'
+    },
+    {
+      id: 'sub2',
+      schoolId: 'school2',
+      general: { status: 'completed' },
+      infrastructure: { 
+        status: 'completed',
+        classrooms: [
+            { id: 'c1', name: 'Sala A', studentCapacity: 20, outlets: 8, tvCount: 1, chairCount: 20, fanCount: 1, hasInternet: false, hasAirConditioning: false },
+        ]
+      },
+      technology: { 
+        status: 'pending',
+        resources: [{ id: '3', name: 'Notebooks', quantity: 15 }],
+        hasInternetAccess: true,
+      },
+      cultural: { status: 'pending' },
+      maintenance: { status: 'pending' },
+      teachingModalities: [{ id: '3', name: 'EJA', offered: true }],
+      submittedAt: new Date(now.setDate(now.getDate() - 2)),
+      submittedBy: 'test-user-2'
+    }
+  ];
+};
 
-export function DashboardClient({ submissions, schools }: DashboardClientProps) {
+const defaultSchools: School[] = [
+    { id: 'school1', name: 'Escola Municipal Exemplo 1 (Padrão)', inep: '12345678' },
+    { id: 'school2', name: 'Escola Estadual Teste 2 (Padrão)', inep: '87654321' },
+    { id: 'school3', name: 'Centro Educacional Modelo 3 (Padrão)', inep: '98765432' },
+];
+
+const SCHOOLS_STORAGE_KEY = 'schoolList';
+
+
+export function DashboardClient() {
+  const [submissions, setSubmissions] = useState<SchoolCensusSubmission[]>([]);
+  const [schools, setSchools] = useState<School[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("");
+
+  useEffect(() => {
+    // Fetch data on the client side
+    const storedSchools = localStorage.getItem(SCHOOLS_STORAGE_KEY);
+    const schoolsData = storedSchools ? JSON.parse(storedSchools) : defaultSchools;
+    setSchools(schoolsData);
+
+    const submissionsData = getMockSubmissions();
+    setSubmissions(submissionsData);
+    
+    setLoading(false);
+  }, []);
 
   const schoolMap = new Map(schools.map(s => [s.id, s]));
 
@@ -40,10 +110,24 @@ export function DashboardClient({ submissions, schools }: DashboardClientProps) 
            school.inep.toLowerCase().includes(filter.toLowerCase());
   });
 
-  const pendingSubmissions = submissions.filter(s => {
-      const sections = [s.general, s.infrastructure, s.technology, s.cultural, s.maintenance];
-      return sections.some(sec => sec.status === 'pending');
-  }).length;
+  if (loading) {
+    return (
+        <div className="space-y-4">
+            <Skeleton className="h-10 w-48" />
+            <Skeleton className="h-12 w-full" />
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <Skeleton className="h-28" />
+                <Skeleton className="h-28" />
+                <Skeleton className="h-28" />
+                <Skeleton className="h-28" />
+            </div>
+             <div className="grid gap-4 md:grid-cols-2">
+                <Skeleton className="h-80" />
+                <Skeleton className="h-80" />
+            </div>
+        </div>
+    )
+  }
 
   return (
     <>
