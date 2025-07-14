@@ -18,7 +18,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -43,7 +43,7 @@ const defaultSettings = {
 };
 
 
-export function SettingsForm() {
+export function HomePageSettingsForm() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
@@ -80,7 +80,10 @@ export function SettingsForm() {
   if (fetching) {
     return (
         <Card>
-            <CardHeader><CardTitle>Configurações da Página Inicial</CardTitle></CardHeader>
+            <CardHeader>
+                <CardTitle>Página Inicial</CardTitle>
+                <CardDescription>Personalize o conteúdo da página inicial para os visitantes.</CardDescription>
+            </CardHeader>
             <CardContent className="space-y-4">
                 <Skeleton className="h-10 w-full" />
                 <Skeleton className="h-10 w-full" />
@@ -97,7 +100,8 @@ export function SettingsForm() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Configurações da Página Inicial</CardTitle>
+        <CardTitle>Página Inicial</CardTitle>
+        <CardDescription>Personalize o conteúdo da página inicial para os visitantes.</CardDescription>
       </CardHeader>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
@@ -135,3 +139,4 @@ export function SettingsForm() {
     </Card>
   );
 }
+

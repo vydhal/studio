@@ -1,3 +1,4 @@
+
 export interface School {
   id: string;
   name: string;
@@ -67,6 +68,7 @@ export interface UserProfile {
     name: string;
     email: string;
     roleId: string; // Foreign key to Role
+    password?: string;
 }
 
 

@@ -10,20 +10,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
   LayoutDashboard,
   Settings,
   School,
-  PanelLeft,
-  Search,
   FileEdit,
   Users,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
-import { Input } from "../ui/input";
 import Image from "next/image";
 import {
   SidebarProvider,
@@ -34,10 +30,6 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-  SidebarMenuSub,
-  SidebarMenuSubItem,
-  SidebarMenuSubButton,
-  SidebarSeparator,
 } from "@/components/ui/sidebar";
 
 export function AdminSidebar() {
@@ -53,7 +45,6 @@ export function AdminSidebar() {
   const menuItems = [
     { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/admin/users", label: "Usuários e Perfis", icon: Users },
-    { href: "/admin/form-editor", label: "Editor de Formulário", icon: FileEdit, disabled: true },
     { href: "/admin/settings", label: "Configurações", icon: Settings },
   ];
 
@@ -78,11 +69,9 @@ export function AdminSidebar() {
                         <SidebarMenuButton
                             asChild
                             isActive={pathname === item.href}
-                            disabled={item.disabled}
-                            className={item.disabled ? 'cursor-not-allowed opacity-50' : ''}
                             tooltip={item.label}
                         >
-                             <Link href={item.disabled ? "#" : item.href}>
+                             <Link href={item.href}>
                                 <item.icon className="h-5 w-5" />
                                 <span>{item.label}</span>
                             </Link>

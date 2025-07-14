@@ -1,4 +1,4 @@
-import { SettingsForm } from "@/components/admin/settings/SettingsForm";
+import { SettingsTabs } from "@/components/admin/settings/SettingsTabs";
 
 export default function SettingsPage() {
   return (
@@ -6,10 +6,10 @@ export default function SettingsPage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight font-headline">Configurações</h1>
         <p className="text-muted-foreground">
-          Gerencie as configurações da página inicial e outras opções do sistema.
+          Gerencie as configurações do sistema, formulários e escolas.
         </p>
       </div>
-      <SettingsForm />
+      <SettingsTabs />
     </div>
   );
 }

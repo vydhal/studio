@@ -30,6 +30,7 @@ const userSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(2, "Nome do usuário é obrigatório."),
   email: z.string().email("Email inválido."),
+  password: z.string().min(6, "A senha deve ter pelo menos 6 caracteres.").optional(),
   roleId: z.string().min(1, "Selecione um perfil."),
 });
 
@@ -163,6 +164,23 @@ export function UserManagementClient({ initialUsers, initialRoles }: UserManagem
                         <FormField control={userForm.control} name="email" render={({ field }) => (
                             <FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" {...field} /></FormControl><FormMessage /></FormItem>
                         )} />
+                        <FormField
+                          control={userForm.control}
+                          name="password"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Senha</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="password"
+                                  placeholder={editingUser ? 'Deixe em branco para não alterar' : '••••••••'}
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
                         <FormField control={userForm.control} name="roleId" render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Perfil</FormLabel>
