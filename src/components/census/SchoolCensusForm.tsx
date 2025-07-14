@@ -77,27 +77,27 @@ const DynamicField = ({ control, fieldConfig }: { control: any, fieldConfig: For
             render={({ field, fieldState }) => (
                 <FormItem>
                     <FormLabel>{fieldConfig.name}</FormLabel>
-                     <FormControl>
-                        <div>
-                           {fieldConfig.type === 'text' && <Input {...field} />}
-                            {fieldConfig.type === 'number' && <Input type="number" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} />}
-                            {fieldConfig.type === 'boolean' && (
-                                <div className="flex items-center space-x-2 pt-2">
-                                    <Checkbox
-                                        id={fieldName}
-                                        checked={field.value}
-                                        onCheckedChange={field.onChange}
-                                    />
-                                    <label
-                                        htmlFor={fieldName}
-                                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                                    >
-                                        Sim
-                                    </label>
-                                </div>
-                            )}
-                            {/* Add other field types here */}
-                        </div>
+                    <FormControl>
+                      <div>
+                        {fieldConfig.type === 'text' && <Input {...field} />}
+                        {fieldConfig.type === 'number' && <Input type="number" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} />}
+                        {fieldConfig.type === 'boolean' && (
+                            <div className="flex items-center space-x-2 pt-2">
+                                <Checkbox
+                                    id={fieldName}
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                />
+                                <label
+                                    htmlFor={fieldName}
+                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                >
+                                    Sim
+                                </label>
+                            </div>
+                        )}
+                        {/* Add other field types here */}
+                      </div>
                     </FormControl>
                     <FormMessage>{fieldState.error?.message}</FormMessage>
                 </FormItem>
@@ -234,11 +234,13 @@ export function SchoolCensusForm() {
                           <CardTitle>{section.name}</CardTitle>
                           {section.description && <CardDescription>{section.description}</CardDescription>}
                         </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {section.fields.map(field => (
-                                    <DynamicField key={field.id} control={form.control} fieldConfig={field} />
-                                ))}
+                        <CardContent>
+                            <div className="space-y-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {section.fields.map(field => (
+                                        <DynamicField key={field.id} control={form.control} fieldConfig={field} />
+                                    ))}
+                                </div>
                             </div>
                         </CardContent>
                     </Card>
