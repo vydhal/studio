@@ -4,7 +4,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,25 +24,22 @@ const schoolListSchema = z.object({
   schoolsJson: z.string().refine((val) => {
     try {
       const parsed = JSON.parse(val);
-      return Array.isArray(parsed) && parsed.every(item => 'name' in item && 'inep' in item);
+      return Array.isArray(parsed) && parsed.every(item => 'id' in item && 'name' in item && 'inep' in item);
     } catch (e) {
       return false;
     }
   }, {
-    message: "O JSON fornecido é inválido ou não segue o formato esperado: [{ \"name\": \"...\", \"inep\": \"...\" }]",
+    message: "O JSON fornecido é inválido ou não segue o formato esperado: [{ \"id\": \"...\", \"name\": \"...\", \"inep\": \"...\" }]",
   }),
 });
 
-const defaultJson = JSON.stringify([
-  {
-    "name": "Escola Municipal João Silva",
-    "inep": "23456789"
-  },
-  {
-    "name": "Escola Estadual Maria Santos",
-    "inep": "34567890"
-  }
-], null, 2);
+const defaultSchools = [
+  { id: 'school1', name: 'Escola Municipal Exemplo 1', inep: '12345678' },
+  { id: 'school2', name: 'Escola Estadual Teste 2', inep: '87654321' },
+  { id: 'school3', name: 'Centro Educacional Modelo 3', inep: '98765432' },
+];
+
+const SCHOOLS_STORAGE_KEY = 'schoolList';
 
 export function SchoolSettingsForm() {
   const { toast } = useToast();
@@ -51,20 +48,40 @@ export function SchoolSettingsForm() {
   const form = useForm<z.infer<typeof schoolListSchema>>({
     resolver: zodResolver(schoolListSchema),
     defaultValues: {
-      schoolsJson: defaultJson,
+      schoolsJson: JSON.stringify(defaultSchools, null, 2),
     },
   });
 
+  useEffect(() => {
+    try {
+        const storedSchools = localStorage.getItem(SCHOOLS_STORAGE_KEY);
+        if (storedSchools) {
+            form.setValue('schoolsJson', JSON.stringify(JSON.parse(storedSchools), null, 2));
+        }
+    } catch (error) {
+        console.error("Failed to parse schools from localStorage", error);
+    }
+  }, [form]);
+
   async function onSubmit(values: z.infer<typeof schoolListSchema>) {
     setLoading(true);
-    // In a real app, you would parse and save this to Firestore
-    console.log("Saving schools JSON:", JSON.parse(values.schoolsJson));
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    toast({
-      title: "Sucesso!",
-      description: "Lista de escolas salva com sucesso (simulação).",
-    });
-    setLoading(false);
+    try {
+      // Validate again before saving
+      const parsed = JSON.parse(values.schoolsJson);
+      localStorage.setItem(SCHOOLS_STORAGE_KEY, JSON.stringify(parsed));
+      toast({
+        title: "Sucesso!",
+        description: "Lista de escolas salva com sucesso.",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro!",
+        description: "Não foi possível salvar a lista de escolas. Verifique o formato do JSON.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -92,7 +109,7 @@ export function SchoolSettingsForm() {
                     />
                   </FormControl>
                   <FormDescription>
-                    O JSON deve ser um array de objetos, cada um com as chaves "name" e "inep".
+                    O JSON deve ser um array de objetos, cada um com as chaves "id", "name" e "inep".
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

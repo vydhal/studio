@@ -51,18 +51,32 @@ const getMockSubmissions = (): SchoolCensusSubmission[] => {
   ];
 };
 
-const getMockSchools = (): School[] => {
-  return [
-    { id: 'school1', name: 'Escola Municipal Exemplo 1', inep: '12345678' },
-    { id: 'school2', name: 'Escola Estadual Teste 2', inep: '87654321' },
-    { id: 'school3', name: 'Centro Educacional Modelo 3', inep: '98765432' },
-  ];
+const defaultSchools: School[] = [
+    { id: 'school1', name: 'Escola Municipal Exemplo 1 (Padrão)', inep: '12345678' },
+    { id: 'school2', name: 'Escola Estadual Teste 2 (Padrão)', inep: '87654321' },
+    { id: 'school3', name: 'Centro Educacional Modelo 3 (Padrão)', inep: '98765432' },
+];
+
+const SCHOOLS_STORAGE_KEY = 'schoolList';
+
+const getSchools = (): School[] => {
+  if (typeof window !== 'undefined') {
+    try {
+      const storedSchools = localStorage.getItem(SCHOOLS_STORAGE_KEY);
+      if (storedSchools) {
+        return JSON.parse(storedSchools);
+      }
+    } catch (error) {
+      console.error("Failed to load schools from localStorage", error);
+    }
+  }
+  return defaultSchools;
 };
 
 
-export default async function DashboardPage() {
+export default function DashboardPage() {
     const submissions = getMockSubmissions();
-    const schools = getMockSchools();
+    const schools = getSchools();
 
     return (
         <div className="space-y-4">

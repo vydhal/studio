@@ -5,6 +5,23 @@ import { AlertTriangle } from "lucide-react";
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 
+
+const defaultSchools: School[] = [
+    { id: 'school1', name: 'Escola Municipal Exemplo 1 (Padrão)', inep: '12345678' },
+    { id: 'school2', name: 'Escola Estadual Teste 2 (Padrão)', inep: '87654321' },
+    { id: 'school3', name: 'Centro Educacional Modelo 3 (Padrão)', inep: '98765432' },
+];
+
+const SCHOOLS_STORAGE_KEY = 'schoolList';
+
+const getSchools = (): School[] => {
+  // This is a server component, so we can't use localStorage here.
+  // We'll rely on the mock data for now.
+  // A real implementation would fetch this from a database.
+  return defaultSchools;
+};
+
+
 // Mock data to simulate Firestore fetch
 const getMockSubmission = (id: string): SchoolCensusSubmission | null => {
   if (id === 'sub1' || id === 'sub2') {
@@ -60,11 +77,8 @@ const getMockSubmission = (id: string): SchoolCensusSubmission | null => {
 }
 
 const getMockSchool = (id: string): School | null => {
-    const mockSchools: { [key: string]: School } = {
-        'school1': { id: 'school1', name: 'Escola Municipal Exemplo 1', inep: '12345678' },
-        'school2': { id: 'school2', name: 'Escola Estadual Teste 2', inep: '87654321' },
-    };
-    return mockSchools[id] || null;
+    const allSchools = getSchools();
+    return allSchools.find(s => s.id === id) || null;
 }
 
 export default async function SubmissionDetailPage({ params }: { params: { id: string } }) {

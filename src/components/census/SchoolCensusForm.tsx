@@ -85,11 +85,14 @@ const defaultTechnologies = [
     { id: '6', name: 'Modems com Defeito', quantity: 0 },
 ];
 
-const mockSchools: School[] = [
-    { id: 'school1', name: 'Escola Municipal Exemplo 1', inep: '12345678' },
-    { id: 'school2', name: 'Escola Estadual Teste 2', inep: '87654321' },
-    { id: 'school3', name: 'Centro Educacional Modelo 3', inep: '98765432' },
+const defaultSchools: School[] = [
+    { id: 'school1', name: 'Escola Municipal Exemplo 1 (Padrão)', inep: '12345678' },
+    { id: 'school2', name: 'Escola Estadual Teste 2 (Padrão)', inep: '87654321' },
+    { id: 'school3', name: 'Centro Educacional Modelo 3 (Padrão)', inep: '98765432' },
 ];
+
+const SCHOOLS_STORAGE_KEY = 'schoolList';
+
 
 export function SchoolCensusForm() {
   const { toast } = useToast();
@@ -127,7 +130,19 @@ export function SchoolCensusForm() {
   const { fields: technologies } = useFieldArray({ control: form.control, name: "technology.resources" });
 
   useEffect(() => {
-    setSchools(mockSchools);
+    // Fetch schools from localStorage
+    try {
+        const storedSchools = localStorage.getItem(SCHOOLS_STORAGE_KEY);
+        if (storedSchools) {
+            setSchools(JSON.parse(storedSchools));
+        } else {
+            setSchools(defaultSchools);
+        }
+    } catch (error) {
+        console.error("Failed to load schools from localStorage", error);
+        setSchools(defaultSchools);
+    }
+
     const schoolId = searchParams.get('schoolId');
     if (schoolId) {
         form.setValue('schoolId', schoolId);

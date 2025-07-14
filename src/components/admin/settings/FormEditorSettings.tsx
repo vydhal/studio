@@ -17,7 +17,7 @@ import { produce } from "immer";
 interface FormField {
     id: string;
     name: string;
-    type: 'text' | 'number' | 'boolean' | 'date';
+    type: 'text' | 'number' | 'boolean' | 'date' | 'select' | 'file' | 'rating';
     required: boolean;
 }
 
@@ -109,8 +109,11 @@ export function FormEditorSettings() {
                                             <SelectContent>
                                                 <SelectItem value="text">Texto</SelectItem>
                                                 <SelectItem value="number">Número</SelectItem>
-                                                <SelectItem value="boolean">Sim/Não</SelectItem>
+                                                <SelectItem value="boolean">Sim/Não (Checkbox)</SelectItem>
                                                 <SelectItem value="date">Data</SelectItem>
+                                                <SelectItem value="select">Lista de Opções</SelectItem>
+                                                <SelectItem value="file" disabled>Upload de Arquivo</SelectItem>
+                                                <SelectItem value="rating" disabled>Avaliação (Rating)</SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </div>
