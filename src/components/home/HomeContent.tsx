@@ -147,13 +147,13 @@ function HomeSkeleton() {
                         <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none font-headline">
                             <Skeleton className="h-12 w-full max-w-2xl" />
                         </h1>
-                        <p className="max-w-[600px] text-muted-foreground md:text-xl">
+                        <div className="max-w-[600px] text-muted-foreground md:text-xl">
                             <Skeleton className="h-8 w-full max-w-lg" />
-                        </p>
+                        </div>
                     </div>
-                     <p className="max-w-[600px] text-muted-foreground">
+                     <div className="max-w-[600px] text-muted-foreground">
                         <Skeleton className="h-6 w-full max-w-xl" />
-                     </p>
+                     </div>
                     <div className="flex flex-col gap-2 min-[400px]:flex-row">
                         <Skeleton className="h-12 w-40" />
                         <Skeleton className="h-12 w-40" />
