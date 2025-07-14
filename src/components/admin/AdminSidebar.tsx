@@ -61,7 +61,7 @@ export function AdminSidebar() {
 
   const visibleMenuItems = menuItems.filter(item => {
     if (!item.requiredPermission) return true;
-    return userProfile?.role?.permissions.includes(item.requiredPermission);
+    return hasUsersPermission;
   });
 
   return (

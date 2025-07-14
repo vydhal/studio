@@ -4,7 +4,7 @@
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useSearchParams, useRouter } from 'next/navigation';
 
 import { Button } from "@/components/ui/button";
@@ -266,17 +266,26 @@ export function SchoolCensusForm() {
         toast({ title: "Erro ao Salvar", description: "Não foi possível salvar os dados.", variant: "destructive" });
     }
   }
+  
+  const isAdmin = useMemo(() => userProfile?.role?.permissions.includes('users') ?? false, [userProfile]);
 
-  const visibleSections = formConfig.filter(section => {
-    // If not logged in, or no specific role, show all sections
-    if (!userProfile || !userProfile.role) return true;
+  const visibleSections = useMemo(() => {
+    if (!userProfile?.role) {
+      // If not logged in or no role, show no sections if a login is required.
+      // Assuming a public census form is not a feature for now.
+      return [];
+    }
     
-    // If user has 'users' permission, they are an admin, show all
-    if (userProfile.role.permissions.includes('users')) return true;
-
-    // Otherwise, only show sections they have permission for
-    return userProfile.role.permissions.includes(section.id as any);
-  });
+    // Admins with 'users' permission see all sections.
+    if (isAdmin) {
+      return formConfig;
+    }
+    
+    // Other users see only the sections their role permits.
+    return formConfig.filter(section => 
+        userProfile.role!.permissions.includes(section.id as any)
+    );
+  }, [formConfig, userProfile, isAdmin]);
 
   if (isConfigLoading || appLoading || authLoading) {
       return (
@@ -323,7 +332,12 @@ export function SchoolCensusForm() {
                   />
           </CardHeader>
           <CardContent className="pt-6">
-            {visibleSections.length > 0 ? (
+            {!user && (
+                 <div className="text-center text-muted-foreground py-10">
+                    <p>Você precisa estar logado para preencher o formulário.</p>
+                </div>
+            )}
+            {user && visibleSections.length > 0 && (
                  <Tabs defaultValue={visibleSections[0].id} className="w-full">
                   <TabsList className="mb-4 flex h-auto flex-wrap justify-start">
                       {visibleSections.map(section => {
@@ -353,9 +367,10 @@ export function SchoolCensusForm() {
                   ))}
                  
                 </Tabs>
-            ) : (
+            )}
+             {user && visibleSections.length === 0 && (
                 <div className="text-center text-muted-foreground py-10">
-                    <p>Você não tem permissão para editar nenhuma seção do formulário.</p>
+                    <p>Seu perfil não tem permissão para editar nenhuma seção do formulário.</p>
                     <p>Por favor, entre em contato com um administrador.</p>
                 </div>
             )}

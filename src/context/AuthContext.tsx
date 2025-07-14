@@ -5,7 +5,7 @@ import React, { createContext, useState, useEffect, ReactNode, useContext } from
 import { User, onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { usePathname, useRouter } from 'next/navigation';
-import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import type { UserProfile, Role } from '@/types';
 import { School } from 'lucide-react';
 
@@ -42,19 +42,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         if (userSnap.exists()) {
             const userData = userSnap.data() as Omit<UserProfile, 'id' | 'role'>;
-            const roleRef = doc(db, 'roles', userData.roleId);
-            const roleSnap = await getDoc(roleRef);
             
-            if (roleSnap.exists()) {
-                const userRole = { id: roleSnap.id, ...roleSnap.data() } as Role;
-                setUserProfile({ id: user.uid, ...userData, role: userRole });
+            if (userData.roleId) {
+                const roleRef = doc(db, 'roles', userData.roleId);
+                const roleSnap = await getDoc(roleRef);
+                
+                if (roleSnap.exists()) {
+                    const userRole = { id: roleSnap.id, ...roleSnap.data() } as Role;
+                    setUserProfile({ id: user.uid, ...userData, role: userRole });
+                } else {
+                     // User has a roleId that doesn't exist in the roles collection
+                    setUserProfile({ id: user.uid, ...userData, role: null });
+                }
             } else {
-                 // User has a roleId that doesn't exist in the roles collection
-                setUserProfile({ id: user.uid, ...userData, role: null });
+                 // User has no roleId assigned
+                 setUserProfile({ id: user.uid, ...userData, role: null });
             }
         } else {
             // User exists in Auth but not in 'users' collection.
-            setUserProfile(null); 
+            // This could be a partially created user. Treat as having no profile.
+            setUserProfile({
+              id: user.uid,
+              email: user.email!,
+              name: user.displayName || 'Usuário sem perfil',
+              roleId: '',
+              role: null
+            }); 
         }
 
       } else {
