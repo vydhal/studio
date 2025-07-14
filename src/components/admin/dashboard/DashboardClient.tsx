@@ -22,16 +22,9 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton";
+import { db } from "@/lib/firebase";
+import { collection, getDocs, onSnapshot } from "firebase/firestore";
 
-
-const SCHOOLS_STORAGE_KEY = 'schoolList';
-const SUBMISSIONS_STORAGE_KEY = 'schoolCensusSubmissions';
-
-const defaultSchools: School[] = [
-    { id: 'school1', name: 'Escola Municipal Exemplo 1 (Padrão)', inep: '12345678' },
-    { id: 'school2', name: 'Escola Estadual Teste 2 (Padrão)', inep: '87654321' },
-    { id: 'school3', name: 'Centro Educacional Modelo 3 (Padrão)', inep: '98765432' },
-];
 
 export function DashboardClient() {
   const [submissions, setSubmissions] = useState<SchoolCensusSubmission[]>([]);
@@ -40,17 +33,51 @@ export function DashboardClient() {
   const [filter, setFilter] = useState("");
 
   useEffect(() => {
-    // Fetch data on the client side
-    const storedSchools = localStorage.getItem(SCHOOLS_STORAGE_KEY);
-    const schoolsData = storedSchools ? JSON.parse(storedSchools) : defaultSchools;
-    setSchools(schoolsData);
+    if (!db) {
+        console.error("Firestore DB is not available.");
+        setLoading(false);
+        return;
+    }
 
-    const storedSubmissions = localStorage.getItem(SUBMISSIONS_STORAGE_KEY);
-    const submissionsData = storedSubmissions ? Object.values(JSON.parse(storedSubmissions)) : [];
+    const fetchInitialData = async () => {
+        const schoolsQuery = collection(db, 'schools');
+        const submissionsQuery = collection(db, 'submissions');
 
-    setSubmissions(submissionsData as SchoolCensusSubmission[]);
+        try {
+            const [schoolsSnapshot, submissionsSnapshot] = await Promise.all([
+                getDocs(schoolsQuery),
+                getDocs(submissionsQuery)
+            ]);
+            
+            const schoolsData = schoolsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as School[];
+            const submissionsData = submissionsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as SchoolCensusSubmission[];
+
+            setSchools(schoolsData);
+            setSubmissions(submissionsData);
+        } catch (error) {
+            console.error("Error fetching initial data from Firestore:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
     
-    setLoading(false);
+    fetchInitialData();
+
+    // Set up real-time listeners
+    const submissionsUnsubscribe = onSnapshot(collection(db, "submissions"), (snapshot) => {
+        const submissionsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as SchoolCensusSubmission[];
+        setSubmissions(submissionsData);
+    });
+    
+    const schoolsUnsubscribe = onSnapshot(collection(db, "schools"), (snapshot) => {
+        const schoolsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as School[];
+        setSchools(schoolsData);
+    });
+
+    return () => {
+      submissionsUnsubscribe();
+      schoolsUnsubscribe();
+    }
   }, []);
 
   const schoolMap = new Map(schools.map(s => [s.id, s]));
@@ -83,17 +110,17 @@ export function DashboardClient() {
       const school = schoolMap.get(sub.schoolId);
       if (!school) return null;
 
-      const totalClassrooms = sub.infrastructure.classrooms?.length || 0;
-      const totalStudentCapacity = sub.infrastructure.classrooms?.reduce((acc, c) => acc + (c.studentCapacity || 0), 0) || 0;
-      const totalOutlets = sub.infrastructure.classrooms?.reduce((acc, c) => acc + (c.outlets || 0), 0) || 0;
-      const totalTvs = sub.infrastructure.classrooms?.reduce((acc, c) => acc + (c.tvCount || 0), 0) || 0;
+      const totalClassrooms = sub.infrastructure?.classrooms?.length || 0;
+      const totalStudentCapacity = sub.infrastructure?.classrooms?.reduce((acc, c) => acc + (c.studentCapacity || 0), 0) || 0;
+      const totalOutlets = sub.infrastructure?.classrooms?.reduce((acc, c) => acc + (c.outlets || 0), 0) || 0;
+      const totalTvs = sub.infrastructure?.classrooms?.reduce((acc, c) => acc + (c.tvCount || 0), 0) || 0;
       
       const modalities = sub.teachingModalities
         ?.filter(m => m.offered)
         .map(m => m.name)
         .join('; ') || '';
 
-      const resources = sub.technology.resources
+      const resources = sub.technology?.resources
         ?.map(r => `${r.name}: ${r.quantity}`)
         .join('; ') || '';
 
@@ -108,7 +135,7 @@ export function DashboardClient() {
         totalStudentCapacity,
         totalOutlets,
         totalTvs,
-        `"${sub.technology.hasInternetAccess ? 'Sim' : 'Não'}"`,
+        `"${sub.technology?.hasInternetAccess ? 'Sim' : 'Não'}"`,
         `"${modalities}"`,
         `"${resources}"`
       ].join(',');
@@ -153,7 +180,7 @@ export function DashboardClient() {
         <div className="flex items-center justify-between space-y-2">
             <h1 className="text-3xl font-bold tracking-tight font-headline">Dashboard</h1>
             <div className="flex items-center space-x-2">
-                <Button onClick={handleExport}>Exportar</Button>
+                <Button onClick={handleExport} >Exportar</Button>
             </div>
         </div>
 

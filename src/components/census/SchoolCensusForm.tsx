@@ -33,30 +33,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { produce } from "immer";
 import { useAppSettings } from "@/context/AppContext";
+import { db } from "@/lib/firebase";
+import { doc, getDoc, setDoc, collection, getDocs, serverTimestamp } from "firebase/firestore";
+import { useAuth } from "@/hooks/useAuth";
+
 
 const staticFormSchema = z.object({
   schoolId: z.string().min(1, "Por favor, selecione uma escola."),
   dynamicData: z.record(z.any()),
 });
-
-const defaultSections: FormSectionConfig[] = [
-    { 
-        id: 'general', 
-        name: 'Dados Gerais',
-        description: 'Seção de dados gerais da escola.',
-        fields: [{ id: 'f_default_1', name: 'Nome do Diretor', type: 'text', required: true, sectionId: 'general' }] 
-    }
-];
-
-const defaultSchools: School[] = [
-    { id: 'school1', name: 'Escola Municipal Exemplo 1 (Padrão)', inep: '12345678' },
-    { id: 'school2', name: 'Escola Estadual Teste 2 (Padrão)', inep: '87654321' },
-    { id: 'school3', name: 'Centro Educacional Modelo 3 (Padrão)', inep: '98765432' },
-];
-
-const FORM_CONFIG_STORAGE_KEY = 'censusFormConfig';
-const SCHOOLS_STORAGE_KEY = 'schoolList';
-const SUBMISSIONS_STORAGE_KEY = 'schoolCensusSubmissions';
 
 
 const sectionIcons: { [key: string]: React.ElementType } = {
@@ -79,10 +64,7 @@ const DynamicField = ({ control, fieldConfig }: { control: any, fieldConfig: For
                  <FormItem>
                     <FormLabel>{fieldConfig.name}</FormLabel>
                      <FormControl>
-                      <div>
-                        {fieldConfig.type === 'text' && <Input {...field} value={field.value ?? ''} />}
-                        {fieldConfig.type === 'number' && <Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.valueAsNumber || null)} />}
-                        {fieldConfig.type === 'boolean' && (
+                        {fieldConfig.type === 'boolean' ? (
                            <div className="flex items-center space-x-2 pt-2 h-10">
                                 <Checkbox
                                     id={fieldName}
@@ -96,8 +78,16 @@ const DynamicField = ({ control, fieldConfig }: { control: any, fieldConfig: For
                                     Sim
                                 </label>
                             </div>
+                        ) : fieldConfig.type === 'number' ? (
+                            <Input 
+                                type="number" 
+                                {...field} 
+                                value={field.value ?? ''}
+                                onChange={e => field.onChange(e.target.value === '' ? null : e.target.valueAsNumber)}
+                            />
+                        ) : (
+                            <Input {...field} value={field.value ?? ''} />
                         )}
-                      </div>
                     </FormControl>
                     <FormMessage>{fieldState.error?.message}</FormMessage>
                 </FormItem>
@@ -111,12 +101,12 @@ export function SchoolCensusForm() {
   const { toast } = useToast();
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { loading: appLoading } = useAppSettings();
-  const [loading, setLoading] = useState(false);
+  const { settings: appSettings, loading: appLoading } = useAppSettings();
+  const { user } = useAuth();
   const [schools, setSchools] = useState<School[]>([]);
   const [formConfig, setFormConfig] = useState<FormSectionConfig[]>([]);
   const [isConfigLoading, setIsConfigLoading] = useState(true);
-
+  
   const form = useForm<z.infer<typeof staticFormSchema>>({
     resolver: zodResolver(staticFormSchema),
     defaultValues: {
@@ -124,15 +114,6 @@ export function SchoolCensusForm() {
       dynamicData: {},
     },
   });
-
-  const getSubmissions = (): Record<string, SchoolCensusSubmission> => {
-    try {
-        const stored = localStorage.getItem(SUBMISSIONS_STORAGE_KEY);
-        return stored ? JSON.parse(stored) : {};
-    } catch (e) {
-        return {};
-    }
-  };
   
   const generateDefaultValues = useCallback((config: FormSectionConfig[]) => {
       const defaultDynamicValues: { [key: string]: any } = {};
@@ -141,70 +122,82 @@ export function SchoolCensusForm() {
           section.fields.forEach((field: FormFieldConfig) => {
               defaultDynamicValues[section.id][field.id] = 
                   field.type === 'boolean' ? false :
-                  field.type === 'number' ? null : // Use null for empty number fields
                   '';
           });
       });
       return defaultDynamicValues;
   }, []);
 
+  // Fetch schools and form config from Firestore
   useEffect(() => {
-    if (appLoading) return; // Wait for app settings to load
-    try {
-        const storedSchools = localStorage.getItem(SCHOOLS_STORAGE_KEY);
-        setSchools(storedSchools ? JSON.parse(storedSchools) : defaultSchools);
+    if (appLoading || !db) return; // Wait for app settings and db to be ready
+    
+    const fetchConfigAndSchools = async () => {
+        try {
+            const schoolsQuery = collection(db, 'schools');
+            const formConfigDocRef = doc(db, 'settings', 'formConfig');
 
-        const storedConfig = localStorage.getItem(FORM_CONFIG_STORAGE_KEY);
-        const parsedConfig = storedConfig ? JSON.parse(storedConfig) : defaultSections;
-        setFormConfig(parsedConfig);
-        
-        const schoolId = searchParams.get('schoolId');
-        const defaultDynamicValues = generateDefaultValues(parsedConfig);
+            const [schoolsSnapshot, formConfigDoc] = await Promise.all([
+                getDocs(schoolsQuery),
+                getDoc(formConfigDocRef)
+            ]);
 
-        let initialValues = {
-            schoolId: schoolId || "",
-            dynamicData: defaultDynamicValues
-        };
+            const schoolsData = schoolsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as School[];
+            setSchools(schoolsData);
 
-        if (schoolId) {
-            const submissions = getSubmissions();
-            const existingSubmission = submissions[schoolId];
-            if (existingSubmission?.dynamicData) {
-                 // Deep merge existing data with defaults to ensure all fields are present
-                const mergedDynamicData = produce(defaultDynamicValues, draft => {
-                    for (const sectionId in existingSubmission.dynamicData) {
-                        if (draft[sectionId]) {
-                            Object.assign(draft[sectionId], existingSubmission.dynamicData[sectionId]);
-                        } else {
-                            draft[sectionId] = existingSubmission.dynamicData[sectionId];
+            const configData = formConfigDoc.exists() ? formConfigDoc.data().sections : [];
+            setFormConfig(configData);
+            
+            // Now that config is loaded, handle initial form state
+            const schoolId = searchParams.get('schoolId');
+            const defaultDynamicValues = generateDefaultValues(configData);
+            let initialValues = {
+                schoolId: schoolId || "",
+                dynamicData: defaultDynamicValues
+            };
+
+            if (schoolId) {
+                const submissionDoc = await getDoc(doc(db, 'submissions', schoolId));
+                if (submissionDoc.exists()) {
+                    const existingSubmission = submissionDoc.data();
+                     const mergedDynamicData = produce(defaultDynamicValues, draft => {
+                        if (existingSubmission.dynamicData) {
+                            for (const sectionId in existingSubmission.dynamicData) {
+                                if (draft[sectionId]) {
+                                    Object.assign(draft[sectionId], existingSubmission.dynamicData[sectionId]);
+                                } else {
+                                    draft[sectionId] = existingSubmission.dynamicData[sectionId];
+                                }
+                            }
                         }
-                    }
-                });
-                initialValues.dynamicData = mergedDynamicData;
+                    });
+                    initialValues.dynamicData = mergedDynamicData;
+                }
             }
+            form.reset(initialValues);
+
+        } catch (error) {
+            console.error("Failed to load config from Firestore", error);
+            toast({ title: "Erro ao carregar configurações", variant: "destructive" });
+        } finally {
+            setIsConfigLoading(false);
         }
-        form.reset(initialValues);
-
-    } catch (error) {
-        console.error("Failed to load config from localStorage", error);
-        setSchools(defaultSchools);
-        setFormConfig(defaultSections);
-    } finally {
-        setIsConfigLoading(false);
     }
-  }, [searchParams, form, generateDefaultValues, appLoading]);
+    fetchConfigAndSchools();
+  }, [searchParams, form, generateDefaultValues, appLoading, toast]);
 
 
-  const handleSchoolChange = (schoolId: string) => {
-      // Update URL without full page reload
+  const handleSchoolChange = async (schoolId: string) => {
+      if (!db) return;
       router.push(`/census?schoolId=${schoolId}`, { scroll: false });
-
-      const submissions = getSubmissions();
-      const existingSubmission = submissions[schoolId];
-      const defaultValues = generateDefaultValues(formConfig);
       
-      if (existingSubmission?.dynamicData) {
-            const mergedDynamicData = produce(defaultValues, draft => {
+      const defaultValues = generateDefaultValues(formConfig);
+      const submissionDoc = await getDoc(doc(db, 'submissions', schoolId));
+
+      if (submissionDoc.exists()) {
+          const existingSubmission = submissionDoc.data();
+          const mergedDynamicData = produce(defaultValues, draft => {
+              if(existingSubmission.dynamicData) {
                 for (const sectionId in existingSubmission.dynamicData) {
                     if (draft[sectionId]) {
                         Object.assign(draft[sectionId], existingSubmission.dynamicData[sectionId]);
@@ -212,61 +205,49 @@ export function SchoolCensusForm() {
                          draft[sectionId] = existingSubmission.dynamicData[sectionId];
                     }
                 }
-            });
-            form.reset({ schoolId, dynamicData: mergedDynamicData });
+              }
+          });
+          form.reset({ schoolId, dynamicData: mergedDynamicData });
       } else {
           form.reset({ schoolId, dynamicData: defaultValues });
       }
   };
 
   async function onSubmit(values: z.infer<typeof staticFormSchema>) {
-    setLoading(true);
-    
+    if (!db) {
+        toast({ title: "Erro de Conexão", variant: "destructive"});
+        return;
+    }
+
+    const { schoolId, dynamicData } = values;
+    if (!schoolId) {
+        toast({ title: "Erro", description: "Selecione uma escola primeiro.", variant: "destructive" });
+        return;
+    }
+
     try {
-        const { schoolId, dynamicData } = values;
-        if (!schoolId) {
-            toast({ title: "Erro", description: "Selecione uma escola primeiro.", variant: "destructive" });
-            setLoading(false);
-            return;
-        }
-
-        const allSubmissions = getSubmissions();
+        const submissionRef = doc(db, 'submissions', schoolId);
         
-        const updatedSubmission = produce(allSubmissions[schoolId] || {
-            id: schoolId,
-            schoolId: schoolId,
-            submittedAt: new Date(),
-        }, (draft: SchoolCensusSubmission) => {
-            if (!draft.dynamicData) {
-              draft.dynamicData = {};
+        // Mark sections with any data as 'completed'
+        const statusUpdates: { [key: string]: { status: 'completed' } } = {};
+        formConfig.forEach(sectionCfg => {
+            const sectionData = dynamicData[sectionCfg.id];
+            if (sectionData && Object.values(sectionData).some(v => v !== '' && v !== false && v !== null && v !== undefined)) {
+                statusUpdates[sectionCfg.id] = { status: 'completed' };
             }
-            // Merge the new data into the draft
-            for (const sectionId in dynamicData) {
-              if (!draft.dynamicData[sectionId]) {
-                draft.dynamicData[sectionId] = {};
-              }
-              // This was the source of the error. We need to merge properties instead of assigning the whole object.
-              Object.assign(draft.dynamicData[sectionId], dynamicData[sectionId]);
-            }
-
-            draft.submittedAt = new Date();
-             
-            // Naive status update - if a section has data, mark it completed
-            formConfig.forEach(sectionCfg => {
-                if (dynamicData[sectionCfg.id] && Object.values(dynamicData[sectionCfg.id]).some(v => v !== '' && v !== false && v !== null)) {
-                    const sectionKey = sectionCfg.id as keyof SchoolCensusSubmission;
-                    if (!draft[sectionKey]) {
-                        (draft as any)[sectionKey] = {};
-                    }
-                    (draft as any)[sectionKey].status = 'completed';
-                }
-            });
         });
         
-        allSubmissions[schoolId] = updatedSubmission;
-        localStorage.setItem(SUBMISSIONS_STORAGE_KEY, JSON.stringify(allSubmissions));
+        const submissionData = {
+          id: schoolId,
+          schoolId: schoolId,
+          dynamicData,
+          ...statusUpdates, // Spread the status updates
+          submittedAt: serverTimestamp(),
+          submittedBy: user?.uid || 'unknown'
+        };
 
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await setDoc(submissionRef, submissionData, { merge: true });
+
         toast({
             title: "Sucesso!",
             description: "Informações salvas com sucesso. Você pode continuar editando.",
@@ -275,8 +256,6 @@ export function SchoolCensusForm() {
     } catch (e) {
         console.error("Submission Error:", e);
         toast({ title: "Erro ao Salvar", description: "Não foi possível salvar os dados.", variant: "destructive" });
-    } finally {
-        setLoading(false);
     }
   }
 
@@ -357,8 +336,8 @@ export function SchoolCensusForm() {
             </Tabs>
           </CardContent>
           <CardFooter>
-            <Button type="submit" className="w-full" disabled={loading || !form.getValues('schoolId')}>
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Button type="submit" className="w-full" disabled={!form.getValues('schoolId') || form.formState.isSubmitting}>
+              {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Salvar Informações
             </Button>
           </CardFooter>
@@ -367,5 +346,3 @@ export function SchoolCensusForm() {
     </Card>
   );
 }
-
-    

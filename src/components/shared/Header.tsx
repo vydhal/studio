@@ -1,30 +1,17 @@
+
 "use client";
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Menu, School } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import type { HomeSettings } from '@/types';
+import { useAppSettings } from '@/context/AppContext';
+import { useAuth } from '@/hooks/useAuth';
 
-const SETTINGS_STORAGE_KEY = 'homePageSettings';
-const defaultAppName = "Firebase School Central";
 
 export function Header() {
-  const [appName, setAppName] = useState(defaultAppName);
-
-  useEffect(() => {
-    try {
-      const storedSettings = localStorage.getItem(SETTINGS_STORAGE_KEY);
-      if (storedSettings) {
-        const settings: HomeSettings = JSON.parse(storedSettings);
-        setAppName(settings.appName || defaultAppName);
-      }
-    } catch (error) {
-      console.error("Failed to parse settings from localStorage for header", error);
-      setAppName(defaultAppName);
-    }
-  }, []);
+  const { appName } = useAppSettings();
+  const { user } = useAuth();
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -57,14 +44,18 @@ export function Header() {
                 </Link>
                 <nav className="flex flex-col space-y-4">
                   <Link href="/census" className="text-lg">Censo Escolar</Link>
-                  <Link href="/login" className="text-lg">Admin Login</Link>
+                  <Link href={user ? "/admin/dashboard" : "/login"} className="text-lg">
+                    {user ? "Painel Admin" : "Admin Login"}
+                  </Link>
                 </nav>
               </SheetContent>
             </Sheet>
           </div>
           <nav className="hidden md:flex items-center">
             <Button asChild>
-              <Link href="/login">Admin Login</Link>
+              <Link href={user ? "/admin/dashboard" : "/login"}>
+                {user ? "Painel Admin" : "Admin Login"}
+              </Link>
             </Button>
           </nav>
         </div>

@@ -1,48 +1,17 @@
 
 "use client";
 
-import { useEffect, useState } from 'react';
-import type { HomeSettings } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAppSettings } from '@/context/AppContext';
 import { Facebook, Instagram, Twitter, ArrowRight, BookOpenCheck } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 
-const defaultSettings: HomeSettings = {
-    appName: "Firebase School Central",
-    title: 'Bem-vindo ao Firebase School Central',
-    subtitle: 'Sua plataforma completa para gerenciamento de censo escolar.',
-    description: 'Nossa plataforma simplifica a coleta e análise de dados do censo escolar, fornecendo insights valiosos para gestores e administradores. Preencha o formulário ou acesse o painel administrativo para começar.',
-    logoUrl: 'https://placehold.co/100x100.png',
-    footerText: `© ${new Date().getFullYear()} Firebase School Central. Todos os Direitos Reservados.`,
-    facebookUrl: '#',
-    instagramUrl: '#',
-    twitterUrl: '#',
-};
-
-const SETTINGS_STORAGE_KEY = 'homePageSettings';
 
 export function HomeContent() {
-    const [settings, setSettings] = useState<HomeSettings | null>(null);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        setLoading(true);
-        try {
-            const storedSettings = localStorage.getItem(SETTINGS_STORAGE_KEY);
-            if (storedSettings) {
-                setSettings(JSON.parse(storedSettings));
-            } else {
-                setSettings(defaultSettings);
-            }
-        } catch (error) {
-            console.error("Failed to parse settings from localStorage", error);
-            setSettings(defaultSettings);
-        }
-        setLoading(false);
-    }, []);
+    const { settings, loading } = useAppSettings();
 
     if (loading || !settings) {
         return <HomeSkeleton />;

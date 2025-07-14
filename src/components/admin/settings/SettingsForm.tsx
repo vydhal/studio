@@ -5,7 +5,6 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useState, useEffect } from "react";
-
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -23,6 +22,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription }
 import { Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { HomeSettings } from "@/types";
+import { useAppSettings } from "@/context/AppContext";
+import { doc, setDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+
 
 const formSchema = z.object({
   appName: z.string().min(1, "Nome da aplicação é obrigatório."),
@@ -36,24 +39,11 @@ const formSchema = z.object({
   twitterUrl: z.string().url("URL inválida.").or(z.literal("")).optional(),
 });
 
-const defaultSettings: HomeSettings = {
-    appName: "Firebase School Central",
-    logoUrl: "https://placehold.co/100x100.png",
-    title: "Bem-vindo ao Firebase School Central (Padrão)",
-    subtitle: "Sua plataforma completa para gerenciamento de censo escolar.",
-    description: "Nossa plataforma simplifica a coleta e análise de dados do censo escolar, fornecendo insights valiosos para gestores e administradores. Preencha o formulário ou acesse o painel administrativo para começar.",
-    footerText: `© ${new Date().getFullYear()} Firebase School Central. Todos os Direitos Reservados.`,
-    facebookUrl: "#",
-    instagramUrl: "#",
-    twitterUrl: "#",
-};
-
-const SETTINGS_STORAGE_KEY = 'homePageSettings';
 
 export function HomePageSettingsForm() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [fetching, setFetching] = useState(true);
+  const { settings: currentSettings, loading: fetching } = useAppSettings();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -71,47 +61,28 @@ export function HomePageSettingsForm() {
   });
 
   useEffect(() => {
-    setFetching(true);
-    try {
-        const storedSettings = localStorage.getItem(SETTINGS_STORAGE_KEY);
-        if (storedSettings) {
-            const settings = JSON.parse(storedSettings);
-            // Ensure all fields have a value to prevent uncontrolled -> controlled error
-             form.reset({
-                ...defaultSettings,
-                ...settings,
-                logoUrl: settings.logoUrl || "",
-                facebookUrl: settings.facebookUrl || "",
-                instagramUrl: settings.instagramUrl || "",
-                twitterUrl: settings.twitterUrl || "",
-            });
-        } else {
-            form.reset({
-                ...defaultSettings,
-                logoUrl: defaultSettings.logoUrl || "",
-                facebookUrl: defaultSettings.facebookUrl || "",
-                instagramUrl: defaultSettings.instagramUrl || "",
-                twitterUrl: defaultSettings.twitterUrl || "",
-            });
-        }
-    } catch (error) {
-        console.error("Failed to parse settings from localStorage", error);
+    if (currentSettings) {
         form.reset({
-            ...defaultSettings,
-            logoUrl: defaultSettings.logoUrl || "",
-            facebookUrl: defaultSettings.facebookUrl || "",
-            instagramUrl: defaultSettings.instagramUrl || "",
-            twitterUrl: defaultSettings.twitterUrl || "",
+            ...currentSettings,
+            logoUrl: currentSettings.logoUrl || "",
+            facebookUrl: currentSettings.facebookUrl || "",
+            instagramUrl: currentSettings.instagramUrl || "",
+            twitterUrl: currentSettings.twitterUrl || "",
         });
     }
-    setFetching(false);
-  }, [form]);
+  }, [currentSettings, form]);
 
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!db) {
+        toast({ title: "Erro de Conexão", description: "Banco de dados não disponível.", variant: "destructive" });
+        return;
+    }
     setLoading(true);
     try {
-      localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(values));
+      const settingsRef = doc(db, 'settings', 'homePage');
+      await setDoc(settingsRef, values);
+
       toast({
           title: "Sucesso!",
           description: "Configurações da página inicial salvas com sucesso.",
@@ -124,7 +95,7 @@ export function HomePageSettingsForm() {
           description: "Não foi possível salvar as configurações.",
           variant: "destructive",
       });
-      console.error("Failed to save settings to localStorage", error);
+      console.error("Failed to save settings to Firestore", error);
     } finally {
       setLoading(false);
     }
@@ -163,7 +134,7 @@ export function HomePageSettingsForm() {
                 <FormItem><FormLabel>Nome da Aplicação</FormLabel><FormControl><Input {...field} /></FormControl><FormDescription>O nome que aparece no cabeçalho e título da página.</FormDescription><FormMessage /></FormItem>
             )}/>
             <FormField control={form.control} name="logoUrl" render={({ field }) => (
-                <FormItem><FormLabel>URL do Logo</FormLabel><FormControl><Input placeholder="https://..." {...field} /></FormControl><FormMessage /></FormItem>
+                <FormItem><FormLabel>URL do Logo</FormLabel><FormControl><Input placeholder="https://..." {...field} value={field.value ?? ""} /></FormControl><FormMessage /></FormItem>
             )}/>
             <FormField control={form.control} name="title" render={({ field }) => (
                 <FormItem><FormLabel>Título Principal</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
@@ -178,13 +149,13 @@ export function HomePageSettingsForm() {
                 <FormItem><FormLabel>Texto do Rodapé</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
             )}/>
             <FormField control={form.control} name="instagramUrl" render={({ field }) => (
-                <FormItem><FormLabel>URL do Instagram</FormLabel><FormControl><Input placeholder="https://instagram.com/..." {...field} /></FormControl><FormMessage /></FormItem>
+                <FormItem><FormLabel>URL do Instagram</FormLabel><FormControl><Input placeholder="https://instagram.com/..." {...field} value={field.value ?? ""} /></FormControl><FormMessage /></FormItem>
             )}/>
              <FormField control={form.control} name="twitterUrl" render={({ field }) => (
-                <FormItem><FormLabel>URL do Twitter/X</FormLabel><FormControl><Input placeholder="https://x.com/..." {...field} /></FormControl><FormMessage /></FormItem>
+                <FormItem><FormLabel>URL do Twitter/X</FormLabel><FormControl><Input placeholder="https://x.com/..." {...field} value={field.value ?? ""} /></FormControl><FormMessage /></FormItem>
             )}/>
              <FormField control={form.control} name="facebookUrl" render={({ field }) => (
-                <FormItem><FormLabel>URL do Facebook</FormLabel><FormControl><Input placeholder="https://facebook.com/..." {...field} /></FormControl><FormMessage /></FormItem>
+                <FormItem><FormLabel>URL do Facebook</FormLabel><FormControl><Input placeholder="https://facebook.com/..." {...field} value={field.value ?? ""}/></FormControl><FormMessage /></FormItem>
             )}/>
           </CardContent>
           <CardFooter>

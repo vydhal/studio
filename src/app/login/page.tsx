@@ -1,8 +1,23 @@
+
+"use client"
 import { LoginForm } from "@/components/auth/LoginForm";
 import { School } from "lucide-react";
 import Link from 'next/link'
+import { useAuth } from "@/hooks/useAuth";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function LoginPage() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && user) {
+      router.push('/admin/dashboard');
+    }
+  }, [user, loading, router]);
+
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-background">
       <div className="w-full max-w-md p-8 space-y-8">

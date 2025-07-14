@@ -1,23 +1,25 @@
 
 "use client";
 
-import { useState } from 'react';
-import { useForm, useFieldArray } from "react-hook-form";
+import { useState, useEffect } from 'react';
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import type { UserProfile, Role, FormSection } from "@/types";
-import { PlusCircle, Edit, Trash2, Loader2, MoreHorizontal } from "lucide-react";
+import { PlusCircle, MoreHorizontal } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { db } from '@/lib/firebase';
+import { collection, onSnapshot, addDoc, doc, setDoc, deleteDoc } from 'firebase/firestore';
 
 
 const roleSchema = z.object({
@@ -30,7 +32,6 @@ const userSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(2, "Nome do usuário é obrigatório."),
   email: z.string().email("Email inválido."),
-  password: z.string().min(6, "A senha deve ter pelo menos 6 caracteres.").optional(),
   roleId: z.string().min(1, "Selecione um perfil."),
 });
 
@@ -43,19 +44,31 @@ const formSections: { id: FormSection; label: string }[] = [
     { id: 'users', label: 'Gerenciar Usuários' },
 ];
 
-interface UserManagementClientProps {
-    initialUsers: UserProfile[];
-    initialRoles: Role[];
-}
-
-export function UserManagementClient({ initialUsers, initialRoles }: UserManagementClientProps) {
+export function UserManagementClient() {
   const { toast } = useToast();
-  const [users, setUsers] = useState<UserProfile[]>(initialUsers);
-  const [roles, setRoles] = useState<Role[]>(initialRoles);
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
   const [isUserModalOpen, setUserModalOpen] = useState(false);
   const [isRoleModalOpen, setRoleModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
   const [editingRole, setEditingRole] = useState<Role | null>(null);
+
+  useEffect(() => {
+    if (!db) return;
+    
+    const usersUnsub = onSnapshot(collection(db, 'users'), snapshot => {
+        setUsers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as UserProfile)));
+    });
+
+    const rolesUnsub = onSnapshot(collection(db, 'roles'), snapshot => {
+        setRoles(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Role)));
+    });
+
+    return () => {
+        usersUnsub();
+        rolesUnsub();
+    };
+  }, []);
 
   const roleForm = useForm<z.infer<typeof roleSchema>>({
     resolver: zodResolver(roleSchema),
@@ -78,32 +91,58 @@ export function UserManagementClient({ initialUsers, initialRoles }: UserManagem
     roleForm.reset(role);
     setRoleModalOpen(true);
   };
+  
+  const handleDeleteUser = async (userId: string) => {
+    if (!db) return;
+    await deleteDoc(doc(db, "users", userId));
+    toast({ title: "Usuário excluído com sucesso." });
+  }
 
-  const onUserSubmit = (values: z.infer<typeof userSchema>) => {
-    console.log("Saving user:", values);
-    toast({ title: `Usuário ${editingUser ? 'atualizado' : 'criado'} com sucesso!` });
-    // This would be an API call in a real app
-    if (editingUser) {
-        setUsers(users.map(u => u.id === editingUser.id ? { ...u, ...values } : u));
-    } else {
-        setUsers([...users, { ...values, id: `user${users.length + 1}` }]);
+  const handleDeleteRole = async (roleId: string) => {
+    if (!db) return;
+    // TODO: Check if role is in use before deleting
+    await deleteDoc(doc(db, "roles", roleId));
+    toast({ title: "Perfil excluído com sucesso." });
+  }
+
+  const onUserSubmit = async (values: z.infer<typeof userSchema>) => {
+    if(!db) return;
+    toast({ title: `Salvando usuário...` });
+    // In a real app, creating a user would happen via Firebase Auth,
+    // and this would just manage their profile data in Firestore.
+    try {
+        if (editingUser) {
+            const userRef = doc(db, 'users', editingUser.id);
+            await setDoc(userRef, values, { merge: true });
+        } else {
+            await addDoc(collection(db, 'users'), values);
+        }
+        setUserModalOpen(false);
+        setEditingUser(null);
+        userForm.reset({ name: "", email: "", roleId: "" });
+        toast({ title: `Usuário ${editingUser ? 'atualizado' : 'criado'} com sucesso!` });
+    } catch (e) {
+        toast({ title: "Erro ao salvar usuário", variant: "destructive"});
     }
-    setUserModalOpen(false);
-    setEditingUser(null);
-    userForm.reset({ name: "", email: "", roleId: "" });
   };
 
-  const onRoleSubmit = (values: z.infer<typeof roleSchema>) => {
-    console.log("Saving role:", values);
-    toast({ title: `Perfil ${editingRole ? 'atualizado' : 'criado'} com sucesso!` });
-    if (editingRole) {
-        setRoles(roles.map(r => r.id === editingRole.id ? { ...r, ...values } : r));
-    } else {
-        setRoles([...roles, { ...values, id: `role${roles.length + 1}` }]);
+  const onRoleSubmit = async (values: z.infer<typeof roleSchema>) => {
+    if(!db) return;
+    toast({ title: `Salvando perfil...` });
+    try {
+        if (editingRole) {
+            const roleRef = doc(db, 'roles', editingRole.id);
+            await setDoc(roleRef, values, { merge: true });
+        } else {
+            await addDoc(collection(db, 'roles'), values);
+        }
+        setRoleModalOpen(false);
+        setEditingRole(null);
+        roleForm.reset({ name: "", permissions: [] });
+        toast({ title: `Perfil ${editingRole ? 'atualizado' : 'criado'} com sucesso!` });
+    } catch(e) {
+         toast({ title: "Erro ao salvar perfil", variant: "destructive"});
     }
-    setRoleModalOpen(false);
-    setEditingRole(null);
-    roleForm.reset({ name: "", permissions: [] });
   };
 
   return (
@@ -127,7 +166,7 @@ export function UserManagementClient({ initialUsers, initialRoles }: UserManagem
                     </div>
                 </CardHeader>
                 <CardContent>
-                    <UsersTable users={users} roles={roles} onEdit={handleEditUser} />
+                    <UsersTable users={users} roles={roles} onEdit={handleEditUser} onDelete={handleDeleteUser} />
                 </CardContent>
             </Card>
         </TabsContent>
@@ -145,7 +184,7 @@ export function UserManagementClient({ initialUsers, initialRoles }: UserManagem
                     </div>
                 </CardHeader>
                 <CardContent>
-                    <RolesTable roles={roles} onEdit={handleEditRole} />
+                    <RolesTable roles={roles} onEdit={handleEditRole} onDelete={handleDeleteRole} />
                 </CardContent>
             </Card>
         </TabsContent>
@@ -155,6 +194,9 @@ export function UserManagementClient({ initialUsers, initialRoles }: UserManagem
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>{editingUser ? 'Editar' : 'Novo'} Usuário</DialogTitle>
+                     <DialogDescription>
+                        A criação de usuário aqui apenas cria um perfil no banco de dados. A autenticação real deve ser gerenciada no painel do Firebase.
+                    </DialogDescription>
                 </DialogHeader>
                 <Form {...userForm}>
                     <form onSubmit={userForm.handleSubmit(onUserSubmit)} className="space-y-4">
@@ -164,23 +206,7 @@ export function UserManagementClient({ initialUsers, initialRoles }: UserManagem
                         <FormField control={userForm.control} name="email" render={({ field }) => (
                             <FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" {...field} /></FormControl><FormMessage /></FormItem>
                         )} />
-                        <FormField
-                          control={userForm.control}
-                          name="password"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Senha</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="password"
-                                  placeholder={editingUser ? 'Deixe em branco para não alterar' : '••••••••'}
-                                  {...field}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                        
                         <FormField control={userForm.control} name="roleId" render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Perfil</FormLabel>
@@ -233,8 +259,8 @@ export function UserManagementClient({ initialUsers, initialRoles }: UserManagem
                                                                     checked={field.value?.includes(item.id)}
                                                                     onCheckedChange={(checked) => {
                                                                         return checked
-                                                                        ? field.onChange([...field.value, item.id])
-                                                                        : field.onChange(field.value?.filter((value) => value !== item.id))
+                                                                        ? field.onChange([...(field.value || []), item.id])
+                                                                        : field.onChange((field.value || []).filter((value) => value !== item.id))
                                                                     }}
                                                                 />
                                                             </FormControl>
@@ -261,7 +287,7 @@ export function UserManagementClient({ initialUsers, initialRoles }: UserManagem
   );
 }
 
-function UsersTable({ users, roles, onEdit }: { users: UserProfile[], roles: Role[], onEdit: (user: UserProfile) => void }) {
+function UsersTable({ users, roles, onEdit, onDelete }: { users: UserProfile[], roles: Role[], onEdit: (user: UserProfile) => void, onDelete: (id: string) => void }) {
     const roleMap = new Map(roles.map(r => [r.id, r.name]));
     return (
         <Table>
@@ -284,7 +310,7 @@ function UsersTable({ users, roles, onEdit }: { users: UserProfile[], roles: Rol
                                 <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
                                     <DropdownMenuItem onClick={() => onEdit(user)}>Editar</DropdownMenuItem>
-                                    <DropdownMenuItem className="text-destructive">Excluir</DropdownMenuItem>
+                                    <DropdownMenuItem className="text-destructive" onClick={() => onDelete(user.id)}>Excluir</DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
                         </TableCell>
@@ -295,7 +321,7 @@ function UsersTable({ users, roles, onEdit }: { users: UserProfile[], roles: Rol
     );
 }
 
-function RolesTable({ roles, onEdit }: { roles: Role[], onEdit: (role: Role) => void }) {
+function RolesTable({ roles, onEdit, onDelete }: { roles: Role[], onEdit: (role: Role) => void, onDelete: (id: string) => void }) {
     return (
         <Table>
             <TableHeader>
@@ -315,7 +341,7 @@ function RolesTable({ roles, onEdit }: { roles: Role[], onEdit: (role: Role) => 
                                 <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
                                     <DropdownMenuItem onClick={() => onEdit(role)}>Editar</DropdownMenuItem>
-                                    <DropdownMenuItem className="text-destructive">Excluir</DropdownMenuItem>
+                                    <DropdownMenuItem className="text-destructive" onClick={() => onDelete(role.id)}>Excluir</DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
                         </TableCell>

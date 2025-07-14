@@ -1,7 +1,11 @@
+
 "use client";
 
 import React, { createContext, useState, useEffect, ReactNode, useContext } from 'react';
 import type { HomeSettings } from '@/types';
+import { db } from '@/lib/firebase';
+import { doc, onSnapshot } from 'firebase/firestore';
+
 
 interface AppContextType {
   settings: HomeSettings | null;
@@ -21,8 +25,6 @@ const defaultSettings: HomeSettings = {
     twitterUrl: '#',
 };
 
-const SETTINGS_STORAGE_KEY = 'homePageSettings';
-
 export const AppContext = createContext<AppContextType>({ settings: null, loading: true, appName: "School Central" });
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
@@ -31,26 +33,36 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [appName, setAppName] = useState(defaultSettings.appName);
 
   useEffect(() => {
-    // This effect runs once on the client side
-    try {
-        const storedSettings = localStorage.getItem(SETTINGS_STORAGE_KEY);
-        const appSettings = storedSettings ? JSON.parse(storedSettings) : defaultSettings;
-        setSettings(appSettings);
-        setAppName(appSettings.appName || defaultSettings.appName);
-        
-        // Update document title
-        if (appSettings.appName) {
-            document.title = appSettings.appName;
-        }
-
-    } catch (error) {
-        console.error("Failed to parse settings from localStorage", error);
+    if (!db) {
+        // Handle case where Firestore is not initialized (e.g., test env)
         setSettings(defaultSettings);
         setAppName(defaultSettings.appName);
         document.title = defaultSettings.appName;
-    } finally {
         setLoading(false);
+        return;
     }
+
+    const settingsRef = doc(db, 'settings', 'homePage');
+    const unsubscribe = onSnapshot(settingsRef, (doc) => {
+        let appSettings = defaultSettings;
+        if (doc.exists()) {
+            appSettings = { ...defaultSettings, ...doc.data() as HomeSettings };
+        }
+        
+        setSettings(appSettings);
+        const newAppName = appSettings.appName || defaultSettings.appName;
+        setAppName(newAppName);
+        document.title = newAppName;
+        setLoading(false);
+    }, (error) => {
+        console.error("Failed to fetch settings from Firestore:", error);
+        setSettings(defaultSettings);
+        setAppName(defaultSettings.appName);
+        document.title = defaultSettings.appName;
+        setLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
 
   return (

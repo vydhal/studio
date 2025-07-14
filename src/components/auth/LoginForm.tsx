@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -5,6 +6,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -41,12 +44,35 @@ export function LoginForm() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setLoading(true);
-
-    toast({
-      title: "Login bem-sucedido!",
-      description: "Redirecionando para o painel...",
-    });
-    router.push("/admin/dashboard");
+    try {
+      await signInWithEmailAndPassword(auth, values.email, values.password);
+      toast({
+        title: "Login bem-sucedido!",
+        description: "Redirecionando para o painel...",
+      });
+      router.push("/admin/dashboard");
+    } catch (error: any) {
+        let errorMessage = "Ocorreu um erro desconhecido.";
+        switch (error.code) {
+            case 'auth/user-not-found':
+            case 'auth/wrong-password':
+            case 'auth/invalid-credential':
+                errorMessage = "Email ou senha inválidos.";
+                break;
+            case 'auth/invalid-email':
+                errorMessage = "O formato do email é inválido.";
+                break;
+            default:
+                console.error("Firebase Login Error:", error);
+        }
+      toast({
+        title: "Erro no Login",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (

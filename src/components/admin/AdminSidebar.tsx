@@ -14,7 +14,7 @@ import {
   LayoutDashboard,
   Settings,
   School,
-  FileEdit,
+  LogOut,
   Users,
 } from "lucide-react";
 import Link from "next/link";
@@ -31,15 +31,25 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
 } from "@/components/ui/sidebar";
+import { useAuth } from "@/hooks/useAuth";
+import { auth } from "@/lib/firebase";
+import { signOut } from "firebase/auth";
 
 export function AdminSidebar() {
   const router = useRouter();
   const pathname = usePathname();
   const { toast } = useToast();
+  const { user } = useAuth();
+
 
   const handleLogout = async () => {
-    toast({ title: "Logout realizado com sucesso!" });
-    router.push("/login");
+    try {
+        await signOut(auth);
+        toast({ title: "Logout realizado com sucesso!" });
+        router.push("/login");
+    } catch(error) {
+        toast({ title: "Erro ao fazer logout", variant: "destructive" });
+    }
   };
 
   const menuItems = [
@@ -97,8 +107,8 @@ export function AdminSidebar() {
                             data-ai-hint="avatar"
                         />
                         <div className="flex flex-col items-start duration-200 group-data-[collapsible=icon]:hidden">
-                            <span className="text-sm font-medium">Admin</span>
-                            <span className="text-xs text-muted-foreground">admin@escola.com</span>
+                            <span className="text-sm font-medium">{user?.displayName || "Admin"}</span>
+                            <span className="text-xs text-muted-foreground">{user?.email}</span>
                         </div>
                     </Button>
                 </DropdownMenuTrigger>
@@ -110,7 +120,10 @@ export function AdminSidebar() {
                     </Link>
                     <DropdownMenuItem disabled>Suporte</DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleLogout}>
+                        <LogOut className="mr-2 h-4 w-4" />
+                        Logout
+                    </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
         </SidebarFooter>

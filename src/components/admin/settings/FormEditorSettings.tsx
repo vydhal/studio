@@ -23,9 +23,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { db } from "@/lib/firebase";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 
 
-const FORM_CONFIG_STORAGE_KEY = 'censusFormConfig';
+const FORM_CONFIG_DOC_ID = 'formConfig';
 
 const defaultSections: FormSectionConfig[] = [
     { 
@@ -64,26 +66,38 @@ export function FormEditorSettings() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        if (!db) return;
         setLoading(true);
-        try {
-            const storedConfig = localStorage.getItem(FORM_CONFIG_STORAGE_KEY);
-            if (storedConfig) {
-                setSections(JSON.parse(storedConfig));
-            } else {
+        const fetchConfig = async () => {
+            const docRef = doc(db, 'settings', FORM_CONFIG_DOC_ID);
+            try {
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    setSections(docSnap.data().sections || defaultSections);
+                } else {
+                    setSections(defaultSections);
+                    // Optionally save default config to Firestore
+                    await setDoc(docRef, { sections: defaultSections });
+                }
+            } catch (error) {
+                console.error("Failed to fetch form config from Firestore", error);
                 setSections(defaultSections);
+            } finally {
+                setLoading(false);
             }
-        } catch (error) {
-            console.error("Failed to parse form config from localStorage", error);
-            setSections(defaultSections);
-        } finally {
-            setLoading(false);
-        }
+        };
+        fetchConfig();
     }, []);
 
-    const saveConfig = () => {
+    const saveConfig = async () => {
+        if (!db) {
+             toast({ title: "Erro de Conexão", description: "Banco de dados não disponível.", variant: "destructive" });
+             return;
+        }
         setLoading(true);
+        const docRef = doc(db, 'settings', FORM_CONFIG_DOC_ID);
         try {
-            localStorage.setItem(FORM_CONFIG_STORAGE_KEY, JSON.stringify(sections));
+            await setDoc(docRef, { sections });
             toast({
                 title: "Sucesso!",
                 description: "Configurações do formulário salvas com sucesso.",
