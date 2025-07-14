@@ -76,7 +76,7 @@ const DynamicField = ({ control, fieldConfig }: { control: any, fieldConfig: For
             name={fieldName}
             rules={{ required: fieldConfig.required ? "Este campo é obrigatório" : false }}
             render={({ field, fieldState }) => (
-                 <FormItem className="flex flex-col space-y-2">
+                 <FormItem>
                     <FormLabel>{fieldConfig.name}</FormLabel>
                      <FormControl>
                       <div>
@@ -139,7 +139,7 @@ export function SchoolCensusForm() {
       config.forEach((section: FormSectionConfig) => {
           defaultDynamicValues[section.id] = {};
           section.fields.forEach((field: FormFieldConfig) => {
-              defaultDynamicValues[section.id][field.id] = field.type === 'boolean' ? false : (field.type === 'number' ? null : '');
+              defaultDynamicValues[section.id][field.id] = field.type === 'boolean' ? false : '';
           });
       });
       return defaultDynamicValues;
@@ -242,6 +242,7 @@ export function SchoolCensusForm() {
               if (!draft.dynamicData[sectionId]) {
                 draft.dynamicData[sectionId] = {};
               }
+              // This was the source of the error. We need to merge properties instead of assigning the whole object.
               Object.assign(draft.dynamicData[sectionId], dynamicData[sectionId]);
             }
 
