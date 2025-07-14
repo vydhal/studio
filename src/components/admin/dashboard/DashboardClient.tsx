@@ -23,7 +23,16 @@ import {
 } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, onSnapshot } from "firebase/firestore";
+import { collection, getDocs, onSnapshot, Timestamp } from "firebase/firestore";
+
+const processSubmissionDoc = (doc: any): SchoolCensusSubmission => {
+    const data = doc.data();
+    return {
+        id: doc.id,
+        ...data,
+        submittedAt: data.submittedAt instanceof Timestamp ? data.submittedAt.toDate() : data.submittedAt,
+    } as SchoolCensusSubmission;
+};
 
 
 export function DashboardClient() {
@@ -50,7 +59,7 @@ export function DashboardClient() {
             ]);
             
             const schoolsData = schoolsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as School[];
-            const submissionsData = submissionsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as SchoolCensusSubmission[];
+            const submissionsData = submissionsSnapshot.docs.map(processSubmissionDoc);
 
             setSchools(schoolsData);
             setSubmissions(submissionsData);
@@ -65,7 +74,7 @@ export function DashboardClient() {
 
     // Set up real-time listeners
     const submissionsUnsubscribe = onSnapshot(collection(db, "submissions"), (snapshot) => {
-        const submissionsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as SchoolCensusSubmission[];
+        const submissionsData = snapshot.docs.map(processSubmissionDoc);
         setSubmissions(submissionsData);
     });
     
@@ -136,7 +145,7 @@ export function DashboardClient() {
         totalOutlets,
         totalTvs,
         `"${sub.technology?.hasInternetAccess ? 'Sim' : 'Não'}"`,
-        `"${modalities}"`,
+        `"${modalidades}"`,
         `"${resources}"`
       ].join(',');
     }).filter(Boolean);

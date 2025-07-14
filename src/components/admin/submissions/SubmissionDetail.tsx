@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Skeleton } from "@/components/ui/skeleton";
 import { db } from "@/lib/firebase";
-import { doc, getDoc, onSnapshot } from "firebase/firestore";
+import { doc, getDoc, onSnapshot, Timestamp } from "firebase/firestore";
 
 interface SubmissionDetailProps {
   schoolId: string;
@@ -104,8 +104,8 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
                         const submissionData = {
                             ...data,
                             id: doc.id,
-                            // Ensure submittedAt is a Date object
-                            submittedAt: data.submittedAt?.toDate ? data.submittedAt.toDate() : new Date(),
+                            // Ensure submittedAt is a Date object if it's a Firestore Timestamp
+                            submittedAt: data.submittedAt instanceof Timestamp ? data.submittedAt.toDate() : new Date(),
                         } as SchoolCensusSubmission;
                         setSubmission(submissionData);
                     } else {
