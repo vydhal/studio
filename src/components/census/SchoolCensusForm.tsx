@@ -78,7 +78,7 @@ const DynamicField = ({ control, fieldConfig }: { control: any, fieldConfig: For
                 <FormItem>
                     <FormLabel>{fieldConfig.name}</FormLabel>
                     <FormControl>
-                        <>
+                        <div>
                             {fieldConfig.type === 'text' && <Input {...field} />}
                             {fieldConfig.type === 'number' && <Input type="number" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} />}
                             {fieldConfig.type === 'boolean' && (
@@ -97,7 +97,7 @@ const DynamicField = ({ control, fieldConfig }: { control: any, fieldConfig: For
                                 </div>
                             )}
                             {/* Add other field types here */}
-                        </>
+                        </div>
                     </FormControl>
                     <FormMessage>{fieldState.error?.message}</FormMessage>
                 </FormItem>
