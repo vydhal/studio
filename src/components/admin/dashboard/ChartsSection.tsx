@@ -16,19 +16,19 @@ export function ChartsSection({ submissions, schoolMap }: ChartsSectionProps) {
   
   const techResourcesBySchool = submissions.map(sub => {
     const schoolName = schoolMap.get(sub.schoolId)?.name.substring(0,15) + '...' || 'Desconhecida';
-    const resources = sub.technology.resources.reduce((acc, resource) => {
+    const resources = sub.technology?.resources?.reduce((acc, resource) => {
         acc[resource.name] = resource.quantity;
         return acc;
-    }, {} as Record<string, number>);
+    }, {} as Record<string, number>) || {};
     return {
         name: schoolName,
         ...resources
     };
   });
 
-  const allTechKeys = [...new Set(submissions.flatMap(s => s.technology.resources.map(r => r.name)))];
+  const allTechKeys = [...new Set(submissions.flatMap(s => s.technology?.resources?.map(r => r.name) || []))];
 
-  const teachingModalitiesCount = submissions.flatMap(s => s.teachingModalities)
+  const teachingModalitiesCount = submissions.flatMap(s => s.teachingModalities || [])
     .filter(m => m.offered)
     .reduce((acc, modality) => {
         acc[modality.name] = (acc[modality.name] || 0) + 1;
