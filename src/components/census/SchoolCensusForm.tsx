@@ -61,8 +61,8 @@ const formSchema = z.object({
 
 const sectionIcons: { [key: string]: React.ElementType } = {
   general: Building,
-  infrastructure: HardHat,
-  technology: Laptop,
+  infra: HardHat,
+  tech: Laptop,
   cultural: Palette,
   maintenance: Wrench,
 };
@@ -112,7 +112,7 @@ const DynamicField = ({ control, fieldConfig }: { control: any, fieldConfig: For
 };
 
 
-const InfrastructureSection = ({ control, register }: { control: any, register: any }) => {
+const InfrastructureSection = ({ control }: { control: any }) => {
     const { fields, append, remove } = useFieldArray({
         control,
         name: "infrastructure.classrooms",
@@ -207,7 +207,7 @@ export function SchoolCensusForm() {
   const generateDefaultValues = useCallback((config: FormSectionConfig[]) => {
       const defaultDynamicValues: { [key: string]: any } = {};
       config.forEach((section: FormSectionConfig) => {
-          if (section.id !== 'infrastructure') { // Skip infra, it's handled separately
+          if (!section.id.startsWith('infra')) {
             defaultDynamicValues[section.id] = {};
             section.fields.forEach((field: FormFieldConfig) => {
                 defaultDynamicValues[section.id][field.id] = 
@@ -341,7 +341,7 @@ export function SchoolCensusForm() {
         // Mark sections with any data as 'completed'
         const statusUpdates: { [key: string]: { status: 'completed' } } = {};
         formConfig.forEach(sectionCfg => {
-            if (sectionCfg.id === 'infrastructure') {
+            if (sectionCfg.id.startsWith('infra')) {
                 if (infrastructure && infrastructure.classrooms.length > 0) {
                      statusUpdates[sectionCfg.id] = { status: 'completed' };
                 }
@@ -390,7 +390,7 @@ export function SchoolCensusForm() {
     
     // Other users see only the sections their role permits.
     return formConfig.filter(section => 
-        userProfile.role!.permissions.includes(section.id as any)
+        userProfile.role!.permissions.some(p => section.id.startsWith(p))
     );
   }, [formConfig, userProfile, isAdmin]);
 
@@ -456,10 +456,10 @@ export function SchoolCensusForm() {
                   </TabsList>
                   
                   {visibleSections.map(section => {
-                     if (section.id === 'infrastructure') {
+                     if (section.id.startsWith('infra')) {
                         return (
                              <TabsContent key={section.id} value={section.id}>
-                                <InfrastructureSection control={form.control} register={form.register} />
+                                <InfrastructureSection control={form.control} />
                             </TabsContent>
                         )
                      }

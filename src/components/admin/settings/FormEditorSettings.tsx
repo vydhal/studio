@@ -44,10 +44,7 @@ const defaultSections: FormSectionConfig[] = [
         id: 'infra', 
         name: 'Infraestrutura',
         description: 'Adicione as salas de aula e seus detalhes.',
-        fields: [
-            { id: 'f_infra_1', name: 'Nome da Sala', type: 'text', required: true, sectionId: 'infra' },
-            { id: 'f_infra_2', name: 'Nº de Cadeiras', type: 'number', required: false, sectionId: 'infra' },
-        ] 
+        fields: []
     },
     { 
         id: 'tech', 
@@ -238,6 +235,8 @@ export function FormEditorSettings() {
                                 onChange={(e) => updateSection(sectionIndex, 'description', e.target.value)}
                             />
                         </div>
+
+                        { !section.id.startsWith('infra') && (
                         <div className="space-y-4 pt-4 border-t mt-4">
                             <h4 className="font-medium pl-6">Campos da Seção</h4>
                              {section.fields.length === 0 && (
@@ -289,6 +288,7 @@ export function FormEditorSettings() {
                                 <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Campo
                             </Button>
                         </div>
+                        )}
                     </div>
                 ))}
                  <Button variant="outline" onClick={addSection}>
