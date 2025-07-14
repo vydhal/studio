@@ -28,13 +28,42 @@ export interface TechnologyResource {
   quantity: number;
 }
 
+export interface GeneralData {
+  status: 'pending' | 'completed';
+  // Adicionar campos de dados gerais aqui futuramente
+}
+
+export interface InfrastructureData {
+  status: 'pending' | 'completed';
+  classrooms: Classroom[];
+}
+
+export interface TechnologyData {
+    status: 'pending' | 'completed';
+    resources: TechnologyResource[];
+    hasInternetAccess: boolean;
+}
+
+export interface CulturalData {
+    status: 'pending' | 'completed';
+    // Adicionar campos de dados culturais aqui futuramente
+}
+
+export interface MaintenanceData {
+    status: 'pending' | 'completed';
+    // Adicionar campos de dados de manutenção aqui futuramente
+}
+
+
 export interface SchoolCensusSubmission {
   id: string;
   schoolId: string;
-  classrooms: Classroom[];
+  general: GeneralData;
+  infrastructure: InfrastructureData;
+  technology: TechnologyData;
+  cultural: CulturalData;
+  maintenance: MaintenanceData;
   teachingModalities: TeachingModality[];
-  technologyResources: TechnologyResource[];
-  hasInternet: boolean;
   submittedAt: Date;
   submittedBy?: string;
 }

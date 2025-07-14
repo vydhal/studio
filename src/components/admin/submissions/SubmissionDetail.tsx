@@ -61,7 +61,7 @@ export function SubmissionDetail({ submission, school }: SubmissionDetailProps) 
             </Button>
             <h1 className="text-3xl font-bold tracking-tight font-headline mt-4">Detalhes da Submissão</h1>
             <p className="text-muted-foreground">
-                Enviado em: {format(submission.submittedAt, "dd 'de' MMMM 'de' yyyy, 'às' HH:mm", { locale: ptBR })}
+                Última atualização em: {format(submission.submittedAt, "dd 'de' MMMM 'de' yyyy, 'às' HH:mm", { locale: ptBR })}
             </p>
         </div>
       
@@ -85,12 +85,12 @@ export function SubmissionDetail({ submission, school }: SubmissionDetailProps) 
       
       <Card>
         <CardHeader>
-          <CardTitle>Salas de Aula</CardTitle>
-          <CardDescription>Total de {submission.classrooms.length} salas de aula.</CardDescription>
+          <CardTitle>Infraestrutura - Salas de Aula</CardTitle>
+          <CardDescription>Total de {submission.infrastructure.classrooms.length} salas de aula.</CardDescription>
         </CardHeader>
         <CardContent>
            <Accordion type="single" collapsible className="w-full">
-              {submission.classrooms.map((classroom) => (
+              {submission.infrastructure.classrooms.map((classroom) => (
                 <AccordionItem value={classroom.id} key={classroom.id}>
                     <AccordionTrigger className="font-semibold">{classroom.name}</AccordionTrigger>
                     <AccordionContent>
@@ -128,7 +128,7 @@ export function SubmissionDetail({ submission, school }: SubmissionDetailProps) 
         </CardHeader>
         <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {submission.technologyResources?.map((tech) => (
+                {submission.technology.resources?.map((tech) => (
                     <InfoItem 
                         key={tech.id}
                         icon={techIcons[tech.name] || Laptop}
@@ -138,8 +138,8 @@ export function SubmissionDetail({ submission, school }: SubmissionDetailProps) 
                 ))}
             </div>
             <div className="flex items-center gap-2 mt-4">
-                {submission.hasInternet ? <CheckCircle2 className="h-5 w-5 text-green-500" /> : <XCircle className="h-5 w-5 text-destructive" />}
-                <span>A escola tem acesso à Internet</span>
+                {submission.technology.hasInternetAccess ? <CheckCircle2 className="h-5 w-5 text-green-500" /> : <XCircle className="h-5 w-5 text-destructive" />}
+                <span>A escola tem acesso à Internet para fins pedagógicos/administrativos.</span>
             </div>
         </CardContent>
       </Card>

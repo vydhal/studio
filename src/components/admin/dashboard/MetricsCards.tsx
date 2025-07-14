@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { SchoolCensusSubmission, School } from "@/types";
-import { FileText, Users, School2, BookOpen } from "lucide-react";
+import { Users, School2, Wifi, Laptop } from "lucide-react";
 
 interface MetricsCardsProps {
   submissions: SchoolCensusSubmission[];
@@ -8,23 +8,21 @@ interface MetricsCardsProps {
 }
 
 export function MetricsCards({ submissions, schools }: MetricsCardsProps) {
-  const totalSubmissions = submissions.length;
   
-   const totalStudents = submissions.reduce((acc, sub) => {
-    const classroomStudents = sub.classrooms.reduce((sum, c) => sum + c.studentCapacity, 0);
-    return acc + classroomStudents;
+  const totalClassrooms = submissions.reduce((acc, sub) => acc + sub.infrastructure.classrooms.length, 0);
+
+  const totalChromebooks = submissions.reduce((acc, sub) => {
+      const chromebook = sub.technology.resources.find(r => r.name === 'Chromebooks');
+      return acc + (chromebook?.quantity || 0);
   }, 0);
 
-
-  const totalSchoolsWithSubmissions = new Set(submissions.map(s => s.schoolId)).size;
-
-  const totalModalities = submissions.reduce((acc, sub) => acc + sub.teachingModalities.filter(m => m.offered).length, 0);
+  const schoolsWithInternet = submissions.filter(s => s.technology.hasInternetAccess).length;
 
   const metrics = [
-    { title: "Total de Submissões", value: totalSubmissions, icon: FileText },
-    { title: "Total de Vagas (Salas)", value: totalStudents.toLocaleString(), icon: Users },
-    { title: "Escolas com Dados", value: `${totalSchoolsWithSubmissions} de ${schools.length}`, icon: School2 },
-    { title: "Modalidades Oferecidas", value: totalModalities, icon: BookOpen },
+    { title: "Escolas Cadastradas", value: schools.length, icon: School2, description: "Total de unidades" },
+    { title: "Salas de Aula", value: totalClassrooms, icon: Users, description: "Soma de todas as salas" },
+    { title: "Chromebooks", value: totalChromebooks.toLocaleString(), icon: Laptop, description: "Total de dispositivos" },
+    { title: "Escolas com Internet", value: `${schoolsWithInternet}/${schools.length}`, icon: Wifi, description: "100% das escolas" },
   ];
 
   return (
@@ -37,6 +35,7 @@ export function MetricsCards({ submissions, schools }: MetricsCardsProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{metric.value}</div>
+            <p className="text-xs text-muted-foreground">{metric.description}</p>
           </CardContent>
         </Card>
       ))}
