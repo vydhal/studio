@@ -57,7 +57,17 @@ export function HomePageSettingsForm() {
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: defaultSettings,
+    defaultValues: {
+      appName: "",
+      logoUrl: "",
+      title: "",
+      subtitle: "",
+      description: "",
+      footerText: "",
+      facebookUrl: "",
+      instagramUrl: "",
+      twitterUrl: "",
+    },
   });
 
   useEffect(() => {
@@ -65,13 +75,34 @@ export function HomePageSettingsForm() {
     try {
         const storedSettings = localStorage.getItem(SETTINGS_STORAGE_KEY);
         if (storedSettings) {
-            form.reset(JSON.parse(storedSettings));
+            const settings = JSON.parse(storedSettings);
+            // Ensure all fields have a value to prevent uncontrolled -> controlled error
+             form.reset({
+                ...defaultSettings,
+                ...settings,
+                logoUrl: settings.logoUrl || "",
+                facebookUrl: settings.facebookUrl || "",
+                instagramUrl: settings.instagramUrl || "",
+                twitterUrl: settings.twitterUrl || "",
+            });
         } else {
-            form.reset(defaultSettings);
+            form.reset({
+                ...defaultSettings,
+                logoUrl: defaultSettings.logoUrl || "",
+                facebookUrl: defaultSettings.facebookUrl || "",
+                instagramUrl: defaultSettings.instagramUrl || "",
+                twitterUrl: defaultSettings.twitterUrl || "",
+            });
         }
     } catch (error) {
         console.error("Failed to parse settings from localStorage", error);
-        form.reset(defaultSettings);
+        form.reset({
+            ...defaultSettings,
+            logoUrl: defaultSettings.logoUrl || "",
+            facebookUrl: defaultSettings.facebookUrl || "",
+            instagramUrl: defaultSettings.instagramUrl || "",
+            twitterUrl: defaultSettings.twitterUrl || "",
+        });
     }
     setFetching(false);
   }, [form]);
