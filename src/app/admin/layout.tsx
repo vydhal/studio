@@ -8,10 +8,10 @@ import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { Loader2 } from "lucide-react";
 import {
   SidebarProvider,
-  Sidebar,
   SidebarInset
 } from "@/components/ui/sidebar";
 
+// A chave de API de exemplo indica que estamos em um ambiente de teste sem um Firebase real.
 const isTestMode = process.env.NEXT_PUBLIC_FIREBASE_API_KEY?.includes("AIzaSyXXX");
 
 export default function AdminLayout({
@@ -21,26 +21,23 @@ export default function AdminLayout({
 }) {
   const { user, loading } = useAuth();
   const router = useRouter();
-  const [isAllowed, setIsAllowed] = useState(false);
+  const [isAllowed, setIsAllowed] = useState(isTestMode); // Inicia como true se for modo de teste
 
   useEffect(() => {
-    // Se estiver em modo de teste (sem Firebase real), permite o acesso direto.
-    if (isTestMode) {
-      setIsAllowed(true);
-      return;
-    }
-
-    // Lógica original para ambiente com Firebase real
-    if (!loading) {
-      if (user) {
-        setIsAllowed(true);
-      } else {
+    // Se não estiver em modo de teste, aplica a lógica de autenticação real.
+    if (!isTestMode && !loading) {
+      if (!user) {
+        // Se não há usuário e não está carregando, redireciona para o login.
         router.push("/login");
+      } else {
+        // Se há um usuário, permite o acesso.
+        setIsAllowed(true);
       }
     }
   }, [user, loading, router]);
   
   if (!isAllowed) {
+    // Mostra um spinner enquanto verifica a autenticação ou se o acesso não for permitido.
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
