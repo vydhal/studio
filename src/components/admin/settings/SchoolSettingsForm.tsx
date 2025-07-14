@@ -25,13 +25,16 @@ const schoolListSchema = z.object({
   schoolsJson: z.string().refine((val) => {
     try {
       const parsed = JSON.parse(val);
-      // Now only validates for name and inep, id is optional.
-      return Array.isArray(parsed) && parsed.every(item => typeof item === 'object' && 'name' in item && 'inep' in item);
+      return Array.isArray(parsed) && parsed.every(item => 
+        typeof item === 'object' && 
+        ('INEP' in item || 'inep' in item) && 
+        ('name' in item || 'UNIDADE EDUCACIONAL' in item)
+      );
     } catch (e) {
       return false;
     }
   }, {
-    message: "O JSON fornecido é inválido. Verifique se é um array de objetos, onde cada objeto deve conter as chaves 'name' e 'inep'. Ex: [{\"name\": \"...\", \"inep\": \"...\"}]",
+    message: "O JSON fornecido é inválido. Verifique se é um array de objetos, onde cada objeto deve conter as chaves 'inep' (ou 'INEP') e 'name' (ou 'UNIDADE EDUCACIONAL').",
   }),
 });
 
@@ -68,29 +71,35 @@ export function SchoolSettingsForm() {
   async function onSubmit(values: z.infer<typeof schoolListSchema>) {
     setLoading(true);
     try {
-      // Parse the JSON from the textarea
       let parsedSchools = JSON.parse(values.schoolsJson);
       
-      // Auto-generate ID for each school if it doesn't exist, using inep for uniqueness
-      const schoolsWithIds: School[] = parsedSchools.map((school: any) => ({
-        ...school,
-        id: school.id || `school_${school.inep}_${Date.now()}`
-      }));
+      const schoolsWithIds: School[] = parsedSchools.map((school: any) => {
+        const schoolName = school.name || school['UNIDADE EDUCACIONAL'];
+        const schoolInep = school.inep || school['INEP'];
+
+        if (!schoolName || !schoolInep) {
+            throw new Error("Objeto de escola inválido encontrado no JSON.");
+        }
+
+        return {
+          id: school.id || `school_${schoolInep}_${Date.now()}`,
+          name: schoolName,
+          inep: String(schoolInep),
+        };
+      });
       
-      // Save the processed list with IDs to localStorage
       localStorage.setItem(SCHOOLS_STORAGE_KEY, JSON.stringify(schoolsWithIds));
       
-      // Update the form to show the newly formatted JSON with IDs
       form.setValue('schoolsJson', JSON.stringify(schoolsWithIds, null, 2));
 
       toast({
         title: "Sucesso!",
         description: "Lista de escolas salva com sucesso. Os IDs foram gerados automaticamente.",
       });
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Erro!",
-        description: "Não foi possível salvar a lista de escolas. Verifique o formato do JSON.",
+        description: error.message || "Não foi possível salvar a lista de escolas. Verifique o formato do JSON.",
         variant: "destructive",
       });
     } finally {
@@ -118,12 +127,12 @@ export function SchoolSettingsForm() {
                   <FormControl>
                     <Textarea
                       rows={15}
-                      placeholder='[{"name": "Nome da Escola", "inep": "12345678"}]'
+                      placeholder='[{"UNIDADE EDUCACIONAL": "Nome da Escola", "INEP": "12345678"}]'
                       {...field}
                     />
                   </FormControl>
                   <FormDescription>
-                    O JSON deve ser um array de objetos. Cada objeto precisa ter "name" e "inep". O campo "id" será gerado automaticamente se não for fornecido.
+                    O JSON deve ser um array de objetos. O campo "id" será gerado automaticamente.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
