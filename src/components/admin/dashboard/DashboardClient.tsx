@@ -109,6 +109,73 @@ export function DashboardClient() {
     return school.name.toLowerCase().includes(filter.toLowerCase()) || 
            school.inep.toLowerCase().includes(filter.toLowerCase());
   });
+  
+  const handleExport = () => {
+    const csvHeader = [
+      "Nome da Escola",
+      "INEP",
+      "Data da Submissão",
+      "Status Geral",
+      "Status Infraestrutura",
+      "Status Tecnologia",
+      "Total de Salas",
+      "Capacidade Total Alunos",
+      "Total Tomadas",
+      "Total TVs",
+      "Acesso à Internet Pedagógica",
+      "Modalidades de Ensino",
+      "Recursos Tecnológicos"
+    ];
+
+    const csvRows = filteredSubmissions.map(sub => {
+      const school = schoolMap.get(sub.schoolId);
+      if (!school) return null;
+
+      const totalClassrooms = sub.infrastructure.classrooms.length;
+      const totalStudentCapacity = sub.infrastructure.classrooms.reduce((acc, c) => acc + c.studentCapacity, 0);
+      const totalOutlets = sub.infrastructure.classrooms.reduce((acc, c) => acc + c.outlets, 0);
+      const totalTvs = sub.infrastructure.classrooms.reduce((acc, c) => acc + c.tvCount, 0);
+      
+      const modalities = sub.teachingModalities
+        .filter(m => m.offered)
+        .map(m => m.name)
+        .join('; ');
+
+      const resources = sub.technology.resources
+        .map(r => `${r.name}: ${r.quantity}`)
+        .join('; ');
+
+      return [
+        `"${school.name}"`,
+        `"${school.inep}"`,
+        `"${new Date(sub.submittedAt).toLocaleString('pt-BR')}"`,
+        `"${sub.general.status}"`,
+        `"${sub.infrastructure.status}"`,
+        `"${sub.technology.status}"`,
+        totalClassrooms,
+        totalStudentCapacity,
+        totalOutlets,
+        totalTvs,
+        `"${sub.technology.hasInternetAccess ? 'Sim' : 'Não'}"`,
+        `"${modalities}"`,
+        `"${resources}"`
+      ].join(',');
+    }).filter(Boolean);
+
+    const csvContent = [csvHeader.join(','), ...csvRows].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    if (link.href) {
+      URL.revokeObjectURL(link.href);
+    }
+    const url = URL.createObjectURL(blob);
+    link.href = url;
+    link.setAttribute('download', 'export_censo_escolar.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
 
   if (loading) {
     return (
@@ -134,7 +201,7 @@ export function DashboardClient() {
         <div className="flex items-center justify-between space-y-2">
             <h1 className="text-3xl font-bold tracking-tight font-headline">Dashboard</h1>
             <div className="flex items-center space-x-2">
-                <Button disabled>Exportar</Button>
+                <Button onClick={handleExport} disabled={filteredSubmissions.length === 0}>Exportar</Button>
             </div>
         </div>
 
