@@ -32,6 +32,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { produce } from "immer";
+import { useAppSettings } from "@/context/AppContext";
 
 const staticFormSchema = z.object({
   schoolId: z.string().min(1, "Por favor, selecione uma escola."),
@@ -75,7 +76,7 @@ const DynamicField = ({ control, fieldConfig }: { control: any, fieldConfig: For
             name={fieldName}
             rules={{ required: fieldConfig.required ? "Este campo é obrigatório" : false }}
             render={({ field, fieldState }) => (
-                 <FormItem className="flex flex-col">
+                 <FormItem className="flex flex-col space-y-2">
                     <FormLabel>{fieldConfig.name}</FormLabel>
                      <FormControl>
                       <div>
@@ -110,6 +111,7 @@ export function SchoolCensusForm() {
   const { toast } = useToast();
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { loading: appLoading } = useAppSettings();
   const [loading, setLoading] = useState(false);
   const [schools, setSchools] = useState<School[]>([]);
   const [formConfig, setFormConfig] = useState<FormSectionConfig[]>([]);
@@ -137,13 +139,14 @@ export function SchoolCensusForm() {
       config.forEach((section: FormSectionConfig) => {
           defaultDynamicValues[section.id] = {};
           section.fields.forEach((field: FormFieldConfig) => {
-              defaultDynamicValues[section.id][field.id] = field.type === 'boolean' ? false : '';
+              defaultDynamicValues[section.id][field.id] = field.type === 'boolean' ? false : (field.type === 'number' ? null : '');
           });
       });
       return defaultDynamicValues;
   }, []);
 
   useEffect(() => {
+    if (appLoading) return; // Wait for app settings to load
     try {
         const storedSchools = localStorage.getItem(SCHOOLS_STORAGE_KEY);
         setSchools(storedSchools ? JSON.parse(storedSchools) : defaultSchools);
@@ -186,7 +189,7 @@ export function SchoolCensusForm() {
     } finally {
         setIsConfigLoading(false);
     }
-  }, [searchParams, form, generateDefaultValues]);
+  }, [searchParams, form, generateDefaultValues, appLoading]);
 
 
   const handleSchoolChange = (schoolId: string) => {
@@ -202,6 +205,8 @@ export function SchoolCensusForm() {
                 for (const sectionId in existingSubmission.dynamicData) {
                     if (draft[sectionId]) {
                         Object.assign(draft[sectionId], existingSubmission.dynamicData[sectionId]);
+                    } else {
+                         draft[sectionId] = existingSubmission.dynamicData[sectionId];
                     }
                 }
             });
@@ -223,26 +228,35 @@ export function SchoolCensusForm() {
         }
 
         const allSubmissions = getSubmissions();
-        const existingSubmission = allSubmissions[schoolId] || {
+        
+        const updatedSubmission = produce(allSubmissions[schoolId] || {
             id: schoolId,
             schoolId: schoolId,
-            dynamicData: {},
             submittedAt: new Date(),
-        };
+        }, (draft: SchoolCensusSubmission) => {
+            if (!draft.dynamicData) {
+              draft.dynamicData = {};
+            }
+            // Merge the new data into the draft
+            for (const sectionId in dynamicData) {
+              if (!draft.dynamicData[sectionId]) {
+                draft.dynamicData[sectionId] = {};
+              }
+              Object.assign(draft.dynamicData[sectionId], dynamicData[sectionId]);
+            }
 
-        const updatedSubmission = produce(existingSubmission, draft => {
-             draft.dynamicData = { ...draft.dynamicData, ...dynamicData };
-             draft.submittedAt = new Date();
+            draft.submittedAt = new Date();
              
-             // Naive status update - if a section has data, mark it completed
-             formConfig.forEach(sectionCfg => {
-                 if (dynamicData[sectionCfg.id] && Object.values(dynamicData[sectionCfg.id]).some(v => v !== '' && v !== false)) {
-                     if (!draft[sectionCfg.id as keyof SchoolCensusSubmission]) {
-                         (draft as any)[sectionCfg.id] = {};
-                     }
-                     (draft as any)[sectionCfg.id].status = 'completed';
-                 }
-             });
+            // Naive status update - if a section has data, mark it completed
+            formConfig.forEach(sectionCfg => {
+                if (dynamicData[sectionCfg.id] && Object.values(dynamicData[sectionCfg.id]).some(v => v !== '' && v !== false && v !== null)) {
+                    const sectionKey = sectionCfg.id as keyof SchoolCensusSubmission;
+                    if (!draft[sectionKey]) {
+                        (draft as any)[sectionKey] = {};
+                    }
+                    (draft as any)[sectionKey].status = 'completed';
+                }
+            });
         });
         
         allSubmissions[schoolId] = updatedSubmission;
@@ -255,13 +269,14 @@ export function SchoolCensusForm() {
         });
 
     } catch (e) {
+        console.error("Submission Error:", e);
         toast({ title: "Erro ao Salvar", description: "Não foi possível salvar os dados.", variant: "destructive" });
     } finally {
         setLoading(false);
     }
   }
 
-  if (isConfigLoading) {
+  if (isConfigLoading || appLoading) {
       return (
           <Card>
               <CardHeader><Skeleton className="h-8 w-1/2" /></CardHeader>
@@ -348,3 +363,5 @@ export function SchoolCensusForm() {
     </Card>
   );
 }
+
+    
