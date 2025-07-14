@@ -6,9 +6,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, getDoc, writeBatch } from "firebase/firestore";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -30,6 +30,23 @@ const formSchema = z.object({
   password: z.string().min(6, { message: "A senha deve ter pelo menos 6 caracteres." }),
 });
 
+const ADMIN_EMAIL = "admin@escola.com";
+const ADMIN_ROLE_ID = "admin_role";
+
+async function provisionAdminRole() {
+    if (!db) return;
+    const roleRef = doc(db, 'roles', ADMIN_ROLE_ID);
+    const roleSnap = await getDoc(roleRef);
+
+    if (!roleSnap.exists()) {
+        await setDoc(roleRef, {
+            id: ADMIN_ROLE_ID,
+            name: 'Administrador',
+            permissions: ['users', 'general', 'infrastructure', 'technology', 'cultural', 'maintenance']
+        });
+    }
+}
+
 export function LoginForm() {
   const router = useRouter();
   const { toast } = useToast();
@@ -38,7 +55,7 @@ export function LoginForm() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      email: "admin@escola.com",
+      email: ADMIN_EMAIL,
       password: "password",
     },
   });
@@ -46,26 +63,36 @@ export function LoginForm() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, values.email, values.password);
+      const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
+      
+      // Special check for the admin user to ensure their profile exists
+      if (userCredential.user.email === ADMIN_EMAIL) {
+          const userRef = doc(db, 'users', userCredential.user.uid);
+          const userSnap = await getDoc(userRef);
+          if (!userSnap.exists()) {
+              await provisionAdminRole();
+              await setDoc(userRef, {
+                  name: 'Admin',
+                  email: userCredential.user.email,
+                  roleId: ADMIN_ROLE_ID
+              });
+          }
+      }
+
       toast({
         title: "Login bem-sucedido!",
         description: "Redirecionando para o painel...",
       });
       router.push("/admin/dashboard");
+      
     } catch (error: any) {
         let errorMessage = "Ocorreu um erro desconhecido.";
-        switch (error.code) {
-            case 'auth/user-not-found':
-            case 'auth/wrong-password':
-            case 'auth/invalid-credential':
-                errorMessage = "Email ou senha inválidos.";
-                break;
-            case 'auth/invalid-email':
-                errorMessage = "O formato do email é inválido.";
-                break;
-            default:
-                console.error("Firebase Login Error:", error);
+        if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+             errorMessage = "Email ou senha inválidos.";
+        } else if (error.code === 'auth/invalid-email') {
+             errorMessage = "O formato do email é inválido.";
         }
+        
       toast({
         title: "Erro no Login",
         description: errorMessage,
