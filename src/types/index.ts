@@ -7,15 +7,15 @@ export interface School {
 }
 
 export interface Classroom {
-  id: string;
+  id?: string; // Optional because it's generated on the fly
   name: string;
-  studentCapacity: number;
-  outlets: number;
-  tvCount: number;
-  chairCount: number;
-  fanCount: number;
-  hasInternet: boolean;
-  hasAirConditioning: boolean;
+  studentCapacity?: number;
+  outlets?: number;
+  tvCount?: number;
+  chairCount?: number;
+  fanCount?: number;
+  hasInternet?: boolean;
+  hasAirConditioning?: boolean;
 }
 
 export interface TeachingModality {

@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useState, useEffect, useCallback, useMemo } from "react";
@@ -25,9 +25,9 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import type { School, FormSectionConfig, FormFieldConfig, SchoolCensusSubmission } from "@/types";
+import type { School, FormSectionConfig, FormFieldConfig, SchoolCensusSubmission, Classroom } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from "@/components/ui/card";
-import { Loader2, Building, HardHat, Laptop, Palette, Wrench } from "lucide-react";
+import { Loader2, Building, HardHat, Laptop, Palette, Wrench, PlusCircle, Trash2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -38,9 +38,24 @@ import { doc, getDoc, setDoc, collection, getDocs, serverTimestamp } from "fireb
 import { useAuth } from "@/hooks/useAuth";
 
 
-const staticFormSchema = z.object({
+const classroomSchema = z.object({
+  id: z.string().optional(),
+  name: z.string().min(1, "O nome da sala é obrigatório."),
+  studentCapacity: z.number().min(0).optional(),
+  outlets: z.number().min(0).optional(),
+  tvCount: z.number().min(0).optional(),
+  chairCount: z.number().min(0).optional(),
+  fanCount: z.number().min(0).optional(),
+  hasInternet: z.boolean().optional(),
+  hasAirConditioning: z.boolean().optional(),
+});
+
+const formSchema = z.object({
   schoolId: z.string().min(1, "Por favor, selecione uma escola."),
   dynamicData: z.record(z.any()),
+  infrastructure: z.object({
+      classrooms: z.array(classroomSchema)
+  }).optional(),
 });
 
 
@@ -97,6 +112,77 @@ const DynamicField = ({ control, fieldConfig }: { control: any, fieldConfig: For
 };
 
 
+const InfrastructureSection = ({ control, register }: { control: any, register: any }) => {
+    const { fields, append, remove } = useFieldArray({
+        control,
+        name: "infrastructure.classrooms",
+    });
+
+    const addNewClassroom = () => {
+        append({
+            id: `sala_${Date.now()}`,
+            name: `Sala ${fields.length + 1}`,
+            studentCapacity: 0,
+            outlets: 0,
+            tvCount: 0,
+            chairCount: 0,
+            fanCount: 0,
+            hasInternet: false,
+            hasAirConditioning: false,
+        });
+    };
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Infraestrutura</CardTitle>
+                <CardDescription>Adicione as salas de aula e seus detalhes.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+                <div className="space-y-4">
+                    {fields.map((item, index) => (
+                        <Card key={item.id} className="p-4 bg-muted/20">
+                            <div className="flex justify-between items-center mb-4">
+                                <h4 className="font-bold">Sala {index + 1}</h4>
+                                <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                 <FormField
+                                    control={control}
+                                    name={`infrastructure.classrooms.${index}.name`}
+                                    render={({ field }) => (
+                                        <FormItem className="lg:col-span-3">
+                                            <FormLabel>Nome/Identificação da Sala</FormLabel>
+                                            <FormControl><Input {...field} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField control={control} name={`infrastructure.classrooms.${index}.studentCapacity`} render={({ field }) => (<FormItem><FormLabel>Capacidade de Estudantes</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={control} name={`infrastructure.classrooms.${index}.chairCount`} render={({ field }) => (<FormItem><FormLabel>Nº de Cadeiras</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={control} name={`infrastructure.classrooms.${index}.outlets`} render={({ field }) => (<FormItem><FormLabel>Nº de Tomadas</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)}/></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={control} name={`infrastructure.classrooms.${index}.tvCount`} render={({ field }) => (<FormItem><FormLabel>Nº de TVs</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={control} name={`infrastructure.classrooms.${index}.fanCount`} render={({ field }) => (<FormItem><FormLabel>Nº de Ventiladores</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} /></FormControl><FormMessage /></FormItem>)} />
+                                <div className="space-y-4 pt-2">
+                                    <FormField control={control} name={`infrastructure.classrooms.${index}.hasInternet`} render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Tem Internet</FormLabel></FormItem>)} />
+                                    <FormField control={control} name={`infrastructure.classrooms.${index}.hasAirConditioning`} render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Tem Ar Condicionado</FormLabel></FormItem>)} />
+                                </div>
+                            </div>
+                        </Card>
+                    ))}
+                </div>
+                 <Button type="button" variant="outline" onClick={addNewClassroom}>
+                    <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Sala de Aula
+                </Button>
+            </CardContent>
+        </Card>
+    );
+};
+
+
+
 export function SchoolCensusForm() {
   const { toast } = useToast();
   const searchParams = useSearchParams();
@@ -107,23 +193,28 @@ export function SchoolCensusForm() {
   const [formConfig, setFormConfig] = useState<FormSectionConfig[]>([]);
   const [isConfigLoading, setIsConfigLoading] = useState(true);
   
-  const form = useForm<z.infer<typeof staticFormSchema>>({
-    resolver: zodResolver(staticFormSchema),
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
     defaultValues: {
       schoolId: "",
       dynamicData: {},
+      infrastructure: {
+          classrooms: []
+      }
     },
   });
   
   const generateDefaultValues = useCallback((config: FormSectionConfig[]) => {
       const defaultDynamicValues: { [key: string]: any } = {};
       config.forEach((section: FormSectionConfig) => {
-          defaultDynamicValues[section.id] = {};
-          section.fields.forEach((field: FormFieldConfig) => {
-              defaultDynamicValues[section.id][field.id] = 
-                  field.type === 'boolean' ? false :
-                  '';
-          });
+          if (section.id !== 'infrastructure') { // Skip infra, it's handled separately
+            defaultDynamicValues[section.id] = {};
+            section.fields.forEach((field: FormFieldConfig) => {
+                defaultDynamicValues[section.id][field.id] = 
+                    field.type === 'boolean' ? false :
+                    '';
+            });
+          }
       });
       return defaultDynamicValues;
   }, []);
@@ -152,16 +243,17 @@ export function SchoolCensusForm() {
             // Now that config is loaded, handle initial form state
             const schoolId = searchParams.get('schoolId');
             const defaultDynamicValues = generateDefaultValues(configData);
-            let initialValues = {
+            let initialValues: z.infer<typeof formSchema> = {
                 schoolId: schoolId || "",
-                dynamicData: defaultDynamicValues
+                dynamicData: defaultDynamicValues,
+                infrastructure: { classrooms: [] }
             };
 
-            // Only attempt to load submission data if a school is selected
-            if (schoolId) {
+            // Only attempt to load submission data if a school is selected and user is logged in
+            if (schoolId && user) {
                 const submissionDoc = await getDoc(doc(db, 'submissions', schoolId));
                 if (submissionDoc.exists()) {
-                    const existingSubmission = submissionDoc.data();
+                    const existingSubmission = submissionDoc.data() as SchoolCensusSubmission;
                      const mergedDynamicData = produce(defaultDynamicValues, draft => {
                         if (existingSubmission.dynamicData) {
                             for (const sectionId in existingSubmission.dynamicData) {
@@ -174,6 +266,9 @@ export function SchoolCensusForm() {
                         }
                     });
                     initialValues.dynamicData = mergedDynamicData;
+                    if (existingSubmission.infrastructure?.classrooms) {
+                        initialValues.infrastructure = existingSubmission.infrastructure;
+                    }
                 }
             }
             form.reset(initialValues);
@@ -186,19 +281,24 @@ export function SchoolCensusForm() {
         }
     }
     fetchConfigAndSchools();
-  }, [searchParams, form, generateDefaultValues, appLoading, toast]);
+  }, [searchParams, form, generateDefaultValues, appLoading, toast, user]);
 
 
   const handleSchoolChange = async (schoolId: string) => {
-      if (!db) return;
+      if (!db || !user) return;
       router.push(`/census?schoolId=${schoolId}`, { scroll: false });
       
       const defaultValues = generateDefaultValues(formConfig);
+      let resetValues: z.infer<typeof formSchema> = {
+          schoolId,
+          dynamicData: defaultValues,
+          infrastructure: { classrooms: [] }
+      };
       
       const submissionDoc = await getDoc(doc(db, 'submissions', schoolId));
 
       if (submissionDoc.exists()) {
-          const existingSubmission = submissionDoc.data();
+          const existingSubmission = submissionDoc.data() as SchoolCensusSubmission;
           const mergedDynamicData = produce(defaultValues, draft => {
               if(existingSubmission.dynamicData) {
                 for (const sectionId in existingSubmission.dynamicData) {
@@ -210,13 +310,15 @@ export function SchoolCensusForm() {
                 }
               }
           });
-          form.reset({ schoolId, dynamicData: mergedDynamicData });
-      } else {
-          form.reset({ schoolId, dynamicData: defaultValues });
-      }
+          resetValues.dynamicData = mergedDynamicData;
+          if (existingSubmission.infrastructure?.classrooms) {
+              resetValues.infrastructure = existingSubmission.infrastructure;
+          }
+      } 
+      form.reset(resetValues);
   };
 
-  async function onSubmit(values: z.infer<typeof staticFormSchema>) {
+  async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!db) {
         toast({ title: "Erro de Conexão", variant: "destructive"});
         return;
@@ -227,7 +329,7 @@ export function SchoolCensusForm() {
         return;
     }
 
-    const { schoolId, dynamicData } = values;
+    const { schoolId, dynamicData, infrastructure } = values;
     if (!schoolId) {
         toast({ title: "Erro", description: "Selecione uma escola primeiro.", variant: "destructive" });
         return;
@@ -239,9 +341,15 @@ export function SchoolCensusForm() {
         // Mark sections with any data as 'completed'
         const statusUpdates: { [key: string]: { status: 'completed' } } = {};
         formConfig.forEach(sectionCfg => {
-            const sectionData = dynamicData[sectionCfg.id];
-            if (sectionData && Object.values(sectionData).some(v => v !== '' && v !== false && v !== null && v !== undefined)) {
-                statusUpdates[sectionCfg.id] = { status: 'completed' };
+            if (sectionCfg.id === 'infrastructure') {
+                if (infrastructure && infrastructure.classrooms.length > 0) {
+                     statusUpdates[sectionCfg.id] = { status: 'completed' };
+                }
+            } else {
+                const sectionData = dynamicData[sectionCfg.id];
+                if (sectionData && Object.values(sectionData).some(v => v !== '' && v !== false && v !== null && v !== undefined)) {
+                    statusUpdates[sectionCfg.id] = { status: 'completed' };
+                }
             }
         });
         
@@ -249,6 +357,7 @@ export function SchoolCensusForm() {
           id: schoolId,
           schoolId: schoolId,
           dynamicData,
+          infrastructure: infrastructure,
           ...statusUpdates, // Spread the status updates
           submittedAt: serverTimestamp(),
           submittedBy: user?.uid || 'unknown'
@@ -271,8 +380,6 @@ export function SchoolCensusForm() {
 
   const visibleSections = useMemo(() => {
     if (!userProfile?.role) {
-      // If not logged in or no role, show no sections if a login is required.
-      // Assuming a public census form is not a feature for now.
       return [];
     }
     
@@ -348,23 +455,32 @@ export function SchoolCensusForm() {
                       })}
                   </TabsList>
                   
-                  {visibleSections.map(section => (
-                     <TabsContent key={section.id} value={section.id}>
-                        <Card>
-                            <CardHeader>
-                              <CardTitle>{section.name}</CardTitle>
-                              {section.description && <CardDescription>{section.description}</CardDescription>}
-                            </CardHeader>
-                            <CardContent>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    {section.fields.map(field => (
-                                        <DynamicField key={field.id} control={form.control} fieldConfig={field} />
-                                    ))}
-                                </div>
-                            </CardContent>
-                        </Card>
-                     </TabsContent>
-                  ))}
+                  {visibleSections.map(section => {
+                     if (section.id === 'infrastructure') {
+                        return (
+                             <TabsContent key={section.id} value={section.id}>
+                                <InfrastructureSection control={form.control} register={form.register} />
+                            </TabsContent>
+                        )
+                     }
+                    return (
+                        <TabsContent key={section.id} value={section.id}>
+                            <Card>
+                                <CardHeader>
+                                <CardTitle>{section.name}</CardTitle>
+                                {section.description && <CardDescription>{section.description}</CardDescription>}
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        {section.fields.map(field => (
+                                            <DynamicField key={field.id} control={form.control} fieldConfig={field} />
+                                        ))}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
+                    )
+                  })}
                  
                 </Tabs>
             )}
