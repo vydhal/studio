@@ -13,10 +13,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { signOut } from "firebase/auth";
-import { auth } from "@/lib/firebase";
 import { useRouter, usePathname } from "next/navigation";
-import { useAuth } from "@/hooks/useAuth";
 import {
   LayoutDashboard,
   LogOut,
@@ -30,21 +27,11 @@ import { useToast } from "@/hooks/use-toast";
 export function AdminSidebar() {
   const router = useRouter();
   const pathname = usePathname();
-  const { user } = useAuth();
   const { toast } = useToast();
 
   const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      toast({ title: "Logout realizado com sucesso!" });
-      router.push("/login");
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Erro ao fazer logout",
-        description: "Por favor, tente novamente.",
-      });
-    }
+    toast({ title: "Logout realizado com sucesso!" });
+    router.push("/login");
   };
 
   const getInitials = (email: string | null | undefined) => {
@@ -97,12 +84,12 @@ export function AdminSidebar() {
           <SidebarMenuItem>
             <div className="flex items-center gap-2 rounded-md p-2 text-left text-sm transition-colors w-full overflow-hidden group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:justify-center">
               <Avatar className="h-8 w-8">
-                <AvatarImage src={user?.photoURL ?? ""} />
-                <AvatarFallback>{getInitials(user?.email)}</AvatarFallback>
+                <AvatarImage src={""} />
+                <AvatarFallback>{"AD"}</AvatarFallback>
               </Avatar>
               <div className="grow truncate group-data-[collapsible=icon]:hidden">
-                <p className="font-semibold text-sm truncate">{user?.displayName ?? 'Admin'}</p>
-                <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+                <p className="font-semibold text-sm truncate">Admin</p>
+                <p className="text-xs text-muted-foreground truncate">admin@escola.com</p>
               </div>
             </div>
           </SidebarMenuItem>
