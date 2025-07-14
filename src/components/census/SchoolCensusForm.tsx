@@ -82,7 +82,7 @@ const DynamicField = ({ control, fieldConfig }: { control: any, fieldConfig: For
                         {fieldConfig.type === 'text' && <Input {...field} />}
                         {fieldConfig.type === 'number' && <Input type="number" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} />}
                         {fieldConfig.type === 'boolean' && (
-                            <div className="flex items-center space-x-2 pt-2">
+                           <div className="flex items-center space-x-2 pt-2">
                                 <Checkbox
                                     id={fieldName}
                                     checked={field.value}
@@ -218,11 +218,11 @@ export function SchoolCensusForm() {
           </CardHeader>
           <CardContent className="pt-6">
             <Tabs defaultValue={formConfig[0]?.id || 'default'} className="w-full">
-              <TabsList className="grid w-full grid-cols-1 md:grid-cols-3 lg:grid-cols-5 mb-4">
+              <TabsList className="mb-4 h-auto flex-wrap justify-start">
                   {formConfig.map(section => {
                       const Icon = sectionIcons[section.id.toLowerCase()] || Building;
                       return (
-                         <TabsTrigger key={section.id} value={section.id}><Icon className="mr-2"/>{section.name}</TabsTrigger>
+                         <TabsTrigger key={section.id} value={section.id} className="flex-shrink-0"><Icon className="mr-2"/>{section.name}</TabsTrigger>
                       )
                   })}
               </TabsList>
@@ -235,12 +235,10 @@ export function SchoolCensusForm() {
                           {section.description && <CardDescription>{section.description}</CardDescription>}
                         </CardHeader>
                         <CardContent>
-                            <div className="space-y-4">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    {section.fields.map(field => (
-                                        <DynamicField key={field.id} control={form.control} fieldConfig={field} />
-                                    ))}
-                                </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {section.fields.map(field => (
+                                    <DynamicField key={field.id} control={form.control} fieldConfig={field} />
+                                ))}
                             </div>
                         </CardContent>
                     </Card>
