@@ -80,8 +80,8 @@ const DynamicField = ({ control, fieldConfig }: { control: any, fieldConfig: For
                     <FormLabel>{fieldConfig.name}</FormLabel>
                      <FormControl>
                       <div>
-                        {fieldConfig.type === 'text' && <Input {...field} />}
-                        {fieldConfig.type === 'number' && <Input type="number" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} />}
+                        {fieldConfig.type === 'text' && <Input {...field} value={field.value ?? ''} />}
+                        {fieldConfig.type === 'number' && <Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.valueAsNumber || null)} />}
                         {fieldConfig.type === 'boolean' && (
                            <div className="flex items-center space-x-2 pt-2 h-10">
                                 <Checkbox
@@ -139,7 +139,10 @@ export function SchoolCensusForm() {
       config.forEach((section: FormSectionConfig) => {
           defaultDynamicValues[section.id] = {};
           section.fields.forEach((field: FormFieldConfig) => {
-              defaultDynamicValues[section.id][field.id] = field.type === 'boolean' ? false : '';
+              defaultDynamicValues[section.id][field.id] = 
+                  field.type === 'boolean' ? false :
+                  field.type === 'number' ? null : // Use null for empty number fields
+                  '';
           });
       });
       return defaultDynamicValues;
@@ -324,7 +327,7 @@ export function SchoolCensusForm() {
           </CardHeader>
           <CardContent className="pt-6">
              <Tabs defaultValue={formConfig.length > 0 ? formConfig[0].id : ''} className="w-full">
-              <TabsList className="mb-4 h-auto flex-wrap justify-start">
+              <TabsList className="mb-4 flex h-auto flex-wrap justify-start">
                   {formConfig.map(section => {
                       const Icon = sectionIcons[section.id.split('_')[0]] || Building;
                       return (
