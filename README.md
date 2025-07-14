@@ -1,6 +1,6 @@
 # School Central - Sistema de Gerenciamento de Censo Escolar
 
-Bem-vindo ao School Central, uma plataforma robusta e flexível para gerenciamento de censos escolares, construída com Next.js, Firebase e Shadcn/UI.
+Bem-vindo ao School Central, uma plataforma robusta e flexível para gerenciamento de censos escolares, construída com Next.js, React e Shadcn/UI.
 
 Este projeto foi desenvolvido para simplificar a coleta, o gerenciamento e a análise de dados de múltiplas unidades escolares, oferecendo um painel administrativo poderoso para gestores e um formulário dinâmico para as equipes de campo.
 
@@ -11,7 +11,7 @@ O sistema conta com um conjunto de funcionalidades pensadas para otimizar o proc
 *   **Dashboard Analítico:** Visualize métricas chave em tempo real, como o número de escolas cadastradas, salas de aula, status de preenchimento e gráficos interativos sobre recursos tecnológicos e modalidades de ensino.
 *   **Editor de Formulário Dinâmico:** O administrador pode criar, editar e remover seções e campos do formulário do censo diretamente pela interface, sem precisar alterar o código. Suporta campos como texto, número, checkbox (Sim/Não), data e listas de opções.
 *   **Gerenciamento de Usuários e Perfis:** Crie usuários e defina perfis de acesso (ex: "Equipe de TI", "Infraestrutura"). Associe cada perfil a seções específicas do formulário, garantindo que cada equipe preencha apenas os dados de sua responsabilidade.
-*   **Gestão de Escolas via JSON:** Atualize a lista de escolas participantes de forma simples, colando um arquivo JSON no painel de configurações.
+*   **Gestão de Escolas via JSON:** Atualize a lista de escolas participantes de forma simples, colando um arquivo JSON no painel de configurações. O sistema reconhece automaticamente chaves como "UNIDADE EDUCACIONAL" e "INEP".
 *   **Acompanhamento de Submissões:** Monitore o progresso do preenchimento do censo para cada escola. Um modal de status detalha quais seções já foram completadas e quais estão pendentes.
 *   **Personalização da Página Inicial:** Altere o título, a descrição, o logo e os links de redes sociais da página inicial diretamente pelo painel do administrador.
 
