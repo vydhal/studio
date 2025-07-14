@@ -43,6 +43,18 @@ export function LoginForm() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setLoading(true);
+
+    // NOTE: This is a temporary solution for testing purposes.
+    // It allows login without a real Firebase project.
+    if (values.email === "admin@escola.com" && values.password === "password") {
+         toast({
+            title: "Login bem-sucedido!",
+            description: "Redirecionando para o painel...",
+          });
+        router.push("/admin/dashboard");
+        return;
+    }
+
     try {
       await signInWithEmailAndPassword(auth, values.email, values.password);
       toast({
