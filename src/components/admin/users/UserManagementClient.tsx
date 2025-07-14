@@ -14,12 +14,13 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import type { UserProfile, Role, FormSection } from "@/types";
+import type { UserProfile, Role, FormSectionPermission } from "@/types";
 import { PlusCircle, MoreHorizontal } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { db } from '@/lib/firebase';
-import { collection, onSnapshot, addDoc, doc, setDoc, deleteDoc } from 'firebase/firestore';
+import { db, auth } from '@/lib/firebase';
+import { collection, onSnapshot, addDoc, doc, setDoc, deleteDoc, writeBatch } from 'firebase/firestore';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 
 
 const roleSchema = z.object({
@@ -32,10 +33,15 @@ const userSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(2, "Nome do usuário é obrigatório."),
   email: z.string().email("Email inválido."),
+  password: z.string().min(6, "A senha deve ter no mínimo 6 caracteres.").optional(),
   roleId: z.string().min(1, "Selecione um perfil."),
+}).refine(data => data.id || data.password, {
+    message: "A senha é obrigatória para novos usuários.",
+    path: ["password"],
 });
 
-const formSections: { id: FormSection; label: string }[] = [
+
+const formSections: { id: FormSectionPermission; label: string }[] = [
     { id: 'general', label: 'Dados Gerais' },
     { id: 'infrastructure', label: 'Infraestrutura' },
     { id: 'technology', label: 'Tecnologia' },
@@ -82,7 +88,7 @@ export function UserManagementClient() {
 
   const handleEditUser = (user: UserProfile) => {
     setEditingUser(user);
-    userForm.reset(user);
+    userForm.reset({...user, password: ''}); // Don't show password
     setUserModalOpen(true);
   };
 
@@ -94,6 +100,8 @@ export function UserManagementClient() {
   
   const handleDeleteUser = async (userId: string) => {
     if (!db) return;
+    // Note: This only deletes the Firestore record.
+    // For a production app, you'd want a Cloud Function to delete the Auth user too.
     await deleteDoc(doc(db, "users", userId));
     toast({ title: "Usuário excluído com sucesso." });
   }
@@ -108,21 +116,40 @@ export function UserManagementClient() {
   const onUserSubmit = async (values: z.infer<typeof userSchema>) => {
     if(!db) return;
     toast({ title: `Salvando usuário...` });
-    // In a real app, creating a user would happen via Firebase Auth,
-    // and this would just manage their profile data in Firestore.
+
     try {
         if (editingUser) {
+            // Updating existing user
             const userRef = doc(db, 'users', editingUser.id);
-            await setDoc(userRef, values, { merge: true });
+            const { name, roleId } = values;
+            await setDoc(userRef, { name, roleId }, { merge: true });
         } else {
-            await addDoc(collection(db, 'users'), values);
+            // Creating new user
+            if (!values.password) {
+                toast({ title: "Erro", description: "Senha é obrigatória para novos usuários.", variant: "destructive"});
+                return;
+            }
+             // This is a simplified user creation flow.
+             // In a real app, you might send an invitation email instead.
+            const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+            const user = userCredential.user;
+            await updateProfile(user, { displayName: values.name });
+
+            // Now create the user profile document in Firestore
+            const userRef = doc(db, 'users', user.uid);
+            const { name, email, roleId } = values;
+            await setDoc(userRef, { name, email, roleId });
         }
         setUserModalOpen(false);
         setEditingUser(null);
-        userForm.reset({ name: "", email: "", roleId: "" });
+        userForm.reset({ name: "", email: "", roleId: "", password: "" });
         toast({ title: `Usuário ${editingUser ? 'atualizado' : 'criado'} com sucesso!` });
-    } catch (e) {
-        toast({ title: "Erro ao salvar usuário", variant: "destructive"});
+    } catch (e: any) {
+        let message = "Erro ao salvar usuário";
+        if (e.code === 'auth/email-already-in-use') {
+            message = "Este email já está sendo utilizado por outro usuário.";
+        }
+        toast({ title: message, variant: "destructive"});
     }
   };
 
@@ -134,7 +161,8 @@ export function UserManagementClient() {
             const roleRef = doc(db, 'roles', editingRole.id);
             await setDoc(roleRef, values, { merge: true });
         } else {
-            await addDoc(collection(db, 'roles'), values);
+            const docRef = doc(collection(db, 'roles'));
+            await setDoc(docRef, {...values, id: docRef.id });
         }
         setRoleModalOpen(false);
         setEditingRole(null);
@@ -195,7 +223,7 @@ export function UserManagementClient() {
                 <DialogHeader>
                     <DialogTitle>{editingUser ? 'Editar' : 'Novo'} Usuário</DialogTitle>
                      <DialogDescription>
-                        A criação de usuário aqui apenas cria um perfil no banco de dados. A autenticação real deve ser gerenciada no painel do Firebase.
+                        A criação de um novo usuário o adicionará ao Firebase Authentication e criará um perfil no Firestore.
                     </DialogDescription>
                 </DialogHeader>
                 <Form {...userForm}>
@@ -204,9 +232,13 @@ export function UserManagementClient() {
                             <FormItem><FormLabel>Nome</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                         )} />
                         <FormField control={userForm.control} name="email" render={({ field }) => (
-                            <FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" {...field} /></FormControl><FormMessage /></FormItem>
+                            <FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" {...field} disabled={!!editingUser} /></FormControl><FormMessage /></FormItem>
                         )} />
-                        
+                        {!editingUser && (
+                            <FormField control={userForm.control} name="password" render={({ field }) => (
+                                <FormItem><FormLabel>Senha</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem>
+                            )} />
+                        )}
                         <FormField control={userForm.control} name="roleId" render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Perfil</FormLabel>
@@ -322,6 +354,8 @@ function UsersTable({ users, roles, onEdit, onDelete }: { users: UserProfile[], 
 }
 
 function RolesTable({ roles, onEdit, onDelete }: { roles: Role[], onEdit: (role: Role) => void, onDelete: (id: string) => void }) {
+    const permissionLabels = new Map(formSections.map(s => [s.id, s.label]));
+
     return (
         <Table>
             <TableHeader>
@@ -335,7 +369,7 @@ function RolesTable({ roles, onEdit, onDelete }: { roles: Role[], onEdit: (role:
                 {roles.map(role => (
                     <TableRow key={role.id}>
                         <TableCell className="font-medium">{role.name}</TableCell>
-                        <TableCell className="text-muted-foreground">{role.permissions.join(', ')}</TableCell>
+                        <TableCell className="text-muted-foreground">{role.permissions.map(p => permissionLabels.get(p) || p).join(', ')}</TableCell>
                         <TableCell className="text-right">
                              <DropdownMenu>
                                 <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>

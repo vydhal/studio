@@ -39,8 +39,9 @@ export function AdminSidebar() {
   const router = useRouter();
   const pathname = usePathname();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
 
+  const hasUsersPermission = userProfile?.role?.permissions.includes('users');
 
   const handleLogout = async () => {
     try {
@@ -53,10 +54,15 @@ export function AdminSidebar() {
   };
 
   const menuItems = [
-    { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/admin/users", label: "Usuários e Perfis", icon: Users },
-    { href: "/admin/settings", label: "Configurações", icon: Settings },
+    { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard, requiredPermission: null },
+    { href: "/admin/users", label: "Usuários e Perfis", icon: Users, requiredPermission: 'users' },
+    { href: "/admin/settings", label: "Configurações", icon: Settings, requiredPermission: 'users' },
   ];
+
+  const visibleMenuItems = menuItems.filter(item => {
+    if (!item.requiredPermission) return true;
+    return userProfile?.role?.permissions.includes(item.requiredPermission);
+  });
 
   return (
     <SidebarProvider>
@@ -74,7 +80,7 @@ export function AdminSidebar() {
 
         <SidebarContent className="p-2">
             <SidebarMenu>
-                {menuItems.map((item) => (
+                {visibleMenuItems.map((item) => (
                     <SidebarMenuItem key={item.href}>
                         <SidebarMenuButton
                             asChild
@@ -107,17 +113,19 @@ export function AdminSidebar() {
                             data-ai-hint="avatar"
                         />
                         <div className="flex flex-col items-start duration-200 group-data-[collapsible=icon]:hidden">
-                            <span className="text-sm font-medium">{user?.displayName || "Admin"}</span>
-                            <span className="text-xs text-muted-foreground">{user?.email}</span>
+                            <span className="text-sm font-medium">{userProfile?.name || user?.email}</span>
+                            <span className="text-xs text-muted-foreground">{userProfile?.role?.name || "Sem Perfil"}</span>
                         </div>
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
                     <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <Link href="/admin/settings">
-                      <DropdownMenuItem>Configurações</DropdownMenuItem>
-                    </Link>
+                    {hasUsersPermission && (
+                        <Link href="/admin/settings">
+                          <DropdownMenuItem>Configurações</DropdownMenuItem>
+                        </Link>
+                    )}
                     <DropdownMenuItem disabled>Suporte</DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={handleLogout}>

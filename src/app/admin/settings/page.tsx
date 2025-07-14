@@ -1,6 +1,10 @@
-import { SettingsTabs } from "@/components/admin/settings/SettingsTabs";
 
-export default function SettingsPage() {
+"use client";
+
+import { SettingsTabs } from "@/components/admin/settings/SettingsTabs";
+import withAuthorization from "@/components/auth/withAuthorization";
+
+function SettingsPage() {
   return (
     <div className="space-y-6">
       <div>
@@ -13,3 +17,6 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+// Protect this page, only allowing users with the 'users' permission
+export default withAuthorization(SettingsPage, 'users');

@@ -102,7 +102,7 @@ export function SchoolCensusForm() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { settings: appSettings, loading: appLoading } = useAppSettings();
-  const { user, loading: authLoading } = useAuth();
+  const { user, userProfile, loading: authLoading } = useAuth();
   const [schools, setSchools] = useState<School[]>([]);
   const [formConfig, setFormConfig] = useState<FormSectionConfig[]>([]);
   const [isConfigLoading, setIsConfigLoading] = useState(true);
@@ -130,9 +130,10 @@ export function SchoolCensusForm() {
 
   // Fetch schools and form config from Firestore
   useEffect(() => {
-    if (appLoading || authLoading || !db) return; // Wait for app settings, auth and db to be ready
+    if (appLoading || !db) return; // Wait for app settings and db to be ready
     
     const fetchConfigAndSchools = async () => {
+        setIsConfigLoading(true);
         try {
             const schoolsQuery = collection(db, 'schools');
             const formConfigDocRef = doc(db, 'settings', 'formConfig');
@@ -156,8 +157,8 @@ export function SchoolCensusForm() {
                 dynamicData: defaultDynamicValues
             };
 
-            // Only attempt to load submission data if user is authenticated
-            if (schoolId && user) {
+            // Only attempt to load submission data if a school is selected
+            if (schoolId) {
                 const submissionDoc = await getDoc(doc(db, 'submissions', schoolId));
                 if (submissionDoc.exists()) {
                     const existingSubmission = submissionDoc.data();
@@ -185,7 +186,7 @@ export function SchoolCensusForm() {
         }
     }
     fetchConfigAndSchools();
-  }, [searchParams, form, generateDefaultValues, appLoading, toast, user, authLoading]);
+  }, [searchParams, form, generateDefaultValues, appLoading, toast]);
 
 
   const handleSchoolChange = async (schoolId: string) => {
@@ -194,30 +195,24 @@ export function SchoolCensusForm() {
       
       const defaultValues = generateDefaultValues(formConfig);
       
-      // Only attempt to load submission data if user is authenticated
-      if (user) {
-        const submissionDoc = await getDoc(doc(db, 'submissions', schoolId));
+      const submissionDoc = await getDoc(doc(db, 'submissions', schoolId));
 
-        if (submissionDoc.exists()) {
-            const existingSubmission = submissionDoc.data();
-            const mergedDynamicData = produce(defaultValues, draft => {
-                if(existingSubmission.dynamicData) {
-                  for (const sectionId in existingSubmission.dynamicData) {
-                      if (draft[sectionId]) {
-                          Object.assign(draft[sectionId], existingSubmission.dynamicData[sectionId]);
-                      } else {
-                           draft[sectionId] = existingSubmission.dynamicData[sectionId];
-                      }
-                  }
+      if (submissionDoc.exists()) {
+          const existingSubmission = submissionDoc.data();
+          const mergedDynamicData = produce(defaultValues, draft => {
+              if(existingSubmission.dynamicData) {
+                for (const sectionId in existingSubmission.dynamicData) {
+                    if (draft[sectionId]) {
+                        Object.assign(draft[sectionId], existingSubmission.dynamicData[sectionId]);
+                    } else {
+                         draft[sectionId] = existingSubmission.dynamicData[sectionId];
+                    }
                 }
-            });
-            form.reset({ schoolId, dynamicData: mergedDynamicData });
-        } else {
-            form.reset({ schoolId, dynamicData: defaultValues });
-        }
+              }
+          });
+          form.reset({ schoolId, dynamicData: mergedDynamicData });
       } else {
-        // For anonymous users, always reset to default values
-        form.reset({ schoolId, dynamicData: defaultValues });
+          form.reset({ schoolId, dynamicData: defaultValues });
       }
   };
 
@@ -272,6 +267,17 @@ export function SchoolCensusForm() {
     }
   }
 
+  const visibleSections = formConfig.filter(section => {
+    // If not logged in, or no specific role, show all sections
+    if (!userProfile || !userProfile.role) return true;
+    
+    // If user has 'users' permission, they are an admin, show all
+    if (userProfile.role.permissions.includes('users')) return true;
+
+    // Otherwise, only show sections they have permission for
+    return userProfile.role.permissions.includes(section.id as any);
+  });
+
   if (isConfigLoading || appLoading || authLoading) {
       return (
           <Card>
@@ -281,7 +287,6 @@ export function SchoolCensusForm() {
           </Card>
       );
   }
-
 
   return (
     <Card>
@@ -318,35 +323,42 @@ export function SchoolCensusForm() {
                   />
           </CardHeader>
           <CardContent className="pt-6">
-             <Tabs defaultValue={formConfig.length > 0 ? formConfig[0].id : ''} className="w-full">
-              <TabsList className="mb-4 flex h-auto flex-wrap justify-start">
-                  {formConfig.map(section => {
-                      const Icon = sectionIcons[section.id.split('_')[0]] || Building;
-                      return (
-                         <TabsTrigger key={section.id} value={section.id} className="flex-shrink-0 flex items-center gap-2"><Icon className="h-4 w-4"/>{section.name}</TabsTrigger>
-                      )
-                  })}
-              </TabsList>
-              
-              {formConfig.map(section => (
-                 <TabsContent key={section.id} value={section.id}>
-                    <Card>
-                        <CardHeader>
-                          <CardTitle>{section.name}</CardTitle>
-                          {section.description && <CardDescription>{section.description}</CardDescription>}
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {section.fields.map(field => (
-                                    <DynamicField key={field.id} control={form.control} fieldConfig={field} />
-                                ))}
-                            </div>
-                        </CardContent>
-                    </Card>
-                 </TabsContent>
-              ))}
-             
-            </Tabs>
+            {visibleSections.length > 0 ? (
+                 <Tabs defaultValue={visibleSections[0].id} className="w-full">
+                  <TabsList className="mb-4 flex h-auto flex-wrap justify-start">
+                      {visibleSections.map(section => {
+                          const Icon = sectionIcons[section.id.split('_')[0]] || Building;
+                          return (
+                             <TabsTrigger key={section.id} value={section.id} className="flex-shrink-0 flex items-center gap-2"><Icon className="h-4 w-4"/>{section.name}</TabsTrigger>
+                          )
+                      })}
+                  </TabsList>
+                  
+                  {visibleSections.map(section => (
+                     <TabsContent key={section.id} value={section.id}>
+                        <Card>
+                            <CardHeader>
+                              <CardTitle>{section.name}</CardTitle>
+                              {section.description && <CardDescription>{section.description}</CardDescription>}
+                            </CardHeader>
+                            <CardContent>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {section.fields.map(field => (
+                                        <DynamicField key={field.id} control={form.control} fieldConfig={field} />
+                                    ))}
+                                </div>
+                            </CardContent>
+                        </Card>
+                     </TabsContent>
+                  ))}
+                 
+                </Tabs>
+            ) : (
+                <div className="text-center text-muted-foreground py-10">
+                    <p>Você não tem permissão para editar nenhuma seção do formulário.</p>
+                    <p>Por favor, entre em contato com um administrador.</p>
+                </div>
+            )}
           </CardContent>
           <CardFooter>
             <Button type="submit" className="w-full" disabled={!form.getValues('schoolId') || form.formState.isSubmitting || !user}>

@@ -69,6 +69,7 @@ export interface UserProfile {
     name: string;
     email: string;
     roleId: string; // Foreign key to Role
+    role: Role | null; // Populated role object
     password?: string;
 }
 
