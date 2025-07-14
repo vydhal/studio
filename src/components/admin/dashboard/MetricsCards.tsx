@@ -11,11 +11,8 @@ export function MetricsCards({ submissions, schools }: MetricsCardsProps) {
   const totalSubmissions = submissions.length;
   
   const totalStudents = submissions.reduce((acc, sub) => {
-    const classStudents = sub.classrooms.reduce((sum, c) => sum + c.studentCount, 0);
-    // Note: this might double count if modalities are subsets of classrooms.
-    // For this example, we'll assume they are distinct counts or the user is aware.
-    // A better approach would be to have a single source of truth for student counts.
-    return acc + classStudents;
+    const modalityStudents = sub.teachingModalities.reduce((sum, m) => sum + m.studentCount, 0);
+    return acc + modalityStudents;
   }, 0);
 
   const totalSchoolsWithSubmissions = new Set(submissions.map(s => s.schoolId)).size;

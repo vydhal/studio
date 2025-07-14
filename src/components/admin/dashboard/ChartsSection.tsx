@@ -24,7 +24,7 @@ export function ChartsSection({ submissions, schoolMap }: ChartsSectionProps) {
 
   const studentsPerSchool = submissions.map(sub => ({
       name: schoolMap.get(sub.schoolId)?.name.substring(0,15) + '...' || 'Desconhecida',
-      alunos: sub.classrooms.reduce((total, c) => total + c.studentCount, 0)
+      alunos: sub.teachingModalities.reduce((total, c) => total + c.studentCount, 0)
   })).slice(0, 10); // show top 10 for readability
 
   return (

@@ -14,6 +14,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription
 } from "@/components/ui/form";
 import {
   Select,
@@ -24,18 +25,25 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { db, auth } from "@/lib/firebase";
+import { db } from "@/lib/firebase";
 import type { School } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Switch } from "@/components/ui/switch";
 import { Loader2, PlusCircle, Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const classroomSchema = z.object({
   id: z.string(),
   name: z.string().min(1, "Nome da turma é obrigatório"),
-  studentCount: z.coerce.number().min(0, "Número de alunos deve ser positivo"),
+  studentCapacity: z.coerce.number().min(0, "Capacidade deve ser positiva"),
+  outlets: z.coerce.number().min(0, "Número deve ser positivo"),
+  tvCount: z.coerce.number().min(0, "Número deve ser positivo"),
+  chairCount: z.coerce.number().min(0, "Número deve ser positivo"),
+  fanCount: z.coerce.number().min(0, "Número deve ser positivo"),
+  hasInternet: z.boolean(),
+  hasAirConditioning: z.boolean(),
 });
 
 const teachingModalitySchema = z.object({
@@ -75,7 +83,17 @@ export function SchoolCensusForm() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       schoolId: "",
-      classrooms: [{ id: 'c1', name: '1º Ano A', studentCount: 25 }],
+      classrooms: [{ 
+        id: 'c1', 
+        name: 'Sala 1', 
+        studentCapacity: 0,
+        outlets: 0,
+        tvCount: 0,
+        chairCount: 0,
+        fanCount: 0,
+        hasInternet: false,
+        hasAirConditioning: false
+      }],
       teachingModalities: [{ id: 'm1', name: 'Ensino Fundamental', studentCount: 250 }],
       technologies: defaultTechnologies,
     },
@@ -113,7 +131,17 @@ export function SchoolCensusForm() {
       });
       form.reset({
         schoolId: "",
-        classrooms: [{ id: 'c1', name: '', studentCount: 0 }],
+        classrooms: [{
+          id: `c1`,
+          name: 'Sala 1',
+          studentCapacity: 0,
+          outlets: 0,
+          tvCount: 0,
+          chairCount: 0,
+          fanCount: 0,
+          hasInternet: false,
+          hasAirConditioning: false
+        }],
         teachingModalities: [{ id: 'm1', name: '', studentCount: 0 }],
         technologies: defaultTechnologies,
       });
@@ -166,39 +194,71 @@ export function SchoolCensusForm() {
               </AccordionItem>
 
               <AccordionItem value="item-2">
-                <AccordionTrigger className="font-bold">Turmas</AccordionTrigger>
+                <AccordionTrigger className="font-bold">Salas de Aula</AccordionTrigger>
                 <AccordionContent>
                   {classrooms.map((field, index) => (
-                    <div key={field.id} className="flex gap-2 items-end mb-4 p-4 border rounded-md relative">
-                       <FormField
-                          control={form.control}
-                          name={`classrooms.${index}.name`}
-                          render={({ field }) => (
-                            <FormItem className="flex-1">
-                              <FormLabel>Nome da Turma</FormLabel>
-                              <FormControl><Input placeholder="Ex: 3º Ano B" {...field} /></FormControl>
-                              <FormMessage />
+                    <div key={field.id} className="mb-4 p-4 border rounded-md relative space-y-4">
+                       <div className="flex justify-between items-start">
+                         <FormField
+                            control={form.control}
+                            name={`classrooms.${index}.name`}
+                            render={({ field }) => (
+                              <FormItem className="flex-1 mr-4">
+                                <FormLabel>Nome da Sala</FormLabel>
+                                <FormControl><Input placeholder="Ex: Sala 1" {...field} /></FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <Button type="button" variant="ghost" size="icon" onClick={() => removeClassroom(index)} className="mt-2">
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                       </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                          <FormField control={form.control} name={`classrooms.${index}.outlets`} render={({ field }) => (
+                            <FormItem><FormLabel>Número de Tomadas</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+                          )}/>
+                          <FormField control={form.control} name={`classrooms.${index}.tvCount`} render={({ field }) => (
+                            <FormItem><FormLabel>Quantidade de TVs</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+                          )}/>
+                          <FormField control={form.control} name={`classrooms.${index}.chairCount`} render={({ field }) => (
+                            <FormItem><FormLabel>Número de Cadeiras</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+                          )}/>
+                          <FormField control={form.control} name={`classrooms.${index}.studentCapacity`} render={({ field }) => (
+                            <FormItem><FormLabel>Capacidade de Estudantes</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+                          )}/>
+                          <FormField control={form.control} name={`classrooms.${index}.fanCount`} render={({ field }) => (
+                            <FormItem><FormLabel>Quantidade de Ventiladores</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+                          )}/>
+                        </div>
+                        <div className="flex items-center space-x-4">
+                          <FormField control={form.control} name={`classrooms.${index}.hasInternet`} render={({ field }) => (
+                            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                              <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                              <FormLabel className="font-normal">Tem Internet</FormLabel>
                             </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name={`classrooms.${index}.studentCount`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Alunos</FormLabel>
-                              <FormControl><Input type="number" {...field} /></FormControl>
-                              <FormMessage />
+                          )}/>
+                          <FormField control={form.control} name={`classrooms.${index}.hasAirConditioning`} render={({ field }) => (
+                            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                              <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                              <FormLabel className="font-normal">Tem Ar Condicionado</FormLabel>
                             </FormItem>
-                          )}
-                        />
-                        <Button type="button" variant="ghost" size="icon" onClick={() => removeClassroom(index)}>
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                          )}/>
+                        </div>
                     </div>
                   ))}
-                  <Button type="button" variant="outline" size="sm" onClick={() => appendClassroom({ id: `c${classrooms.length+2}`, name: '', studentCount: 0 })}>
-                    <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Turma
+                  <Button type="button" variant="outline" size="sm" onClick={() => appendClassroom({
+                     id: `c${classrooms.length+1}`,
+                     name: `Sala ${classrooms.length+1}`,
+                     studentCapacity: 0,
+                     outlets: 0,
+                     tvCount: 0,
+                     chairCount: 0,
+                     fanCount: 0,
+                     hasInternet: false,
+                     hasAirConditioning: false
+                  })}>
+                    <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Sala de Aula
                   </Button>
                 </AccordionContent>
               </AccordionItem>

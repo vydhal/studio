@@ -45,7 +45,7 @@ export function SubmissionsTable({ submissions, schoolMap }: SubmissionsTablePro
         <TableBody>
             {submissions.map((submission) => {
             const school = schoolMap.get(submission.schoolId);
-            const totalStudents = submission.classrooms.reduce((acc, curr) => acc + curr.studentCount, 0);
+            const totalStudents = submission.teachingModalities.reduce((acc, curr) => acc + curr.studentCount, 0);
             return (
                 <TableRow key={submission.id}>
                 <TableCell className="font-medium">{school?.name || 'Escola não encontrada'}</TableCell>
