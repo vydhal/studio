@@ -1,10 +1,10 @@
+
 "use client";
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useState, useEffect } from "react";
-import { doc, getDoc, setDoc } from "firebase/firestore";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -18,7 +18,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { db } from "@/lib/firebase";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -33,6 +32,17 @@ const formSchema = z.object({
   twitterUrl: z.string().url("URL inválida.").or(z.literal("")).optional(),
 });
 
+const defaultSettings = {
+    logoUrl: "",
+    title: "Bem-vindo ao Firebase School Central (Exemplo)",
+    subtitle: "Sua plataforma completa para gerenciamento de censo escolar.",
+    description: "Este é um exemplo de texto carregado localmente.",
+    facebookUrl: "",
+    instagramUrl: "",
+    twitterUrl: "",
+};
+
+
 export function SettingsForm() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -40,56 +50,31 @@ export function SettingsForm() {
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      logoUrl: "",
-      title: "",
-      subtitle: "",
-      description: "",
-      facebookUrl: "",
-      instagramUrl: "",
-      twitterUrl: "",
-    },
+    defaultValues: defaultSettings,
   });
 
   useEffect(() => {
-    const fetchSettings = async () => {
-      setFetching(true);
-      try {
-        const docRef = doc(db, 'settings', 'home_config');
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          form.reset(docSnap.data());
-        }
-      } catch (error) {
-        toast({
-          variant: "destructive",
-          title: "Erro ao carregar configurações",
-        });
-      } finally {
+    // Simulate fetching settings
+    setFetching(true);
+    setTimeout(() => {
+        // In a real app, you would fetch from Firestore here.
+        // For testing, we just use the default mock data.
+        form.reset(defaultSettings);
         setFetching(false);
-      }
-    };
-    fetchSettings();
-  }, [form, toast]);
+    }, 500);
+  }, [form]);
 
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setLoading(true);
-    try {
-      await setDoc(doc(db, "settings", "home_config"), values);
-      toast({
+    // Simulate saving to Firestore
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    console.log("Mock settings saved:", values);
+    toast({
         title: "Sucesso!",
-        description: "Configurações da página inicial salvas.",
-      });
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Erro ao salvar",
-        description: "Houve um problema ao salvar as configurações.",
-      });
-    } finally {
-      setLoading(false);
-    }
+        description: "Configurações da página inicial salvas (simulação).",
+    });
+    setLoading(false);
   }
 
   if (fetching) {

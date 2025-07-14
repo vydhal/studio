@@ -1,10 +1,10 @@
+
 "use client";
 
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useState, useEffect } from "react";
-import { collection, getDocs, addDoc, serverTimestamp } from "firebase/firestore";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -24,12 +24,10 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { db } from "@/lib/firebase";
 import type { School } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Loader2, PlusCircle, Trash2 } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
 import { Checkbox } from "@/components/ui/checkbox";
 
 const classroomSchema = z.object({
@@ -81,9 +79,14 @@ const defaultTechnologies = [
     { id: '6', name: 'Modems com Defeito', quantity: 0 },
 ];
 
+const mockSchools: School[] = [
+    { id: 'school1', name: 'Escola Municipal Exemplo 1', inep: '12345678' },
+    { id: 'school2', name: 'Escola Estadual Teste 2', inep: '87654321' },
+    { id: 'school3', name: 'Centro Educacional Modelo 3', inep: '98765432' },
+];
+
 export function SchoolCensusForm() {
   const { toast } = useToast();
-  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [schools, setSchools] = useState<School[]>([]);
 
@@ -113,58 +116,41 @@ export function SchoolCensusForm() {
   const { fields: technologies } = useFieldArray({ control: form.control, name: "technologyResources" });
 
   useEffect(() => {
-    const fetchSchools = async () => {
-      try {
-        const schoolsCollection = collection(db, "schools");
-        const schoolSnapshot = await getDocs(schoolsCollection);
-        const schoolList = schoolSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as School));
-        setSchools(schoolList);
-      } catch (error) {
-        toast({ variant: "destructive", title: "Erro ao carregar escolas", description: "Não foi possível buscar a lista de escolas." });
-      }
-    };
-    fetchSchools();
-  }, [toast]);
+    // Simulate fetching schools
+    setSchools(mockSchools);
+  }, []);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setLoading(true);
-    try {
-      await addDoc(collection(db, "submissions"), {
+    // Simulate submitting to Firestore
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    console.log("Mock submission:", {
         ...values,
-        submittedAt: serverTimestamp(),
-        submittedBy: user?.uid ?? "anonymous",
-      });
-      toast({
+        submittedAt: new Date(),
+        submittedBy: "test-user-id",
+    });
+    toast({
         title: "Sucesso!",
-        description: "Formulário do censo enviado com sucesso.",
-      });
-      form.reset({
+        description: "Formulário do censo enviado (simulação).",
+    });
+    form.reset({
         schoolId: "",
         classrooms: [{
-          id: `c1`,
-          name: 'Sala 1',
-          studentCapacity: 0,
-          outlets: 0,
-          tvCount: 0,
-          chairCount: 0,
-          fanCount: 0,
-          hasInternet: false,
-          hasAirConditioning: false
+        id: `c1`,
+        name: 'Sala 1',
+        studentCapacity: 0,
+        outlets: 0,
+        tvCount: 0,
+        chairCount: 0,
+        fanCount: 0,
+        hasInternet: false,
+        hasAirConditioning: false
         }],
         teachingModalities: defaultModalities,
         technologyResources: defaultTechnologies,
         hasInternet: false,
-      });
-    } catch (error) {
-      console.error("Error adding document: ", error);
-      toast({
-        variant: "destructive",
-        title: "Erro ao enviar",
-        description: "Houve um problema ao enviar seu formulário. Tente novamente.",
-      });
-    } finally {
-      setLoading(false);
-    }
+    });
+    setLoading(false);
   }
 
   return (
