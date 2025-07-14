@@ -76,12 +76,17 @@ export interface UserProfile {
 export interface SchoolCensusSubmission {
   id: string;
   schoolId: string;
-  general: GeneralData;
-  infrastructure: InfrastructureData;
-  technology: TechnologyData;
-  cultural: CulturalData;
-  maintenance: MaintenanceData;
-  teachingModalities: TeachingModality[];
+  general?: GeneralData;
+  infrastructure?: InfrastructureData;
+  technology?: TechnologyData;
+  cultural?: CulturalData;
+  maintenance?: MaintenanceData;
+  teachingModalities?: TeachingModality[];
+  dynamicData?: {
+    [sectionId: string]: {
+      [fieldId: string]: any;
+    }
+  };
   submittedAt: Date;
   submittedBy?: string;
 }

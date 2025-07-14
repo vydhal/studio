@@ -1,24 +1,34 @@
-import type { SchoolCensusSubmission, School, Classroom, TeachingModality, TechnologyResource } from "@/types";
+"use client";
+
+import { useState, useEffect } from "react";
+import type { SchoolCensusSubmission, School, Classroom, TeachingModality, TechnologyResource, FormSectionConfig } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CheckCircle2, XCircle, Users, Tv, Wind, Zap, Armchair, Wifi, Snowflake, Check, Bot, Laptop, Printer, Router } from "lucide-react";
+import { CheckCircle2, XCircle, Users, Tv, Wind, Zap, Armchair, Wifi, Snowflake, Check, Bot, Laptop, Printer, Router, AlertTriangle, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from 'date-fns/locale';
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface SubmissionDetailProps {
-  submission: SchoolCensusSubmission;
-  school: School | null;
+  schoolId: string;
 }
+
+const SCHOOLS_STORAGE_KEY = 'schoolList';
+const SUBMISSIONS_STORAGE_KEY = 'schoolCensusSubmissions';
+const FORM_CONFIG_STORAGE_KEY = 'censusFormConfig';
+
 
 const InfoItem = ({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value: string | number | React.ReactNode }) => (
     <div className="flex items-center gap-3 bg-muted/50 p-2 rounded-md">
         <Icon className="h-5 w-5 text-muted-foreground" />
         <div>
             <p className="text-sm text-muted-foreground">{label}</p>
-            <p className="font-semibold">{value}</p>
+            <p className="font-semibold">{value || 'N/A'}</p>
         </div>
     </div>
 )
@@ -51,18 +61,88 @@ const techIcons: { [key: string]: React.ElementType } = {
 };
 
 
-export function SubmissionDetail({ submission, school }: SubmissionDetailProps) {
+export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
+    const [submission, setSubmission] = useState<SchoolCensusSubmission | null>(null);
+    const [school, setSchool] = useState<School | null>(null);
+    const [formConfig, setFormConfig] = useState<FormSectionConfig[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        try {
+            const allSubmissionsText = localStorage.getItem(SUBMISSIONS_STORAGE_KEY);
+            if(allSubmissionsText) {
+                const allSubmissions = JSON.parse(allSubmissionsText);
+                setSubmission(allSubmissions[schoolId] || null);
+            }
+
+            const allSchoolsText = localStorage.getItem(SCHOOLS_STORAGE_KEY);
+            if(allSchoolsText) {
+                const allSchools: School[] = JSON.parse(allSchoolsText);
+                setSchool(allSchools.find(s => s.id === schoolId) || null);
+            }
+            
+            const formConfigText = localStorage.getItem(FORM_CONFIG_STORAGE_KEY);
+            if(formConfigText) {
+                setFormConfig(JSON.parse(formConfigText));
+            }
+
+        } catch (error) {
+            console.error("Failed to load data from localStorage", error);
+        } finally {
+            setLoading(false);
+        }
+
+    }, [schoolId])
+
+  if (loading) {
+    return (
+        <div className="space-y-4">
+             <Skeleton className="h-10 w-48" />
+             <Skeleton className="h-12 w-full" />
+             <Skeleton className="h-24 w-full" />
+             <Skeleton className="h-48 w-full" />
+             <Skeleton className="h-48 w-full" />
+        </div>
+    )
+  }
+
+  if (!submission || !school) {
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-destructive">
+                        <AlertTriangle/>
+                        Submissão não encontrada
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <p>Não foi encontrada nenhuma submissão para a escola com o ID solicitado. A escola pode não ter iniciado o preenchimento do censo ainda.</p>
+                     <Button asChild variant="link" className="px-0">
+                        <Link href="/admin/dashboard">Voltar para o Dashboard</Link>
+                    </Button>
+                </CardContent>
+            </Card>
+        )
+    }
+
+  const getSectionFromConfig = (sectionId: string) => formConfig.find(s => s.id === sectionId);
+  const getFieldFromConfig = (sectionId: string, fieldId: string) => 
+      getSectionFromConfig(sectionId)?.fields.find(f => f.id === fieldId);
 
   return (
     <div className="space-y-6">
         <div>
             <Button variant="outline" asChild>
-                <Link href="/admin/dashboard">← Voltar ao Dashboard</Link>
+                <Link href="/admin/dashboard">← Voltar</Link>
             </Button>
             <h1 className="text-3xl font-bold tracking-tight font-headline mt-4">Detalhes da Submissão</h1>
-            <p className="text-muted-foreground">
-                Última atualização em: {format(submission.submittedAt, "dd 'de' MMMM 'de' yyyy, 'às' HH:mm", { locale: ptBR })}
-            </p>
+            {submission.submittedAt ? (
+                <p className="text-muted-foreground">
+                    Última atualização em: {format(new Date(submission.submittedAt), "dd 'de' MMMM 'de' yyyy, 'às' HH:mm", { locale: ptBR })}
+                </p>
+            ) : (
+                 <p className="text-muted-foreground">Censo em andamento. Nenhuma seção foi salva ainda.</p>
+            )}
         </div>
       
       <Card>
@@ -83,67 +163,52 @@ export function SubmissionDetail({ submission, school }: SubmissionDetailProps) 
         </CardContent>
       </Card>
       
-      <Card>
-        <CardHeader>
-          <CardTitle>Infraestrutura - Salas de Aula</CardTitle>
-          <CardDescription>Total de {submission.infrastructure.classrooms.length} salas de aula.</CardDescription>
-        </CardHeader>
-        <CardContent>
-           <Accordion type="single" collapsible className="w-full">
-              {submission.infrastructure.classrooms.map((classroom) => (
-                <AccordionItem value={classroom.id} key={classroom.id}>
-                    <AccordionTrigger className="font-semibold">{classroom.name}</AccordionTrigger>
-                    <AccordionContent>
-                        <ClassroomDetails classroom={classroom} />
-                    </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
-        </CardContent>
-      </Card>
+       <Accordion type="multiple" className="w-full space-y-4">
+        {formConfig.map(sectionConfig => {
+          const sectionData = submission.dynamicData?.[sectionConfig.id];
+          if (!sectionData) {
+            return (
+              <Alert key={sectionConfig.id} variant="default">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>{sectionConfig.name}</AlertTitle>
+                  <AlertDescription>
+                    Esta seção ainda não foi preenchida.
+                  </AlertDescription>
+              </Alert>
+            )
+          }
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Modalidades de Ensino</CardTitle>
-           <CardDescription>Modalidades oferecidas pela escola.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            {submission.teachingModalities?.filter(m => m.offered).map((modality) => (
-              <div key={modality.id} className="flex items-center gap-2">
-                <Check className="h-5 w-5 text-primary" />
-                <span>{modality.name}</span>
-              </div>
-            ))}
-             {submission.teachingModalities?.filter(m => m.offered).length === 0 && (
-                <p className="text-muted-foreground col-span-full">Nenhuma modalidade de ensino informada.</p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-      
-      <Card>
-        <CardHeader>
-          <CardTitle>Recursos Tecnológicos</CardTitle>
-        </CardHeader>
-        <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {submission.technology.resources?.map((tech) => (
-                    <InfoItem 
-                        key={tech.id}
-                        icon={techIcons[tech.name] || Laptop}
-                        label={tech.name}
-                        value={tech.quantity}
-                    />
-                ))}
-            </div>
-            <div className="flex items-center gap-2 mt-4">
-                {submission.technology.hasInternetAccess ? <CheckCircle2 className="h-5 w-5 text-green-500" /> : <XCircle className="h-5 w-5 text-destructive" />}
-                <span>A escola tem acesso à Internet para fins pedagógicos/administrativos.</span>
-            </div>
-        </CardContent>
-      </Card>
-
+          return (
+             <Card key={sectionConfig.id}>
+                <CardHeader>
+                  <CardTitle>{sectionConfig.name}</CardTitle>
+                  <CardDescription>{sectionConfig.description}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {sectionConfig.fields.map(fieldConfig => {
+                        const value = sectionData[fieldConfig.id];
+                        let displayValue: React.ReactNode = "Não informado";
+                        if (value !== undefined && value !== null && value !== '') {
+                          if (typeof value === 'boolean') {
+                            displayValue = value ? <CheckCircle2 className="text-green-500" /> : <XCircle className="text-destructive" />;
+                          } else {
+                            displayValue = String(value);
+                          }
+                        }
+                        return (
+                           <div key={fieldConfig.id} className="flex flex-col space-y-1">
+                              <p className="text-sm font-medium text-muted-foreground">{fieldConfig.name}</p>
+                              <div className="font-semibold">{displayValue}</div>
+                           </div>
+                        )
+                      })}
+                   </div>
+                </CardContent>
+             </Card>
+          )
+        })}
+      </Accordion>
     </div>
   );
 }

@@ -11,7 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import type { SchoolCensusSubmission, School } from "@/types";
+import type { SchoolCensusSubmission, School, FormSectionConfig } from "@/types";
 import Link from "next/link";
 import { format } from "date-fns";
 import { ptBR } from 'date-fns/locale';
@@ -34,7 +34,7 @@ interface SubmissionsTableProps {
   schoolMap: Map<string, School>;
 }
 
-const StatusIcon = ({ status }: { status: 'completed' | 'pending' }) => {
+const StatusIcon = ({ status }: { status?: 'completed' | 'pending' }) => {
     if (status === 'completed') {
         return <CheckCircle className="h-5 w-5 text-green-500" />;
     }
@@ -43,7 +43,7 @@ const StatusIcon = ({ status }: { status: 'completed' | 'pending' }) => {
 
 const getOverallStatus = (submission: SchoolCensusSubmission): { label: string, variant: "default" | "secondary" | "destructive" | "outline" | null | undefined } => {
     const sections = [submission.general, submission.infrastructure, submission.technology, submission.cultural, submission.maintenance];
-    const completedCount = sections.filter(s => s.status === 'completed').length;
+    const completedCount = sections.filter(s => s?.status === 'completed').length;
     
     if (completedCount === sections.length) {
         return { label: 'Completo', variant: 'default' };
@@ -54,15 +54,13 @@ const getOverallStatus = (submission: SchoolCensusSubmission): { label: string, 
     return { label: 'Em Andamento', variant: 'secondary' };
 }
 
-const SubmissionStatusModal = ({ submission }: { submission: SchoolCensusSubmission }) => {
-    const school = getMockSchool(submission.schoolId);
-    
+const SubmissionStatusModal = ({ submission, school }: { submission: SchoolCensusSubmission, school: School | undefined }) => {
     const sections = [
-        { name: 'Dados Gerais', status: submission.general.status },
-        { name: 'Infraestrutura', status: submission.infrastructure.status },
-        { name: 'Tecnologia', status: submission.technology.status },
-        { name: 'Cultural', status: submission.cultural.status },
-        { name: 'Manutenção', status: submission.maintenance.status },
+        { name: 'Dados Gerais', status: submission.general?.status },
+        { name: 'Infraestrutura', status: submission.infrastructure?.status },
+        { name: 'Tecnologia', status: submission.technology?.status },
+        { name: 'Cultural', status: submission.cultural?.status },
+        { name: 'Manutenção', status: submission.maintenance?.status },
     ];
 
     return (
@@ -95,21 +93,12 @@ const SubmissionStatusModal = ({ submission }: { submission: SchoolCensusSubmiss
     )
 }
 
-// Helper to get mock school by ID
-const getMockSchool = (id: string): School | null => {
-    const mockSchools: { [key: string]: School } = {
-        'school1': { id: 'school1', name: 'Escola Municipal Exemplo 1', inep: '12345678' },
-        'school2': { id: 'school2', name: 'Escola Estadual Teste 2', inep: '87654321' },
-    };
-    return mockSchools[id] || null;
-}
-
 
 export function SubmissionsTable({ submissions, schoolMap }: SubmissionsTableProps) {
   if (submissions.length === 0) {
       return (
           <div className="p-6 text-center text-muted-foreground">
-              Nenhuma submissão encontrada para o filtro atual.
+              Nenhuma submissão encontrada. Preencha o formulário para uma escola para começar.
           </div>
       )
   }
@@ -136,12 +125,12 @@ export function SubmissionsTable({ submissions, schoolMap }: SubmissionsTablePro
             <TableRow key={submission.id}>
             <TableCell className="font-medium">{school?.name || 'Escola não encontrada'}</TableCell>
             <TableCell className="hidden md:table-cell">{school?.inep || 'N/A'}</TableCell>
-            <TableCell className="hidden md:table-cell">{format(submission.submittedAt, 'dd/MM/yyyy HH:mm', { locale: ptBR })}</TableCell>
+            <TableCell className="hidden md:table-cell">{submission.submittedAt ? format(new Date(submission.submittedAt), 'dd/MM/yyyy HH:mm', { locale: ptBR }) : 'N/A'}</TableCell>
             <TableCell>
                 <Badge variant={overallStatus.variant}>{overallStatus.label}</Badge>
             </TableCell>
             <TableCell className="hidden md:table-cell">
-                 <SubmissionStatusModal submission={submission} />
+                 <SubmissionStatusModal submission={submission} school={school} />
             </TableCell>
             <TableCell>
                  <DropdownMenu>
@@ -154,12 +143,12 @@ export function SubmissionsTable({ submissions, schoolMap }: SubmissionsTablePro
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Ações</DropdownMenuLabel>
                       <DropdownMenuItem asChild>
-                         <Link href={`/admin/submissions/${submission.id}`}>Ver Detalhes</Link>
+                         <Link href={`/admin/submissions/${submission.schoolId}`}>Ver Detalhes</Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
                         <Link href={`/census?schoolId=${submission.schoolId}`}>Editar Formulário</Link>
                       </DropdownMenuItem>
-                       <DropdownMenuItem>Exportar PDF</DropdownMenuItem>
+                       <DropdownMenuItem disabled>Exportar PDF</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
             </TableCell>

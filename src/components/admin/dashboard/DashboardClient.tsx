@@ -24,64 +24,14 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 
 
-// Mock data to simulate Firestore fetch
-const getMockSubmissions = (): SchoolCensusSubmission[] => {
-  const now = new Date();
-  return [
-    {
-      id: 'sub1',
-      schoolId: 'school1',
-      general: { status: 'completed' },
-      infrastructure: { 
-        status: 'completed',
-        classrooms: [
-            { id: 'c1', name: 'Sala 1', studentCapacity: 25, outlets: 10, tvCount: 1, chairCount: 25, fanCount: 2, hasInternet: true, hasAirConditioning: false },
-            { id: 'c2', name: 'Sala 2', studentCapacity: 30, outlets: 12, tvCount: 1, chairCount: 30, fanCount: 2, hasInternet: true, hasAirConditioning: true },
-        ]
-      },
-      technology: { 
-        status: 'completed',
-        resources: [{ id: '1', name: 'Chromebooks', quantity: 20 }, { id: '2', name: 'Impressoras', quantity: 2 }],
-        hasInternetAccess: true
-      },
-      cultural: { status: 'pending' },
-      maintenance: { status: 'completed' },
-      teachingModalities: [{ id: '1', name: 'Anos Iniciais', offered: true }, { id: '2', name: 'Anos Finais', offered: true }],
-      submittedAt: new Date(now.setDate(now.getDate() - 1)),
-      submittedBy: 'test-user'
-    },
-    {
-      id: 'sub2',
-      schoolId: 'school2',
-      general: { status: 'completed' },
-      infrastructure: { 
-        status: 'completed',
-        classrooms: [
-            { id: 'c1', name: 'Sala A', studentCapacity: 20, outlets: 8, tvCount: 1, chairCount: 20, fanCount: 1, hasInternet: false, hasAirConditioning: false },
-        ]
-      },
-      technology: { 
-        status: 'pending',
-        resources: [{ id: '3', name: 'Notebooks', quantity: 15 }],
-        hasInternetAccess: true,
-      },
-      cultural: { status: 'pending' },
-      maintenance: { status: 'pending' },
-      teachingModalities: [{ id: '3', name: 'EJA', offered: true }],
-      submittedAt: new Date(now.setDate(now.getDate() - 2)),
-      submittedBy: 'test-user-2'
-    }
-  ];
-};
+const SCHOOLS_STORAGE_KEY = 'schoolList';
+const SUBMISSIONS_STORAGE_KEY = 'schoolCensusSubmissions';
 
 const defaultSchools: School[] = [
     { id: 'school1', name: 'Escola Municipal Exemplo 1 (Padrão)', inep: '12345678' },
     { id: 'school2', name: 'Escola Estadual Teste 2 (Padrão)', inep: '87654321' },
     { id: 'school3', name: 'Centro Educacional Modelo 3 (Padrão)', inep: '98765432' },
 ];
-
-const SCHOOLS_STORAGE_KEY = 'schoolList';
-
 
 export function DashboardClient() {
   const [submissions, setSubmissions] = useState<SchoolCensusSubmission[]>([]);
@@ -95,8 +45,10 @@ export function DashboardClient() {
     const schoolsData = storedSchools ? JSON.parse(storedSchools) : defaultSchools;
     setSchools(schoolsData);
 
-    const submissionsData = getMockSubmissions();
-    setSubmissions(submissionsData);
+    const storedSubmissions = localStorage.getItem(SUBMISSIONS_STORAGE_KEY);
+    const submissionsData = storedSubmissions ? Object.values(JSON.parse(storedSubmissions)) : [];
+
+    setSubmissions(submissionsData as SchoolCensusSubmission[]);
     
     setLoading(false);
   }, []);
@@ -131,27 +83,27 @@ export function DashboardClient() {
       const school = schoolMap.get(sub.schoolId);
       if (!school) return null;
 
-      const totalClassrooms = sub.infrastructure.classrooms.length;
-      const totalStudentCapacity = sub.infrastructure.classrooms.reduce((acc, c) => acc + c.studentCapacity, 0);
-      const totalOutlets = sub.infrastructure.classrooms.reduce((acc, c) => acc + c.outlets, 0);
-      const totalTvs = sub.infrastructure.classrooms.reduce((acc, c) => acc + c.tvCount, 0);
+      const totalClassrooms = sub.infrastructure.classrooms?.length || 0;
+      const totalStudentCapacity = sub.infrastructure.classrooms?.reduce((acc, c) => acc + (c.studentCapacity || 0), 0) || 0;
+      const totalOutlets = sub.infrastructure.classrooms?.reduce((acc, c) => acc + (c.outlets || 0), 0) || 0;
+      const totalTvs = sub.infrastructure.classrooms?.reduce((acc, c) => acc + (c.tvCount || 0), 0) || 0;
       
       const modalities = sub.teachingModalities
-        .filter(m => m.offered)
+        ?.filter(m => m.offered)
         .map(m => m.name)
-        .join('; ');
+        .join('; ') || '';
 
       const resources = sub.technology.resources
-        .map(r => `${r.name}: ${r.quantity}`)
-        .join('; ');
+        ?.map(r => `${r.name}: ${r.quantity}`)
+        .join('; ') || '';
 
       return [
         `"${school.name}"`,
         `"${school.inep}"`,
-        `"${new Date(sub.submittedAt).toLocaleString('pt-BR')}"`,
-        `"${sub.general.status}"`,
-        `"${sub.infrastructure.status}"`,
-        `"${sub.technology.status}"`,
+        `"${sub.submittedAt ? new Date(sub.submittedAt).toLocaleString('pt-BR') : 'N/A'}"`,
+        `"${sub.general?.status || 'pendente'}"`,
+        `"${sub.infrastructure?.status || 'pendente'}"`,
+        `"${sub.technology?.status || 'pendente'}"`,
         totalClassrooms,
         totalStudentCapacity,
         totalOutlets,
@@ -217,9 +169,9 @@ export function DashboardClient() {
             <TabsContent value="submissions" className="space-y-4">
                 <Card>
                     <CardHeader>
-                        <CardTitle>Submissões do Censo Escolar</CardTitle>
+                        <CardTitle>Acompanhamento do Censo Escolar</CardTitle>
                         <CardDescription>
-                            Acompanhe e gerencie as submissões de cada escola.
+                            Acompanhe e gerencie o progresso do censo de cada escola.
                         </CardDescription>
                     </CardHeader>
                     <CardContent>

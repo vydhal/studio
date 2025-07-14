@@ -9,20 +9,26 @@ interface MetricsCardsProps {
 
 export function MetricsCards({ submissions, schools }: MetricsCardsProps) {
   
-  const totalClassrooms = submissions.reduce((acc, sub) => acc + sub.infrastructure.classrooms.length, 0);
+  const totalClassrooms = submissions.reduce((acc, sub) => acc + (sub.infrastructure?.classrooms?.length || 0), 0);
 
   const totalChromebooks = submissions.reduce((acc, sub) => {
-      const chromebook = sub.technology.resources.find(r => r.name === 'Chromebooks');
+      const chromebook = sub.technology?.resources?.find(r => r.name === 'Chromebooks');
       return acc + (chromebook?.quantity || 0);
   }, 0);
 
-  const schoolsWithInternet = submissions.filter(s => s.technology.hasInternetAccess).length;
+  const schoolsWithInternet = submissions.filter(s => s.technology?.hasInternetAccess).length;
+  
+  const completedSubmissions = submissions.filter(s => {
+      const sections = [s.general, s.infrastructure, s.technology, s.cultural, s.maintenance];
+      return sections.every(sec => sec?.status === 'completed');
+  }).length;
+
 
   const metrics = [
     { title: "Escolas Cadastradas", value: schools.length, icon: School2, description: "Total de unidades" },
     { title: "Salas de Aula", value: totalClassrooms, icon: Users, description: "Soma de todas as salas" },
-    { title: "Chromebooks", value: totalChromebooks.toLocaleString(), icon: Laptop, description: "Total de dispositivos" },
-    { title: "Escolas com Internet", value: `${schoolsWithInternet}/${schools.length}`, icon: Wifi, description: "100% das escolas" },
+    { title: "Questionários Completos", value: `${completedSubmissions}/${schools.length}`, icon: Laptop, description: "Total de censos finalizados" },
+    { title: "Escolas com Internet", value: `${schoolsWithInternet}/${schools.length}`, icon: Wifi, description: "Conectividade pedagógica" },
   ];
 
   return (
