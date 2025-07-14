@@ -201,7 +201,7 @@ export function DashboardClient() {
         <div className="flex items-center justify-between space-y-2">
             <h1 className="text-3xl font-bold tracking-tight font-headline">Dashboard</h1>
             <div className="flex items-center space-x-2">
-                <Button onClick={handleExport} disabled={filteredSubmissions.length === 0}>Exportar</Button>
+                <Button onClick={handleExport}>Exportar</Button>
             </div>
         </div>
 
