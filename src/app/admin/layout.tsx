@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
@@ -11,6 +11,9 @@ import {
   SidebarInset
 } from "@/components/ui/sidebar";
 
+// Variável para checar se estamos em modo de teste (sem Firebase real)
+const isTestMode = process.env.NEXT_PUBLIC_FIREBASE_API_KEY?.includes("AIzaSyXXX");
+
 export default function AdminLayout({
   children,
 }: {
@@ -18,14 +21,26 @@ export default function AdminLayout({
 }) {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const [isAllowed, setIsAllowed] = useState(false);
 
   useEffect(() => {
+    // Se estiver em modo de teste, permite o acesso direto.
+    if (isTestMode) {
+      setIsAllowed(true);
+      return;
+    }
+
+    // Lógica original para ambiente com Firebase real
     if (!loading && !user) {
       router.push("/login");
+    } else if (!loading && user) {
+      setIsAllowed(true);
     }
   }, [user, loading, router]);
 
-  if (loading || !user) {
+  // Se não for permitido, mostra a tela de carregamento.
+  // Isso cobre o tempo de verificação e o modo de teste.
+  if (!isAllowed) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
