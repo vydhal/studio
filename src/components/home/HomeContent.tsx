@@ -11,10 +11,12 @@ import Link from 'next/link';
 import Image from 'next/image';
 
 const defaultSettings: HomeSettings = {
+    appName: "Firebase School Central",
     title: 'Bem-vindo ao Firebase School Central',
     subtitle: 'Sua plataforma completa para gerenciamento de censo escolar.',
     description: 'Nossa plataforma simplifica a coleta e análise de dados do censo escolar, fornecendo insights valiosos para gestores e administradores. Preencha o formulário ou acesse o painel administrativo para começar.',
     logoUrl: 'https://placehold.co/100x100.png',
+    footerText: `© ${new Date().getFullYear()} Firebase School Central. Todos os Direitos Reservados.`,
     facebookUrl: '#',
     instagramUrl: '#',
     twitterUrl: '#',
@@ -147,9 +149,9 @@ function HomeSkeleton() {
                         <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none font-headline">
                             <Skeleton className="h-12 w-full max-w-2xl" />
                         </h1>
-                        <p className="max-w-[600px] text-muted-foreground md:text-xl">
+                        <div className="max-w-[600px] text-muted-foreground md:text-xl">
                             <Skeleton className="h-8 w-full max-w-lg" />
-                        </p>
+                        </div>
                     </div>
                      <div className="max-w-[600px] text-muted-foreground">
                         <Skeleton className="h-6 w-full max-w-xl" />

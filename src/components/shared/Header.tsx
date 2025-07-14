@@ -1,9 +1,31 @@
+"use client";
+
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Menu, School } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import type { HomeSettings } from '@/types';
+
+const SETTINGS_STORAGE_KEY = 'homePageSettings';
+const defaultAppName = "Firebase School Central";
 
 export function Header() {
+  const [appName, setAppName] = useState(defaultAppName);
+
+  useEffect(() => {
+    try {
+      const storedSettings = localStorage.getItem(SETTINGS_STORAGE_KEY);
+      if (storedSettings) {
+        const settings: HomeSettings = JSON.parse(storedSettings);
+        setAppName(settings.appName || defaultAppName);
+      }
+    } catch (error) {
+      console.error("Failed to parse settings from localStorage for header", error);
+      setAppName(defaultAppName);
+    }
+  }, []);
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 items-center">
@@ -11,7 +33,7 @@ export function Header() {
           <Link href="/" className="mr-6 flex items-center space-x-2">
             <School className="h-6 w-6 text-primary" />
             <span className="hidden font-bold sm:inline-block">
-              Firebase School Central
+              {appName}
             </span>
           </Link>
           <nav className="flex items-center space-x-6 text-sm font-medium">
@@ -31,7 +53,7 @@ export function Header() {
               <SheetContent side="left">
                 <Link href="/" className="mr-6 flex items-center space-x-2 mb-6">
                   <School className="h-6 w-6 text-primary" />
-                  <span className="font-bold">School Central</span>
+                  <span className="font-bold">{appName}</span>
                 </Link>
                 <nav className="flex flex-col space-y-4">
                   <Link href="/census" className="text-lg">Censo Escolar</Link>

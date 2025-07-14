@@ -87,10 +87,12 @@ export interface SchoolCensusSubmission {
 }
 
 export interface HomeSettings {
+  appName: string;
   logoUrl?: string;
   title: string;
   subtitle: string;
   description: string;
+  footerText: string;
   facebookUrl?: string;
   instagramUrl?: string;
   twitterUrl?: string;

@@ -8,19 +8,19 @@ body {
 
 @layer base {
   :root {
-    --background: 220 20% 97%;
+    --background: 0 0% 98%; /* Very light gray - FAF9F6 -> HSL 40, 33%, 98% -> simplified to 0 0% 98% for near white/v light gray */
     --foreground: 240 10% 3.9%;
     --card: 0 0% 100%;
     --card-foreground: 240 10% 3.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 3.9%;
-    --primary: 275 100% 26%;
+    --primary: 275 100% 25%; /* Deep Indigo - #4B0082 */
     --primary-foreground: 0 0% 98%;
     --secondary: 240 4.8% 95.9%;
     --secondary-foreground: 240 5.9% 10%;
     --muted: 240 4.8% 95.9%;
     --muted-foreground: 240 3.8% 46.1%;
-    --accent: 276 100% 50%;
+    --accent: 276 100% 50%; /* Violet - #8F00FF */
     --accent-foreground: 0 0% 98%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
@@ -28,7 +28,7 @@ body {
     --input: 240 5.9% 90%;
     --ring: 276 100% 50%;
     --radius: 0.5rem;
-    --chart-1: 275 100% 26%;
+    --chart-1: 275 100% 25%;
     --chart-2: 276 100% 50%;
     --chart-3: 275 80% 60%;
     --chart-4: 276 80% 70%;
@@ -80,6 +80,5 @@ body {
   }
   body {
     @apply bg-background text-foreground;
-    background-color: hsl(var(--background));
   }
 }
