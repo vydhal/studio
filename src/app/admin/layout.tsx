@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -11,7 +12,6 @@ import {
   SidebarInset
 } from "@/components/ui/sidebar";
 
-// Variável para checar se estamos em modo de teste (sem Firebase real)
 const isTestMode = process.env.NEXT_PUBLIC_FIREBASE_API_KEY?.includes("AIzaSyXXX");
 
 export default function AdminLayout({
@@ -24,22 +24,22 @@ export default function AdminLayout({
   const [isAllowed, setIsAllowed] = useState(false);
 
   useEffect(() => {
-    // Se estiver em modo de teste, permite o acesso direto.
+    // Se estiver em modo de teste (sem Firebase real), permite o acesso direto.
     if (isTestMode) {
       setIsAllowed(true);
       return;
     }
 
     // Lógica original para ambiente com Firebase real
-    if (!loading && !user) {
-      router.push("/login");
-    } else if (!loading && user) {
-      setIsAllowed(true);
+    if (!loading) {
+      if (user) {
+        setIsAllowed(true);
+      } else {
+        router.push("/login");
+      }
     }
   }, [user, loading, router]);
-
-  // Se não for permitido, mostra a tela de carregamento.
-  // Isso cobre o tempo de verificação e o modo de teste.
+  
   if (!isAllowed) {
     return (
       <div className="flex h-screen items-center justify-center">
