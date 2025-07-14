@@ -14,7 +14,6 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-  FormDescription
 } from "@/components/ui/form";
 import {
   Select,
@@ -29,7 +28,6 @@ import { db } from "@/lib/firebase";
 import type { School } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Switch } from "@/components/ui/switch";
 import { Loader2, PlusCircle, Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -48,30 +46,40 @@ const classroomSchema = z.object({
 
 const teachingModalitySchema = z.object({
   id: z.string(),
-  name: z.string().min(1, "Nome da modalidade é obrigatório"),
-  studentCount: z.coerce.number().min(0, "Número de alunos deve ser positivo"),
+  name: z.string(),
+  offered: z.boolean(),
 });
 
-const technologySchema = z.object({
+const technologyResourceSchema = z.object({
   id: z.string(),
   name: z.string(),
-  hasIt: z.boolean(),
+  quantity: z.coerce.number().min(0, "Quantidade deve ser positiva"),
 });
 
 const formSchema = z.object({
   schoolId: z.string().min(1, "Por favor, selecione uma escola."),
   classrooms: z.array(classroomSchema).min(1, "Adicione pelo menos uma turma."),
-  teachingModalities: z.array(teachingModalitySchema).min(1, "Adicione pelo menos uma modalidade."),
-  technologies: z.array(technologySchema),
+  teachingModalities: z.array(teachingModalitySchema),
+  technologyResources: z.array(technologyResourceSchema),
+  hasInternet: z.boolean(),
 });
 
+const defaultModalities = [
+    { id: '1', name: 'Anos Iniciais', offered: false },
+    { id: '2', name: 'Anos Finais', offered: false },
+    { id: '3', name: 'EJA', offered: false },
+    { id: '4', name: 'Integral', offered: false },
+    { id: '5', name: 'Bilíngue', offered: false },
+];
+
 const defaultTechnologies = [
-    { id: '1', name: 'Internet Banda Larga', hasIt: false },
-    { id: '2', name: 'Laboratório de Informática', hasIt: false },
-    { id: '3', name: 'Lousa Digital', hasIt: false },
-    { id: '4', name: 'Projetor Multimídia', hasIt: false },
-    { id: '5', name: 'Tablets para Alunos', hasIt: false },
-]
+    { id: '1', name: 'Kits de Robótica', quantity: 0 },
+    { id: '2', name: 'Chromebooks', quantity: 0 },
+    { id: '3', name: 'Notebooks', quantity: 0 },
+    { id: '4', name: 'Modems', quantity: 0 },
+    { id: '5', name: 'Impressoras', quantity: 0 },
+    { id: '6', name: 'Modems com Defeito', quantity: 0 },
+];
 
 export function SchoolCensusForm() {
   const { toast } = useToast();
@@ -94,14 +102,15 @@ export function SchoolCensusForm() {
         hasInternet: false,
         hasAirConditioning: false
       }],
-      teachingModalities: [{ id: 'm1', name: 'Ensino Fundamental', studentCount: 250 }],
-      technologies: defaultTechnologies,
+      teachingModalities: defaultModalities,
+      technologyResources: defaultTechnologies,
+      hasInternet: false,
     },
   });
   
   const { fields: classrooms, append: appendClassroom, remove: removeClassroom } = useFieldArray({ control: form.control, name: "classrooms" });
-  const { fields: modalities, append: appendModality, remove: removeModality } = useFieldArray({ control: form.control, name: "teachingModalities" });
-  const { fields: technologies } = useFieldArray({ control: form.control, name: "technologies" });
+  const { fields: modalities } = useFieldArray({ control: form.control, name: "teachingModalities" });
+  const { fields: technologies } = useFieldArray({ control: form.control, name: "technologyResources" });
 
   useEffect(() => {
     const fetchSchools = async () => {
@@ -142,8 +151,9 @@ export function SchoolCensusForm() {
           hasInternet: false,
           hasAirConditioning: false
         }],
-        teachingModalities: [{ id: 'm1', name: '', studentCount: 0 }],
-        technologies: defaultTechnologies,
+        teachingModalities: defaultModalities,
+        technologyResources: defaultTechnologies,
+        hasInternet: false,
       });
     } catch (error) {
       console.error("Error adding document: ", error);
@@ -266,66 +276,55 @@ export function SchoolCensusForm() {
               <AccordionItem value="item-3">
                 <AccordionTrigger className="font-bold">Modalidades de Ensino</AccordionTrigger>
                 <AccordionContent>
-                  {modalities.map((field, index) => (
-                      <div key={field.id} className="flex gap-2 items-end mb-4 p-4 border rounded-md relative">
-                        <FormField
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                        {modalities.map((field, index) => (
+                           <FormField
+                            key={field.id}
                             control={form.control}
-                            name={`teachingModalities.${index}.name`}
+                            name={`teachingModalities.${index}.offered`}
                             render={({ field }) => (
-                                <FormItem className="flex-1">
-                                <FormLabel>Nome da Modalidade</FormLabel>
-                                <FormControl><Input placeholder="Ex: Ensino Médio" {...field} /></FormControl>
-                                <FormMessage />
+                                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                    <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                    <FormLabel className="font-normal">{modalities[index].name}</FormLabel>
                                 </FormItem>
                             )}
                             />
-                        <FormField
-                          control={form.control}
-                          name={`teachingModalities.${index}.studentCount`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Alunos</FormLabel>
-                              <FormControl><Input type="number" {...field} /></FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                         <Button type="button" variant="ghost" size="icon" onClick={() => removeModality(index)}>
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                  ))}
-                  <Button type="button" variant="outline" size="sm" onClick={() => appendModality({ id: `m${modalities.length+2}`, name: '', studentCount: 0 })}>
-                     <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Modalidade
-                  </Button>
+                        ))}
+                    </div>
                 </AccordionContent>
               </AccordionItem>
 
               <AccordionItem value="item-4">
                 <AccordionTrigger className="font-bold">Recursos Tecnológicos</AccordionTrigger>
                 <AccordionContent>
-                  <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-4">
                     {technologies.map((field, index) => (
                        <FormField
                         key={field.id}
                         control={form.control}
-                        name={`technologies.${index}.hasIt`}
+                        name={`technologyResources.${index}.quantity`}
                         render={({ field }) => (
-                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                                <div className="space-y-0.5">
-                                    <FormLabel>{technologies[index].name}</FormLabel>
-                                </div>
-                                <FormControl>
-                                    <Switch
-                                    checked={field.value}
-                                    onCheckedChange={field.onChange}
-                                    />
-                                </FormControl>
+                            <FormItem>
+                                <FormLabel>{technologies[index].name}</FormLabel>
+                                <FormControl><Input type="number" {...field} /></FormControl>
+                                <FormMessage />
                             </FormItem>
                         )}
                         />
                     ))}
                   </div>
+                   <div className="mt-4">
+                        <FormField
+                            control={form.control}
+                            name="hasInternet"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                    <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                    <FormLabel className="font-normal">A escola tem Internet</FormLabel>
+                                </FormItem>
+                            )}
+                        />
+                    </div>
                 </AccordionContent>
               </AccordionItem>
             </Accordion>

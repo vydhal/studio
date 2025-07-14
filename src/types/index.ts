@@ -19,13 +19,13 @@ export interface Classroom {
 export interface TeachingModality {
   id: string;
   name: string;
-  studentCount: number;
+  offered: boolean;
 }
 
-export interface Technology {
+export interface TechnologyResource {
   id: string;
   name: string;
-  hasIt: boolean;
+  quantity: number;
 }
 
 export interface SchoolCensusSubmission {
@@ -33,7 +33,8 @@ export interface SchoolCensusSubmission {
   schoolId: string;
   classrooms: Classroom[];
   teachingModalities: TeachingModality[];
-  technologies: Technology[];
+  technologyResources: TechnologyResource[];
+  hasInternet: boolean;
   submittedAt: Date;
   submittedBy?: string;
 }

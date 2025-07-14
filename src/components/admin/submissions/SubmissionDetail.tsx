@@ -1,7 +1,7 @@
-import type { SchoolCensusSubmission, School, Classroom } from "@/types";
+import type { SchoolCensusSubmission, School, Classroom, TeachingModality, TechnologyResource } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CheckCircle2, XCircle, Users, Tv, Wind, Zap, Armchair, Wifi, Snowflake } from "lucide-react";
+import { CheckCircle2, XCircle, Users, Tv, Wind, Zap, Armchair, Wifi, Snowflake, Check, Bot, Laptop, Printer, Router } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from 'date-fns/locale';
 import Link from "next/link";
@@ -13,7 +13,7 @@ interface SubmissionDetailProps {
   school: School | null;
 }
 
-const InfoItem = ({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value: string | number }) => (
+const InfoItem = ({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value: string | number | React.ReactNode }) => (
     <div className="flex items-center gap-3 bg-muted/50 p-2 rounded-md">
         <Icon className="h-5 w-5 text-muted-foreground" />
         <div>
@@ -41,9 +41,17 @@ const ClassroomDetails = ({ classroom }: { classroom: Classroom }) => (
     </div>
 )
 
+const techIcons: { [key: string]: React.ElementType } = {
+  'Kits de Robótica': Bot,
+  'Chromebooks': Laptop,
+  'Notebooks': Laptop,
+  'Modems': Router,
+  'Impressoras': Printer,
+  'Modems com Defeito': Router,
+};
+
 
 export function SubmissionDetail({ submission, school }: SubmissionDetailProps) {
-  const totalStudentsInClassrooms = submission.classrooms.reduce((acc, c) => acc + c.studentCapacity, 0);
 
   return (
     <div className="space-y-6">
@@ -97,25 +105,20 @@ export function SubmissionDetail({ submission, school }: SubmissionDetailProps) 
       <Card>
         <CardHeader>
           <CardTitle>Modalidades de Ensino</CardTitle>
-           <CardDescription>Total de {submission.teachingModalities.length} modalidades com {submission.teachingModalities.reduce((acc, c) => acc + c.studentCount, 0)} alunos.</CardDescription>
+           <CardDescription>Modalidades oferecidas pela escola.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nome da Modalidade</TableHead>
-                <TableHead className="text-right">Nº de Alunos</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {submission.teachingModalities.map((modality) => (
-                <TableRow key={modality.id}>
-                  <TableCell>{modality.name}</TableCell>
-                  <TableCell className="text-right">{modality.studentCount}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            {submission.teachingModalities?.filter(m => m.offered).map((modality) => (
+              <div key={modality.id} className="flex items-center gap-2">
+                <Check className="h-5 w-5 text-primary" />
+                <span>{modality.name}</span>
+              </div>
+            ))}
+             {submission.teachingModalities?.filter(m => m.offered).length === 0 && (
+                <p className="text-muted-foreground col-span-full">Nenhuma modalidade de ensino informada.</p>
+            )}
+          </div>
         </CardContent>
       </Card>
       
@@ -124,14 +127,20 @@ export function SubmissionDetail({ submission, school }: SubmissionDetailProps) 
           <CardTitle>Recursos Tecnológicos</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {submission.technologies.map((tech) => (
-              <div key={tech.id} className="flex items-center gap-2">
-                {tech.hasIt ? <CheckCircle2 className="h-5 w-5 text-green-500" /> : <XCircle className="h-5 w-5 text-destructive" />}
-                <span>{tech.name}</span>
-              </div>
-            ))}
-          </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {submission.technologyResources?.map((tech) => (
+                    <InfoItem 
+                        key={tech.id}
+                        icon={techIcons[tech.name] || Laptop}
+                        label={tech.name}
+                        value={tech.quantity}
+                    />
+                ))}
+            </div>
+            <div className="flex items-center gap-2 mt-4">
+                {submission.hasInternet ? <CheckCircle2 className="h-5 w-5 text-green-500" /> : <XCircle className="h-5 w-5 text-destructive" />}
+                <span>A escola tem acesso à Internet</span>
+            </div>
         </CardContent>
       </Card>
 

@@ -37,7 +37,6 @@ export function SubmissionsTable({ submissions, schoolMap }: SubmissionsTablePro
             <TableRow>
             <TableHead>Escola</TableHead>
             <TableHead>INEP</TableHead>
-            <TableHead className="text-right">Total de Alunos</TableHead>
             <TableHead>Data de Envio</TableHead>
             <TableHead></TableHead>
             </TableRow>
@@ -45,12 +44,10 @@ export function SubmissionsTable({ submissions, schoolMap }: SubmissionsTablePro
         <TableBody>
             {submissions.map((submission) => {
             const school = schoolMap.get(submission.schoolId);
-            const totalStudents = submission.teachingModalities.reduce((acc, curr) => acc + curr.studentCount, 0);
             return (
                 <TableRow key={submission.id}>
                 <TableCell className="font-medium">{school?.name || 'Escola não encontrada'}</TableCell>
                 <TableCell>{school?.inep || 'N/A'}</TableCell>
-                <TableCell className="text-right">{totalStudents}</TableCell>
                 <TableCell>{format(submission.submittedAt, 'dd/MM/yyyy HH:mm', { locale: ptBR })}</TableCell>
                 <TableCell className="text-right">
                     <Button variant="ghost" size="sm" asChild>

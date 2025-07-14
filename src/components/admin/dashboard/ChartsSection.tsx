@@ -24,7 +24,7 @@ export function ChartsSection({ submissions, schoolMap }: ChartsSectionProps) {
 
   const studentsPerSchool = submissions.map(sub => ({
       name: schoolMap.get(sub.schoolId)?.name.substring(0,15) + '...' || 'Desconhecida',
-      alunos: sub.teachingModalities.reduce((total, c) => total + c.studentCount, 0)
+      vagas: sub.classrooms.reduce((total, c) => total + c.studentCapacity, 0)
   })).slice(0, 10); // show top 10 for readability
 
   return (
@@ -53,7 +53,7 @@ export function ChartsSection({ submissions, schoolMap }: ChartsSectionProps) {
       </Card>
       <Card>
         <CardHeader>
-          <CardTitle>Alunos por Escola (Top 10)</CardTitle>
+          <CardTitle>Vagas por Escola (Top 10)</CardTitle>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
@@ -68,7 +68,7 @@ export function ChartsSection({ submissions, schoolMap }: ChartsSectionProps) {
                 }}
               />
               <Legend />
-              <Bar dataKey="alunos" fill="hsl(var(--accent))" />
+              <Bar dataKey="vagas" fill="hsl(var(--accent))" />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>

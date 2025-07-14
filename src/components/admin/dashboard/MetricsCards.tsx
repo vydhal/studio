@@ -10,20 +10,21 @@ interface MetricsCardsProps {
 export function MetricsCards({ submissions, schools }: MetricsCardsProps) {
   const totalSubmissions = submissions.length;
   
-  const totalStudents = submissions.reduce((acc, sub) => {
-    const modalityStudents = sub.teachingModalities.reduce((sum, m) => sum + m.studentCount, 0);
-    return acc + modalityStudents;
+   const totalStudents = submissions.reduce((acc, sub) => {
+    const classroomStudents = sub.classrooms.reduce((sum, c) => sum + c.studentCapacity, 0);
+    return acc + classroomStudents;
   }, 0);
+
 
   const totalSchoolsWithSubmissions = new Set(submissions.map(s => s.schoolId)).size;
 
-  const totalModalities = submissions.reduce((acc, sub) => acc + sub.teachingModalities.length, 0);
+  const totalModalities = submissions.reduce((acc, sub) => acc + sub.teachingModalities.filter(m => m.offered).length, 0);
 
   const metrics = [
     { title: "Total de Submissões", value: totalSubmissions, icon: FileText },
-    { title: "Total de Alunos", value: totalStudents.toLocaleString(), icon: Users },
+    { title: "Total de Vagas (Salas)", value: totalStudents.toLocaleString(), icon: Users },
     { title: "Escolas com Dados", value: `${totalSchoolsWithSubmissions} de ${schools.length}`, icon: School2 },
-    { title: "Modalidades de Ensino", value: totalModalities, icon: BookOpen },
+    { title: "Modalidades Oferecidas", value: totalModalities, icon: BookOpen },
   ];
 
   return (
