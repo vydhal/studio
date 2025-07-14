@@ -8,7 +8,7 @@ import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -21,6 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { db, auth } from '@/lib/firebase';
 import { collection, onSnapshot, addDoc, doc, setDoc, deleteDoc, writeBatch } from 'firebase/firestore';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { useAuth } from '@/hooks/useAuth';
 
 
 const roleSchema = z.object({
@@ -58,23 +59,29 @@ export function UserManagementClient() {
   const [isRoleModalOpen, setRoleModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
   const [editingRole, setEditingRole] = useState<Role | null>(null);
+  const { userProfile, loading: authLoading } = useAuth();
+  const hasUsersPermission = userProfile?.role?.permissions.includes('users');
+
 
   useEffect(() => {
-    if (!db) return;
+    // Only admins can view user/role data. Wait for auth to resolve.
+    if (authLoading || !hasUsersPermission || !db) {
+        return;
+    }
     
     const usersUnsub = onSnapshot(collection(db, 'users'), snapshot => {
         setUsers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as UserProfile)));
-    });
+    }, (error) => console.error("Error listening to users:", error));
 
     const rolesUnsub = onSnapshot(collection(db, 'roles'), snapshot => {
         setRoles(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Role)));
-    });
+    }, (error) => console.error("Error listening to roles:", error));
 
     return () => {
         usersUnsub();
         rolesUnsub();
     };
-  }, []);
+  }, [authLoading, hasUsersPermission]);
 
   const roleForm = useForm<z.infer<typeof roleSchema>>({
     resolver: zodResolver(roleSchema),

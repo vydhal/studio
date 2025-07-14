@@ -15,6 +15,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Skeleton } from "@/components/ui/skeleton";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, onSnapshot, Timestamp } from "firebase/firestore";
+import { useAuth } from "@/hooks/useAuth";
 
 interface SubmissionDetailProps {
   schoolId: string;
@@ -63,19 +64,19 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
     const [school, setSchool] = useState<School | null>(null);
     const [formConfig, setFormConfig] = useState<FormSectionConfig[]>([]);
     const [loading, setLoading] = useState(true);
+    const { user, loading: authLoading } = useAuth();
 
     useEffect(() => {
-        if (!db) {
-            console.error("Firestore DB is not available.");
-            setLoading(false);
+        if (authLoading || !user || !db) {
+            if (!authLoading) setLoading(false);
             return;
         }
 
-        const unsubscribes: (() => void)[] = [];
+        let unsubscribes: (() => void)[] = [];
+        setLoading(true);
 
         const fetchData = async () => {
             try {
-                // Fetch static data once
                 const schoolDocRef = doc(db, 'schools', schoolId);
                 const formConfigDocRef = doc(db, 'settings', 'formConfig');
 
@@ -96,7 +97,6 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
                     console.warn("Form config not found");
                 }
                 
-                // Set up real-time listener for submission data
                 const submissionDocRef = doc(db, 'submissions', schoolId);
                 const submissionUnsubscribe = onSnapshot(submissionDocRef, (doc) => {
                     if (doc.exists()) {
@@ -104,13 +104,14 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
                         const submissionData = {
                             ...data,
                             id: doc.id,
-                            // Ensure submittedAt is a Date object if it's a Firestore Timestamp
                             submittedAt: data.submittedAt instanceof Timestamp ? data.submittedAt.toDate() : new Date(),
                         } as SchoolCensusSubmission;
                         setSubmission(submissionData);
                     } else {
                         setSubmission(null);
                     }
+                }, (error) => {
+                    console.error("Error listening to submission details:", error);
                 });
                 unsubscribes.push(submissionUnsubscribe);
 
@@ -127,9 +128,9 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
             unsubscribes.forEach(unsub => unsub());
         };
 
-    }, [schoolId])
+    }, [schoolId, user, authLoading]);
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
         <div className="space-y-4">
              <Skeleton className="h-10 w-48" />

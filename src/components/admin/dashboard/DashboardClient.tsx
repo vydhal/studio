@@ -24,13 +24,14 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, onSnapshot, Timestamp } from "firebase/firestore";
+import { useAuth } from "@/hooks/useAuth";
 
 const processSubmissionDoc = (doc: any): SchoolCensusSubmission => {
     const data = doc.data();
     return {
         id: doc.id,
         ...data,
-        submittedAt: data.submittedAt instanceof Timestamp ? data.submittedAt.toDate() : data.submittedAt,
+        submittedAt: data.submittedAt instanceof Timestamp ? data.submittedAt.toDate() : new Date(data.submittedAt),
     } as SchoolCensusSubmission;
 };
 
@@ -40,54 +41,42 @@ export function DashboardClient() {
   const [schools, setSchools] = useState<School[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("");
+  const { user, loading: authLoading } = useAuth();
 
   useEffect(() => {
-    if (!db) {
-        console.error("Firestore DB is not available.");
-        setLoading(false);
+    // Wait for authentication to be resolved and user to be logged in
+    if (authLoading || !user || !db) {
+        if (!authLoading) setLoading(false);
         return;
     }
 
-    const fetchInitialData = async () => {
-        const schoolsQuery = collection(db, 'schools');
-        const submissionsQuery = collection(db, 'submissions');
+    setLoading(true);
 
-        try {
-            const [schoolsSnapshot, submissionsSnapshot] = await Promise.all([
-                getDocs(schoolsQuery),
-                getDocs(submissionsQuery)
-            ]);
-            
-            const schoolsData = schoolsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as School[];
-            const submissionsData = submissionsSnapshot.docs.map(processSubmissionDoc);
-
-            setSchools(schoolsData);
-            setSubmissions(submissionsData);
-        } catch (error) {
-            console.error("Error fetching initial data from Firestore:", error);
-        } finally {
-            setLoading(false);
-        }
-    };
-    
-    fetchInitialData();
+    const schoolsQuery = collection(db, 'schools');
+    const submissionsQuery = collection(db, 'submissions');
 
     // Set up real-time listeners
-    const submissionsUnsubscribe = onSnapshot(collection(db, "submissions"), (snapshot) => {
+    const submissionsUnsubscribe = onSnapshot(submissionsQuery, (snapshot) => {
         const submissionsData = snapshot.docs.map(processSubmissionDoc);
         setSubmissions(submissionsData);
+        setLoading(false);
+    }, (error) => {
+        console.error("Error listening to submissions:", error);
+        setLoading(false);
     });
     
-    const schoolsUnsubscribe = onSnapshot(collection(db, "schools"), (snapshot) => {
+    const schoolsUnsubscribe = onSnapshot(schoolsQuery, (snapshot) => {
         const schoolsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as School[];
         setSchools(schoolsData);
+    }, (error) => {
+        console.error("Error listening to schools:", error);
     });
 
     return () => {
       submissionsUnsubscribe();
       schoolsUnsubscribe();
     }
-  }, []);
+  }, [user, authLoading]);
 
   const schoolMap = new Map(schools.map(s => [s.id, s]));
 
@@ -165,7 +154,7 @@ export function DashboardClient() {
   };
 
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
         <div className="space-y-4">
             <Skeleton className="h-10 w-48" />
