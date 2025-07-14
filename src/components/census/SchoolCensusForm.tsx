@@ -77,22 +77,22 @@ const DynamicField = ({ control, fieldConfig }: { control: any, fieldConfig: For
             render={({ field, fieldState }) => (
                 <FormItem>
                     <FormLabel>{fieldConfig.name}</FormLabel>
-                    <FormControl>
+                     <FormControl>
                         <div>
-                            {fieldConfig.type === 'text' && <Input {...field} />}
+                           {fieldConfig.type === 'text' && <Input {...field} />}
                             {fieldConfig.type === 'number' && <Input type="number" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} />}
                             {fieldConfig.type === 'boolean' && (
-                                <div className="flex items-center space-x-2">
-                                    <Checkbox 
+                                <div className="flex items-center space-x-2 pt-2">
+                                    <Checkbox
                                         id={fieldName}
-                                        checked={field.value} 
-                                        onCheckedChange={field.onChange} 
+                                        checked={field.value}
+                                        onCheckedChange={field.onChange}
                                     />
                                     <label
-                                      htmlFor={fieldName}
-                                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                        htmlFor={fieldName}
+                                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                                     >
-                                      Sim
+                                        Sim
                                     </label>
                                 </div>
                             )}
@@ -235,7 +235,7 @@ export function SchoolCensusForm() {
                           {section.description && <CardDescription>{section.description}</CardDescription>}
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {section.fields.map(field => (
                                     <DynamicField key={field.id} control={form.control} fieldConfig={field} />
                                 ))}
