@@ -20,26 +20,29 @@ const defaultSettings: HomeSettings = {
     twitterUrl: '#',
 };
 
+const SETTINGS_STORAGE_KEY = 'homePageSettings';
+
 export function HomeContent() {
     const [settings, setSettings] = useState<HomeSettings | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Simulate fetching settings to avoid Firestore connection issues in test env
-        const fetchSettings = async () => {
-            setLoading(true);
-            setTimeout(() => {
-                // In a real app, this would come from Firestore.
-                // Here we use default settings to avoid errors.
+        setLoading(true);
+        try {
+            const storedSettings = localStorage.getItem(SETTINGS_STORAGE_KEY);
+            if (storedSettings) {
+                setSettings(JSON.parse(storedSettings));
+            } else {
                 setSettings(defaultSettings);
-                setLoading(false);
-            }, 500);
-        };
-
-        fetchSettings();
+            }
+        } catch (error) {
+            console.error("Failed to parse settings from localStorage", error);
+            setSettings(defaultSettings);
+        }
+        setLoading(false);
     }, []);
 
-    if (loading) {
+    if (loading || !settings) {
         return <HomeSkeleton />;
     }
 
@@ -48,7 +51,7 @@ export function HomeContent() {
             <div className="grid gap-6 lg:grid-cols-2 lg:gap-12 xl:grid-cols-[1fr_550px]">
                 <div className="flex flex-col justify-center space-y-4">
                     <div className="space-y-2">
-                        {settings?.logoUrl && (
+                        {settings.logoUrl && (
                           <Image
                             data-ai-hint="logo"
                             src={settings.logoUrl}
@@ -59,14 +62,14 @@ export function HomeContent() {
                           />
                         )}
                         <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none font-headline">
-                            {settings?.title}
+                            {settings.title}
                         </h1>
                         <p className="max-w-[600px] text-muted-foreground md:text-xl">
-                            {settings?.subtitle}
+                            {settings.subtitle}
                         </p>
                     </div>
                     <p className="max-w-[600px] text-muted-foreground">
-                        {settings?.description}
+                        {settings.description}
                     </p>
                     <div className="flex flex-col gap-2 min-[400px]:flex-row">
                         <Button size="lg" asChild>
@@ -81,11 +84,11 @@ export function HomeContent() {
                             </Link>
                         </Button>
                     </div>
-                     { (settings?.facebookUrl || settings?.instagramUrl || settings?.twitterUrl) &&
+                     { (settings.facebookUrl || settings.instagramUrl || settings.twitterUrl) &&
                         <div className="flex gap-4 mt-4">
-                            {settings?.instagramUrl && <Link href={settings.instagramUrl} target="_blank"><Instagram className="h-6 w-6 text-muted-foreground hover:text-primary" /></Link>}
-                            {settings?.twitterUrl && <Link href={settings.twitterUrl} target="_blank"><Twitter className="h-6 w-6 text-muted-foreground hover:text-primary" /></Link>}
-                            {settings?.facebookUrl && <Link href={settings.facebookUrl} target="_blank"><Facebook className="h-6 w-6 text-muted-foreground hover:text-primary" /></Link>}
+                            {settings.instagramUrl && <Link href={settings.instagramUrl} target="_blank"><Instagram className="h-6 w-6 text-muted-foreground hover:text-primary" /></Link>}
+                            {settings.twitterUrl && <Link href={settings.twitterUrl} target="_blank"><Twitter className="h-6 w-6 text-muted-foreground hover:text-primary" /></Link>}
+                            {settings.facebookUrl && <Link href={settings.facebookUrl} target="_blank"><Facebook className="h-6 w-6 text-muted-foreground hover:text-primary" /></Link>}
                         </div>
                     }
                 </div>
@@ -141,10 +144,16 @@ function HomeSkeleton() {
                 <div className="flex flex-col justify-center space-y-4">
                     <div className="space-y-2">
                         <Skeleton className="h-[100px] w-[100px] rounded-lg mb-4" />
-                        <Skeleton className="h-12 w-full max-w-2xl" />
-                        <Skeleton className="h-8 w-full max-w-lg" />
+                        <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none font-headline">
+                            <Skeleton className="h-12 w-full max-w-2xl" />
+                        </h1>
+                        <p className="max-w-[600px] text-muted-foreground md:text-xl">
+                            <Skeleton className="h-8 w-full max-w-lg" />
+                        </p>
                     </div>
-                    <Skeleton className="h-6 w-full max-w-xl" />
+                     <p className="max-w-[600px] text-muted-foreground">
+                        <Skeleton className="h-6 w-full max-w-xl" />
+                     </p>
                     <div className="flex flex-col gap-2 min-[400px]:flex-row">
                         <Skeleton className="h-12 w-40" />
                         <Skeleton className="h-12 w-40" />
@@ -155,7 +164,42 @@ function HomeSkeleton() {
                         <Skeleton className="h-6 w-6 rounded-full" />
                     </div>
                 </div>
-                <Skeleton className="w-[600px] h-[400px] rounded-xl" />
+                <Skeleton className="w-full h-[400px] rounded-xl aspect-video" />
+            </div>
+             <div className="mt-16">
+                <h2 className="text-2xl font-bold text-center mb-8 font-headline"><Skeleton className="h-8 w-1/2 mx-auto" /></h2>
+                <div className="grid gap-8 md:grid-cols-3">
+                    <Card>
+                        <CardHeader className="flex flex-row items-center gap-4">
+                            <Skeleton className="w-8 h-8" />
+                            <CardTitle><Skeleton className="h-6 w-48" /></CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                           <Skeleton className="h-5 w-full" />
+                           <Skeleton className="h-5 w-2/3 mt-2" />
+                        </CardContent>
+                    </Card>
+                     <Card>
+                        <CardHeader className="flex flex-row items-center gap-4">
+                            <Skeleton className="w-8 h-8" />
+                            <CardTitle><Skeleton className="h-6 w-48" /></CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                           <Skeleton className="h-5 w-full" />
+                           <Skeleton className="h-5 w-2/3 mt-2" />
+                        </CardContent>
+                    </Card>
+                     <Card>
+                        <CardHeader className="flex flex-row items-center gap-4">
+                            <Skeleton className="w-8 h-8" />
+                            <CardTitle><Skeleton className="h-6 w-48" /></CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                           <Skeleton className="h-5 w-full" />
+                           <Skeleton className="h-5 w-2/3 mt-2" />
+                        </CardContent>
+                    </Card>
+                </div>
             </div>
         </div>
     );

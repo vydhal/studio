@@ -21,6 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import type { HomeSettings } from "@/types";
 
 const formSchema = z.object({
   logoUrl: z.string().url("URL inválida.").or(z.literal("")).optional(),
@@ -32,16 +33,17 @@ const formSchema = z.object({
   twitterUrl: z.string().url("URL inválida.").or(z.literal("")).optional(),
 });
 
-const defaultSettings = {
-    logoUrl: "",
-    title: "Bem-vindo ao Firebase School Central (Exemplo)",
+const defaultSettings: HomeSettings = {
+    logoUrl: "https://placehold.co/100x100.png",
+    title: "Bem-vindo ao Firebase School Central (Padrão)",
     subtitle: "Sua plataforma completa para gerenciamento de censo escolar.",
-    description: "Este é um exemplo de texto carregado localmente.",
-    facebookUrl: "",
-    instagramUrl: "",
-    twitterUrl: "",
+    description: "Nossa plataforma simplifica a coleta e análise de dados do censo escolar, fornecendo insights valiosos para gestores e administradores. Preencha o formulário ou acesse o painel administrativo para começar.",
+    facebookUrl: "#",
+    instagramUrl: "#",
+    twitterUrl: "#",
 };
 
+const SETTINGS_STORAGE_KEY = 'homePageSettings';
 
 export function HomePageSettingsForm() {
   const { toast } = useToast();
@@ -54,27 +56,40 @@ export function HomePageSettingsForm() {
   });
 
   useEffect(() => {
-    // Simulate fetching settings
     setFetching(true);
-    setTimeout(() => {
-        // In a real app, you would fetch from Firestore here.
-        // For testing, we just use the default mock data.
+    try {
+        const storedSettings = localStorage.getItem(SETTINGS_STORAGE_KEY);
+        if (storedSettings) {
+            form.reset(JSON.parse(storedSettings));
+        } else {
+            form.reset(defaultSettings);
+        }
+    } catch (error) {
+        console.error("Failed to parse settings from localStorage", error);
         form.reset(defaultSettings);
-        setFetching(false);
-    }, 500);
+    }
+    setFetching(false);
   }, [form]);
 
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setLoading(true);
-    // Simulate saving to Firestore
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    console.log("Mock settings saved:", values);
-    toast({
-        title: "Sucesso!",
-        description: "Configurações da página inicial salvas (simulação).",
-    });
-    setLoading(false);
+    try {
+      localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(values));
+      toast({
+          title: "Sucesso!",
+          description: "Configurações da página inicial salvas com sucesso.",
+      });
+    } catch (error) {
+      toast({
+          title: "Erro!",
+          description: "Não foi possível salvar as configurações.",
+          variant: "destructive",
+      });
+      console.error("Failed to save settings to localStorage", error);
+    } finally {
+      setLoading(false);
+    }
   }
 
   if (fetching) {
@@ -139,4 +154,3 @@ export function HomePageSettingsForm() {
     </Card>
   );
 }
-
