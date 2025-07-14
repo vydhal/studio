@@ -102,7 +102,7 @@ export function SchoolCensusForm() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { settings: appSettings, loading: appLoading } = useAppSettings();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [schools, setSchools] = useState<School[]>([]);
   const [formConfig, setFormConfig] = useState<FormSectionConfig[]>([]);
   const [isConfigLoading, setIsConfigLoading] = useState(true);
@@ -130,7 +130,7 @@ export function SchoolCensusForm() {
 
   // Fetch schools and form config from Firestore
   useEffect(() => {
-    if (appLoading || !db) return; // Wait for app settings and db to be ready
+    if (appLoading || authLoading || !db) return; // Wait for app settings, auth and db to be ready
     
     const fetchConfigAndSchools = async () => {
         try {
@@ -156,7 +156,8 @@ export function SchoolCensusForm() {
                 dynamicData: defaultDynamicValues
             };
 
-            if (schoolId) {
+            // Only attempt to load submission data if user is authenticated
+            if (schoolId && user) {
                 const submissionDoc = await getDoc(doc(db, 'submissions', schoolId));
                 if (submissionDoc.exists()) {
                     const existingSubmission = submissionDoc.data();
@@ -184,7 +185,7 @@ export function SchoolCensusForm() {
         }
     }
     fetchConfigAndSchools();
-  }, [searchParams, form, generateDefaultValues, appLoading, toast]);
+  }, [searchParams, form, generateDefaultValues, appLoading, toast, user, authLoading]);
 
 
   const handleSchoolChange = async (schoolId: string) => {
@@ -192,30 +193,42 @@ export function SchoolCensusForm() {
       router.push(`/census?schoolId=${schoolId}`, { scroll: false });
       
       const defaultValues = generateDefaultValues(formConfig);
-      const submissionDoc = await getDoc(doc(db, 'submissions', schoolId));
+      
+      // Only attempt to load submission data if user is authenticated
+      if (user) {
+        const submissionDoc = await getDoc(doc(db, 'submissions', schoolId));
 
-      if (submissionDoc.exists()) {
-          const existingSubmission = submissionDoc.data();
-          const mergedDynamicData = produce(defaultValues, draft => {
-              if(existingSubmission.dynamicData) {
-                for (const sectionId in existingSubmission.dynamicData) {
-                    if (draft[sectionId]) {
-                        Object.assign(draft[sectionId], existingSubmission.dynamicData[sectionId]);
-                    } else {
-                         draft[sectionId] = existingSubmission.dynamicData[sectionId];
-                    }
+        if (submissionDoc.exists()) {
+            const existingSubmission = submissionDoc.data();
+            const mergedDynamicData = produce(defaultValues, draft => {
+                if(existingSubmission.dynamicData) {
+                  for (const sectionId in existingSubmission.dynamicData) {
+                      if (draft[sectionId]) {
+                          Object.assign(draft[sectionId], existingSubmission.dynamicData[sectionId]);
+                      } else {
+                           draft[sectionId] = existingSubmission.dynamicData[sectionId];
+                      }
+                  }
                 }
-              }
-          });
-          form.reset({ schoolId, dynamicData: mergedDynamicData });
+            });
+            form.reset({ schoolId, dynamicData: mergedDynamicData });
+        } else {
+            form.reset({ schoolId, dynamicData: defaultValues });
+        }
       } else {
-          form.reset({ schoolId, dynamicData: defaultValues });
+        // For anonymous users, always reset to default values
+        form.reset({ schoolId, dynamicData: defaultValues });
       }
   };
 
   async function onSubmit(values: z.infer<typeof staticFormSchema>) {
     if (!db) {
         toast({ title: "Erro de Conexão", variant: "destructive"});
+        return;
+    }
+    
+    if (!user) {
+        toast({ title: "Acesso Negado", description: "Você precisa estar logado para salvar os dados.", variant: "destructive"});
         return;
     }
 
@@ -259,7 +272,7 @@ export function SchoolCensusForm() {
     }
   }
 
-  if (isConfigLoading || appLoading) {
+  if (isConfigLoading || appLoading || authLoading) {
       return (
           <Card>
               <CardHeader><Skeleton className="h-8 w-1/2" /></CardHeader>
@@ -336,9 +349,9 @@ export function SchoolCensusForm() {
             </Tabs>
           </CardContent>
           <CardFooter>
-            <Button type="submit" className="w-full" disabled={!form.getValues('schoolId') || form.formState.isSubmitting}>
+            <Button type="submit" className="w-full" disabled={!form.getValues('schoolId') || form.formState.isSubmitting || !user}>
               {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Salvar Informações
+              {user ? 'Salvar Informações' : 'Faça login para salvar'}
             </Button>
           </CardFooter>
         </form>
