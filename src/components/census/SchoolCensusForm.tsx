@@ -403,9 +403,11 @@ export function SchoolCensusForm() {
     try {
         const submissionRef = doc(db, 'submissions', schoolId);
         
-        // Mark sections with any data as 'completed'
         const statusUpdates: { [key: string]: { status: 'completed' } } = {};
-        visibleSections.forEach(sectionCfg => {
+        
+        // **FIX:** Iterate over the full `formConfig` instead of `visibleSections`
+        // to ensure all submitted data is checked for completion status.
+        formConfig.forEach(sectionCfg => {
             const sectionId = sectionCfg.id.split('_')[0];
             const originalSectionId = sectionCfg.id;
 
