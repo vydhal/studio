@@ -53,10 +53,9 @@ export function DashboardClient() {
     setLoading(true);
 
     const schoolsQuery = collection(db, 'schools');
-    const submissionsQuery = collection(db, 'submissions');
-
+    
     // Set up real-time listeners
-    const submissionsUnsubscribe = onSnapshot(submissionsQuery, (snapshot) => {
+    const submissionsUnsubscribe = onSnapshot(collection(db, 'submissions'), (snapshot) => {
         const submissionsData = snapshot.docs.map(processSubmissionDoc);
         setSubmissions(submissionsData);
         setLoading(false);
