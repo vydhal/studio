@@ -18,7 +18,7 @@ export function HomeContent() {
     }
 
     return (
-        <div className="container py-12 md:py-24">
+        <div className="py-12 md:py-24">
             <div className="grid gap-6 lg:grid-cols-2 lg:gap-12 xl:grid-cols-[1fr_550px]">
                 <div className="flex flex-col justify-center space-y-4">
                     <div className="space-y-2">
@@ -110,7 +110,7 @@ export function HomeContent() {
 
 function HomeSkeleton() {
     return (
-        <div className="container py-12 md:py-24">
+        <div className="py-12 md:py-24">
             <div className="grid gap-6 lg:grid-cols-2 lg:gap-12 xl:grid-cols-[1fr_550px]">
                 <div className="flex flex-col justify-center space-y-4">
                     <div className="space-y-2">
