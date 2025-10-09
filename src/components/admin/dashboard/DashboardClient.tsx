@@ -231,7 +231,6 @@ export function DashboardClient() {
                                     <SelectValue placeholder="Filtrar por escola..." />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="">Todas as Escolas</SelectItem>
                                     {schools.map(school => (
                                         <SelectItem key={school.id} value={school.id}>{school.name}</SelectItem>
                                     ))}
@@ -242,7 +241,6 @@ export function DashboardClient() {
                                     <SelectValue placeholder="Filtrar por bairro..." />
                                 </SelectTrigger>
                                 <SelectContent>
-                                     <SelectItem value="">Todos os Bairros</SelectItem>
                                     {availableNeighborhoods.map(bairro => (
                                         <SelectItem key={bairro} value={bairro}>{bairro}</SelectItem>
                                     ))}
