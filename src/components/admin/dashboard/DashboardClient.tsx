@@ -5,7 +5,6 @@ import { useState, useEffect, useMemo } from "react";
 import type { SchoolCensusSubmission, School } from "@/types";
 import { MetricsCards } from "./MetricsCards";
 import { ChartsSection } from "./ChartsSection";
-import { SubmissionsTable } from "./SubmissionsTable";
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -51,7 +50,7 @@ export function DashboardClient() {
   const [loading, setLoading] = useState(true);
   const { user, loading: authLoading } = useAuth();
   
-  const [nameFilter, setNameFilter] = useState("");
+  const [schoolFilter, setSchoolFilter] = useState("");
   const [neighborhoodFilter, setNeighborhoodFilter] = useState("");
 
   useEffect(() => {
@@ -100,37 +99,23 @@ export function DashboardClient() {
         const school = schoolMap.get(submission.schoolId);
         if (!school) return false;
 
-        const nameMatch = nameFilter === "" || 
-                          school.name.toLowerCase().includes(nameFilter.toLowerCase()) || 
-                          school.inep.toLowerCase().includes(nameFilter.toLowerCase());
-
+        const schoolMatch = schoolFilter === "" || school.id === schoolFilter;
         const neighborhoodMatch = neighborhoodFilter === "" || school.neighborhood === neighborhoodFilter;
 
-        return nameMatch && neighborhoodMatch;
+        return schoolMatch && neighborhoodMatch;
     });
-  }, [submissions, schoolMap, nameFilter, neighborhoodFilter]);
+  }, [submissions, schoolMap, schoolFilter, neighborhoodFilter]);
 
   const filteredSchools = useMemo(() => {
-     const filteredSchoolIds = new Set(filteredSubmissions.map(s => s.schoolId));
      return schools.filter(school => {
-        const nameMatch = nameFilter === "" || 
-                          school.name.toLowerCase().includes(nameFilter.toLowerCase()) || 
-                          school.inep.toLowerCase().includes(nameFilter.toLowerCase());
-
+        const schoolMatch = schoolFilter === "" || school.id === schoolFilter;
         const neighborhoodMatch = neighborhoodFilter === "" || school.neighborhood === neighborhoodFilter;
-        
-        // If there's a submission filter, only include schools that are in the filtered submissions
-        if (submissions.length > 0) {
-            return nameMatch && neighborhoodMatch && (filteredSubmissions.length > 0 ? filteredSchoolIds.has(school.id) : true);
-        }
-        
-        // If no submissions yet, filter schools directly
-        return nameMatch && neighborhoodMatch;
+        return schoolMatch && neighborhoodMatch;
      });
-  }, [schools, nameFilter, neighborhoodFilter, filteredSubmissions, submissions.length]);
+  }, [schools, schoolFilter, neighborhoodFilter]);
 
   const handleClearFilters = () => {
-    setNameFilter("");
+    setSchoolFilter("");
     setNeighborhoodFilter("");
   };
   
@@ -241,22 +226,29 @@ export function DashboardClient() {
                     </CardHeader>
                     <CardContent>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <Input 
-                                placeholder="Filtrar por nome da escola ou INEP..."
-                                value={nameFilter}
-                                onChange={(e) => setNameFilter(e.target.value)}
-                            />
+                            <Select value={schoolFilter} onValueChange={setSchoolFilter}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Filtrar por escola..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="">Todas as Escolas</SelectItem>
+                                    {schools.map(school => (
+                                        <SelectItem key={school.id} value={school.id}>{school.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                             <Select value={neighborhoodFilter} onValueChange={setNeighborhoodFilter}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Filtrar por bairro..." />
                                 </SelectTrigger>
                                 <SelectContent>
+                                     <SelectItem value="">Todos os Bairros</SelectItem>
                                     {availableNeighborhoods.map(bairro => (
                                         <SelectItem key={bairro} value={bairro}>{bairro}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
-                            <Button variant="outline" onClick={handleClearFilters} disabled={!nameFilter && !neighborhoodFilter}>
+                            <Button variant="outline" onClick={handleClearFilters} disabled={!schoolFilter && !neighborhoodFilter}>
                                 <X className="mr-2 h-4 w-4" />
                                 Limpar Filtros
                             </Button>
@@ -275,7 +267,7 @@ export function DashboardClient() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <SubmissionsTable submissions={filteredSubmissions} schoolMap={schoolMap} />
+                        <SubmissionsTable submissions={submissions} schoolMap={schoolMap} />
                     </CardContent>
                 </Card>
             </TabsContent>
@@ -283,4 +275,3 @@ export function DashboardClient() {
     </div>
   );
 }
-

@@ -12,6 +12,22 @@ interface ChartsSectionProps {
 
 const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
 
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="p-2 bg-background border rounded-md shadow-lg">
+        <p className="font-bold">{label}</p>
+        {payload.map((p: any) => (
+          <p key={p.dataKey} className="text-sm" style={{ color: p.color }}>
+            {`${p.name}: ${p.value.toLocaleString()}`}
+          </p>
+        ))}
+      </div>
+    );
+  }
+  return null;
+};
+
 export function ChartsSection({ submissions, schoolMap }: ChartsSectionProps) {
 
   const dataByNeighborhood = Array.from(schoolMap.values()).reduce((acc, school) => {
@@ -41,24 +57,6 @@ export function ChartsSection({ submissions, schoolMap }: ChartsSectionProps) {
   const studentsByNeighborhoodChartData = Object.values(dataByNeighborhood);
   const roomsByNeighborhoodChartData = Object.values(dataByNeighborhood);
 
-
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="p-2 bg-background border rounded-md shadow-lg">
-          <p className="font-bold">{label}</p>
-          {payload.map((p: any) => (
-            <p key={p.dataKey} className="text-sm" style={{ color: p.color }}>
-              {`${p.name}: ${p.value.toLocaleString()}`}
-            </p>
-          ))}
-        </div>
-      );
-    }
-    return null;
-  };
-
-
   return (
     <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-2">
       <Card>
@@ -70,13 +68,13 @@ export function ChartsSection({ submissions, schoolMap }: ChartsSectionProps) {
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={studentsByNeighborhoodChartData}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} interval={0} />
+              <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} interval={0} tick={{ fontSize: 12 }} />
               <YAxis allowDecimals={false} />
               <Tooltip
                 cursor={{fill: 'hsl(var(--muted))'}}
                 content={<CustomTooltip />}
               />
-              <Legend />
+              <Legend wrapperStyle={{ paddingTop: '20px' }}/>
               <Bar dataKey="totalStudents" name="Total de Alunos" fill={COLORS[0]} />
             </BarChart>
           </ResponsiveContainer>
@@ -91,13 +89,13 @@ export function ChartsSection({ submissions, schoolMap }: ChartsSectionProps) {
           <ResponsiveContainer width="100%" height={300}>
              <BarChart data={roomsByNeighborhoodChartData}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} interval={0} />
+              <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} interval={0} tick={{ fontSize: 12 }} />
               <YAxis allowDecimals={false}/>
               <Tooltip
                 cursor={{fill: 'hsl(var(--muted))'}}
                 content={<CustomTooltip />}
               />
-              <Legend />
+              <Legend wrapperStyle={{ paddingTop: '20px' }}/>
                <Bar dataKey="projectedRooms2026" name="Salas Projetadas" fill={COLORS[1]} />
             </BarChart>
           </ResponsiveContainer>
