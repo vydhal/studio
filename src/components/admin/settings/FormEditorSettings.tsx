@@ -35,13 +35,14 @@ const defaultSections: FormSectionConfig[] = [
         name: 'Dados Gerais e Modalidades',
         description: 'Selecione as modalidades de ensino oferecidas.',
         fields: [
+            { id: 'f_desk_1', name: 'Total de Carteiras na Unidade', type: 'number', required: false, sectionId: 'general' },
             { id: 'f_mod_1', name: 'Anos Iniciais', type: 'boolean', required: true, sectionId: 'general' },
             { id: 'f_mod_2', name: 'Anos Finais', type: 'boolean', required: true, sectionId: 'general' },
             { id: 'f_mod_3', name: 'EJA', type: 'boolean', required: true, sectionId: 'general' },
         ] 
     },
     { 
-        id: 'infra', 
+        id: 'infra_167', 
         name: 'Infraestrutura',
         description: 'Adicione as salas de aula e seus detalhes.',
         fields: []

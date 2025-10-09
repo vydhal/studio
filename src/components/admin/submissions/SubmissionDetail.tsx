@@ -38,6 +38,10 @@ const ClassroomDetails = ({ classroom }: { classroom: Classroom }) => (
         <InfoItem icon={Zap} label="Tomadas" value={classroom.outlets} />
         <InfoItem icon={Tv} label="TVs" value={classroom.tvCount} />
         <InfoItem icon={Wind} label="Ventiladores" value={classroom.fanCount} />
+        <InfoItem icon={Users} label="Série Manhã" value={classroom.gradeMorning} />
+        <InfoItem icon={Users} label="Série Tarde" value={classroom.gradeAfternoon} />
+        <InfoItem icon={Users} label="Projeção 2026" value={classroom.gradeProjection2026} />
+
         <div className="flex items-center gap-2">
             {classroom.hasInternet ? <CheckCircle2 className="h-5 w-5 text-green-500" /> : <XCircle className="h-5 w-5 text-destructive" />}
             <span className="flex items-center gap-1"><Wifi className="h-4 w-4 text-muted-foreground" /> Internet</span>
@@ -82,7 +86,7 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
 
                 const [schoolDoc, formConfigDoc] = await Promise.all([
                     getDoc(schoolDocRef),
-                    getDoc(formConfigDoc)
+                    getDoc(formConfigDocRef)
                 ]);
 
                 if (schoolDoc.exists()) {
@@ -217,6 +221,38 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
        <Accordion type="multiple" className="w-full space-y-4" defaultValue={formConfig.map(s => s.id)}>
         {formConfig.map(sectionConfig => {
           const sectionData = submission.dynamicData?.[sectionConfig.id];
+
+          if (sectionConfig.id.startsWith('infra')) {
+            const classrooms = submission.infrastructure?.classrooms || [];
+            return (
+                <AccordionItem value={sectionConfig.id} key={sectionConfig.id} className="border-b-0">
+                    <Card>
+                        <AccordionTrigger className="p-6">
+                            <CardTitle>{sectionConfig.name}</CardTitle>
+                        </AccordionTrigger>
+                        <AccordionContent className="px-6 space-y-4">
+                            {classrooms.length > 0 ? (
+                                classrooms.map((classroom, index) => (
+                                    <Accordion key={index} type="single" collapsible className="w-full">
+                                        <AccordionItem value={`item-${index}`} className="border rounded-md px-4">
+                                            <AccordionTrigger className="py-4 text-base font-medium">{classroom.name || `Sala ${index+1}`}</AccordionTrigger>
+                                            <AccordionContent>
+                                                <ClassroomDetails classroom={classroom} />
+                                            </AccordionContent>
+                                        </AccordionItem>
+                                    </Accordion>
+                                ))
+                            ) : (
+                                <Alert variant="default">
+                                  <AlertTriangle className="h-4 w-4" />
+                                  <AlertTitle>Nenhuma sala de aula cadastrada</AlertTitle>
+                                </Alert>
+                            )}
+                        </AccordionContent>
+                    </Card>
+                </AccordionItem>
+            );
+          }
          
           return (
              <AccordionItem value={sectionConfig.id} key={sectionConfig.id} className="border-b-0">

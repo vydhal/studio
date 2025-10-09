@@ -48,6 +48,9 @@ const classroomSchema = z.object({
   fanCount: z.number().min(0).optional(),
   hasInternet: z.boolean().optional(),
   hasAirConditioning: z.boolean().optional(),
+  gradeMorning: z.string().optional(),
+  gradeAfternoon: z.string().optional(),
+  gradeProjection2026: z.string().optional(),
 });
 
 const formSchema = z.object({
@@ -129,6 +132,9 @@ const InfrastructureSection = ({ control }: { control: any }) => {
             fanCount: 0,
             hasInternet: false,
             hasAirConditioning: false,
+            gradeMorning: '',
+            gradeAfternoon: '',
+            gradeProjection2026: '',
         });
     };
 
@@ -165,7 +171,12 @@ const InfrastructureSection = ({ control }: { control: any }) => {
                                 <FormField control={control} name={`infrastructure.classrooms.${index}.outlets`} render={({ field }) => (<FormItem><FormLabel>Nº de Tomadas</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)}/></FormControl><FormMessage /></FormItem>)} />
                                 <FormField control={control} name={`infrastructure.classrooms.${index}.tvCount`} render={({ field }) => (<FormItem><FormLabel>Nº de TVs</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} /></FormControl><FormMessage /></FormItem>)} />
                                 <FormField control={control} name={`infrastructure.classrooms.${index}.fanCount`} render={({ field }) => (<FormItem><FormLabel>Nº de Ventiladores</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} /></FormControl><FormMessage /></FormItem>)} />
-                                <div className="space-y-4 pt-2">
+                                
+                                <FormField control={control} name={`infrastructure.classrooms.${index}.gradeMorning`} render={({ field }) => (<FormItem><FormLabel>Série - Manhã</FormLabel><FormControl><Input {...field} placeholder="Ex: 5º Ano A" /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={control} name={`infrastructure.classrooms.${index}.gradeAfternoon`} render={({ field }) => (<FormItem><FormLabel>Série - Tarde</FormLabel><FormControl><Input {...field} placeholder="Ex: 3º Ano B" /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={control} name={`infrastructure.classrooms.${index}.gradeProjection2026`} render={({ field }) => (<FormItem><FormLabel>Projeção de Turma 2026</FormLabel><FormControl><Input {...field} placeholder="Ex: 6º Ano A" /></FormControl><FormMessage /></FormItem>)} />
+
+                                <div className="space-y-4 pt-2 md:col-span-2 lg:col-span-3">
                                     <FormField control={control} name={`infrastructure.classrooms.${index}.hasInternet`} render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Tem Internet</FormLabel></FormItem>)} />
                                     <FormField control={control} name={`infrastructure.classrooms.${index}.hasAirConditioning`} render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Tem Ar Condicionado</FormLabel></FormItem>)} />
                                 </div>

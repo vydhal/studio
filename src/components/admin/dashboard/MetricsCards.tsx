@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { SchoolCensusSubmission, School } from "@/types";
-import { Users, School2, Wifi, Laptop } from "lucide-react";
+import { Users, School2, Wifi, Armchair } from "lucide-react";
 
 interface MetricsCardsProps {
   submissions: SchoolCensusSubmission[];
@@ -10,11 +10,18 @@ interface MetricsCardsProps {
 export function MetricsCards({ submissions, schools }: MetricsCardsProps) {
   
   const totalClassrooms = submissions.reduce((acc, sub) => acc + (sub.infrastructure?.classrooms?.length || 0), 0);
-
-  const totalChromebooks = submissions.reduce((acc, sub) => {
-      const chromebook = sub.technology?.resources?.find(r => r.name === 'Chromebooks');
-      return acc + (chromebook?.quantity || 0);
+  
+  const totalDesks = submissions.reduce((acc, sub) => {
+    const generalData = sub.dynamicData?.general;
+    if (generalData) {
+      const deskField = Object.keys(generalData).find(key => key.startsWith('f_desk_'));
+      if (deskField && typeof generalData[deskField] === 'number') {
+        return acc + generalData[deskField];
+      }
+    }
+    return acc;
   }, 0);
+
 
   const schoolsWithInternet = submissions.filter(s => s.technology?.hasInternetAccess).length;
   
@@ -26,9 +33,9 @@ export function MetricsCards({ submissions, schools }: MetricsCardsProps) {
 
   const metrics = [
     { title: "Escolas Cadastradas", value: schools.length, icon: School2, description: "Total de unidades" },
+    { title: "Total de Carteiras", value: totalDesks, icon: Armchair, description: "Soma de todas as unidades" },
     { title: "Salas de Aula", value: totalClassrooms, icon: Users, description: "Soma de todas as salas" },
-    { title: "Questionários Completos", value: `${completedSubmissions}/${schools.length}`, icon: Laptop, description: "Total de censos finalizados" },
-    { title: "Escolas com Internet", value: `${schoolsWithInternet}/${schools.length}`, icon: Wifi, description: "Conectividade pedagógica" },
+    { title: "Questionários Completos", value: `${completedSubmissions}/${schools.length}`, icon: Wifi, description: "Total de censos finalizados" },
   ];
 
   return (

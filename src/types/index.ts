@@ -16,6 +16,9 @@ export interface Classroom {
   fanCount?: number;
   hasInternet?: boolean;
   hasAirConditioning?: boolean;
+  gradeMorning?: string;
+  gradeAfternoon?: string;
+  gradeProjection2026?: string;
 }
 
 export interface TeachingModality {
@@ -32,6 +35,7 @@ export interface TechnologyResource {
 
 export interface GeneralData {
   status: 'pending' | 'completed';
+  totalDesks?: number;
   // Adicionar campos de dados gerais aqui futuramente
 }
 
