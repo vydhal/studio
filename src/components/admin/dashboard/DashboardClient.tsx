@@ -27,12 +27,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, onSnapshot, Timestamp } from "firebase/firestore";
+import { collection, onSnapshot, Timestamp } from "firebase/firestore";
 import { useAuth } from "@/hooks/useAuth";
 import { X } from "lucide-react";
+import { SubmissionsTable } from "./SubmissionsTable";
 
 const processSubmissionDoc = (doc: any): SchoolCensusSubmission => {
     const data = doc.data();
