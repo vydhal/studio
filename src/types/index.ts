@@ -18,7 +18,8 @@ export interface Classroom {
   hasAirConditioning?: boolean;
   gradeMorning?: string;
   gradeAfternoon?: string;
-  gradeProjection2026?: string;
+  gradeProjection2026Morning?: string;
+  gradeProjection2026Afternoon?: string;
 }
 
 export interface TeachingModality {

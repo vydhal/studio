@@ -15,6 +15,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import {
   Select,
@@ -36,6 +37,8 @@ import { useAppSettings } from "@/context/AppContext";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, setDoc, collection, getDocs, serverTimestamp } from "firebase/firestore";
 import { useAuth } from "@/hooks/useAuth";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Separator } from "@/components/ui/separator";
 
 
 const classroomSchema = z.object({
@@ -50,7 +53,8 @@ const classroomSchema = z.object({
   hasAirConditioning: z.boolean().optional(),
   gradeMorning: z.string().optional(),
   gradeAfternoon: z.string().optional(),
-  gradeProjection2026: z.string().optional(),
+  gradeProjection2026Morning: z.string().optional(),
+  gradeProjection2026Afternoon: z.string().optional(),
 });
 
 const formSchema = z.object({
@@ -134,7 +138,8 @@ const InfrastructureSection = ({ control }: { control: any }) => {
             hasAirConditioning: false,
             gradeMorning: '',
             gradeAfternoon: '',
-            gradeProjection2026: '',
+            gradeProjection2026Morning: '',
+            gradeProjection2026Afternoon: '',
         });
     };
 
@@ -145,45 +150,68 @@ const InfrastructureSection = ({ control }: { control: any }) => {
                 <CardDescription>Adicione as salas de aula e seus detalhes.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-                <div className="space-y-4">
+                <Accordion type="multiple" className="w-full space-y-4">
                     {fields.map((item, index) => (
-                        <Card key={item.id} className="p-4 bg-muted/20">
-                            <div className="flex justify-between items-center mb-4">
-                                <h4 className="font-bold">Sala {index + 1}</h4>
-                                <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
-                                    <Trash2 className="h-4 w-4 text-destructive" />
-                                </Button>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                 <FormField
-                                    control={control}
-                                    name={`infrastructure.classrooms.${index}.name`}
-                                    render={({ field }) => (
-                                        <FormItem className="lg:col-span-3">
-                                            <FormLabel>Nome/Identificação da Sala</FormLabel>
-                                            <FormControl><Input {...field} /></FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField control={control} name={`infrastructure.classrooms.${index}.studentCapacity`} render={({ field }) => (<FormItem><FormLabel>Capacidade de Estudantes</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} /></FormControl><FormMessage /></FormItem>)} />
-                                <FormField control={control} name={`infrastructure.classrooms.${index}.chairCount`} render={({ field }) => (<FormItem><FormLabel>Nº de Cadeiras</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} /></FormControl><FormMessage /></FormItem>)} />
-                                <FormField control={control} name={`infrastructure.classrooms.${index}.outlets`} render={({ field }) => (<FormItem><FormLabel>Nº de Tomadas</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)}/></FormControl><FormMessage /></FormItem>)} />
-                                <FormField control={control} name={`infrastructure.classrooms.${index}.tvCount`} render={({ field }) => (<FormItem><FormLabel>Nº de TVs</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} /></FormControl><FormMessage /></FormItem>)} />
-                                <FormField control={control} name={`infrastructure.classrooms.${index}.fanCount`} render={({ field }) => (<FormItem><FormLabel>Nº de Ventiladores</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} /></FormControl><FormMessage /></FormItem>)} />
-                                
-                                <FormField control={control} name={`infrastructure.classrooms.${index}.gradeMorning`} render={({ field }) => (<FormItem><FormLabel>Série - Manhã</FormLabel><FormControl><Input {...field} placeholder="Ex: 5º Ano A" /></FormControl><FormMessage /></FormItem>)} />
-                                <FormField control={control} name={`infrastructure.classrooms.${index}.gradeAfternoon`} render={({ field }) => (<FormItem><FormLabel>Série - Tarde</FormLabel><FormControl><Input {...field} placeholder="Ex: 3º Ano B" /></FormControl><FormMessage /></FormItem>)} />
-                                <FormField control={control} name={`infrastructure.classrooms.${index}.gradeProjection2026`} render={({ field }) => (<FormItem><FormLabel>Projeção de Turma 2026</FormLabel><FormControl><Input {...field} placeholder="Ex: 6º Ano A" /></FormControl><FormMessage /></FormItem>)} />
+                        <AccordionItem value={`item-${index}`} key={item.id} className="border-b-0">
+                            <Card className="bg-muted/20">
+                                <AccordionTrigger className="p-4">
+                                     <div className="flex justify-between items-center w-full">
+                                        <h4 className="font-bold">{`Sala ${index + 1}`}</h4>
+                                        <Button type="button" variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); remove(index); }}>
+                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                        </Button>
+                                    </div>
+                                </AccordionTrigger>
+                                <AccordionContent className="px-4 pb-4">
+                                    <div className="space-y-4">
+                                        <FormField
+                                            control={control}
+                                            name={`infrastructure.classrooms.${index}.name`}
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Nome/Identificação da Sala</FormLabel>
+                                                    <FormControl><Input {...field} /></FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        
+                                        <Separator/>
+                                        
+                                        <p className="font-medium text-sm">Ocupação Atual</p>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <FormField control={control} name={`infrastructure.classrooms.${index}.gradeMorning`} render={({ field }) => (<FormItem><FormLabel>Série - Manhã</FormLabel><FormControl><Input {...field} placeholder="Ex: 5º Ano A" /></FormControl><FormMessage /></FormItem>)} />
+                                            <FormField control={control} name={`infrastructure.classrooms.${index}.gradeAfternoon`} render={({ field }) => (<FormItem><FormLabel>Série - Tarde</FormLabel><FormControl><Input {...field} placeholder="Ex: 3º Ano B" /></FormControl><FormMessage /></FormItem>)} />
+                                        </div>
 
-                                <div className="space-y-4 pt-2 md:col-span-2 lg:col-span-3">
-                                    <FormField control={control} name={`infrastructure.classrooms.${index}.hasInternet`} render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Tem Internet</FormLabel></FormItem>)} />
-                                    <FormField control={control} name={`infrastructure.classrooms.${index}.hasAirConditioning`} render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Tem Ar Condicionado</FormLabel></FormItem>)} />
-                                </div>
-                            </div>
-                        </Card>
+                                        <Separator/>
+
+                                        <p className="font-medium text-sm">Projeção 2026</p>
+                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <FormField control={control} name={`infrastructure.classrooms.${index}.gradeProjection2026Morning`} render={({ field }) => (<FormItem><FormLabel>Projeção Manhã 2026</FormLabel><FormControl><Input {...field} placeholder="Ex: 6º Ano A" /></FormControl><FormMessage /></FormItem>)} />
+                                            <FormField control={control} name={`infrastructure.classrooms.${index}.gradeProjection2026Afternoon`} render={({ field }) => (<FormItem><FormLabel>Projeção Tarde 2026</FormLabel><FormControl><Input {...field} placeholder="Ex: 4º Ano B" /></FormControl><FormMessage /></FormItem>)} />
+                                        </div>
+
+                                        <Separator/>
+                                        
+                                        <p className="font-medium text-sm">Recursos da Sala</p>
+                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                            <FormField control={control} name={`infrastructure.classrooms.${index}.studentCapacity`} render={({ field }) => (<FormItem><FormLabel>Capacidade Alunos</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} /></FormControl><FormMessage /></FormItem>)} />
+                                            <FormField control={control} name={`infrastructure.classrooms.${index}.chairCount`} render={({ field }) => (<FormItem><FormLabel>Nº de Cadeiras</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} /></FormControl><FormMessage /></FormItem>)} />
+                                            <FormField control={control} name={`infrastructure.classrooms.${index}.outlets`} render={({ field }) => (<FormItem><FormLabel>Nº de Tomadas</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)}/></FormControl><FormMessage /></FormItem>)} />
+                                            <FormField control={control} name={`infrastructure.classrooms.${index}.tvCount`} render={({ field }) => (<FormItem><FormLabel>Nº de TVs</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} /></FormControl><FormMessage /></FormItem>)} />
+                                            <FormField control={control} name={`infrastructure.classrooms.${index}.fanCount`} render={({ field }) => (<FormItem><FormLabel>Nº de Ventiladores</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} /></FormControl><FormMessage /></FormItem>)} />
+                                        </div>
+                                        <div className="flex items-center gap-6 pt-2">
+                                            <FormField control={control} name={`infrastructure.classrooms.${index}.hasInternet`} render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Tem Internet</FormLabel></FormItem>)} />
+                                            <FormField control={control} name={`infrastructure.classrooms.${index}.hasAirConditioning`} render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Tem Ar Condicionado</FormLabel></FormItem>)} />
+                                        </div>
+                                    </div>
+                                </AccordionContent>
+                            </Card>
+                        </AccordionItem>
                     ))}
-                </div>
+                </Accordion>
                  <Button type="button" variant="outline" onClick={addNewClassroom}>
                     <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Sala de Aula
                 </Button>

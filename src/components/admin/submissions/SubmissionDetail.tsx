@@ -40,7 +40,8 @@ const ClassroomDetails = ({ classroom }: { classroom: Classroom }) => (
         <InfoItem icon={Wind} label="Ventiladores" value={classroom.fanCount} />
         <InfoItem icon={Users} label="Série Manhã" value={classroom.gradeMorning} />
         <InfoItem icon={Users} label="Série Tarde" value={classroom.gradeAfternoon} />
-        <InfoItem icon={Users} label="Projeção 2026" value={classroom.gradeProjection2026} />
+        <InfoItem icon={Users} label="Projeção Manhã 2026" value={classroom.gradeProjection2026Morning} />
+        <InfoItem icon={Users} label="Projeção Tarde 2026" value={classroom.gradeProjection2026Afternoon} />
 
         <div className="flex items-center gap-2">
             {classroom.hasInternet ? <CheckCircle2 className="h-5 w-5 text-green-500" /> : <XCircle className="h-5 w-5 text-destructive" />}
