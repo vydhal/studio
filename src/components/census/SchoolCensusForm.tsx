@@ -75,22 +75,22 @@ const sectionIcons: { [key: string]: React.ElementType } = {
 };
 
 const gradeLevels = [
-  "Berçário I",
-  "Berçário II",
-  "Maternal I",
-  "Maternal II",
-  "Pré I",
-  "Pré II",
-  "1º Ano",
-  "2º Ano",
-  "3º Ano",
-  "4º Ano",
-  "5º Ano",
-  "6º Ano",
-  "7º Ano",
-  "8º Ano",
-  "9º Ano",
-  "Não se aplica",
+    "Berçário I",
+    "Berçário II",
+    "Maternal I",
+    "Maternal II",
+    "Pré I",
+    "Pré II",
+    "1º Ano",
+    "2º Ano",
+    "3º Ano",
+    "4º Ano",
+    "5º Ano",
+    "6º Ano",
+    "7º Ano",
+    "8º Ano",
+    "9º Ano",
+    "Não se aplica",
 ];
 
 const DynamicField = ({ control, fieldConfig }: { control: any, fieldConfig: FormFieldConfig }) => {
@@ -265,16 +265,8 @@ export function SchoolCensusForm() {
   const generateDefaultValues = useCallback((config: FormSectionConfig[]) => {
       const defaultDynamicValues: { [key: string]: any } = {};
       
-      const generalSection = config.find(s => s.id === 'general');
-      if (generalSection) {
-          defaultDynamicValues[generalSection.id] = {};
-          generalSection.fields.forEach(field => {
-              defaultDynamicValues[generalSection.id][field.id] = field.type === 'boolean' ? false : '';
-          });
-      }
-
       config.forEach((section: FormSectionConfig) => {
-          if (!section.id.startsWith('infra') && section.id !== 'general') {
+          if (!section.id.startsWith('infra')) {
             defaultDynamicValues[section.id] = {};
             section.fields.forEach((field: FormFieldConfig) => {
                 defaultDynamicValues[section.id][field.id] = 
@@ -304,7 +296,7 @@ export function SchoolCensusForm() {
             const schoolsData = schoolsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as School[];
             setSchools(schoolsData);
 
-            let configData = formConfigDoc.exists() ? formConfigDoc.data().sections : [];
+            let configData: FormSectionConfig[] = formConfigDoc.exists() ? formConfigDoc.data().sections : [];
             // Manually ensure the general section has the desk field for older configs
             let generalSection = configData.find((s: FormSectionConfig) => s.id === 'general');
             if (generalSection && !generalSection.fields.some((f: FormFieldConfig) => f.id.startsWith('f_desk'))) {
@@ -413,25 +405,32 @@ export function SchoolCensusForm() {
         
         // Mark sections with any data as 'completed'
         const statusUpdates: { [key: string]: { status: 'completed' } } = {};
-        formConfig.forEach(sectionCfg => {
-            if (sectionCfg.id.startsWith('infra')) {
+        visibleSections.forEach(sectionCfg => {
+            const sectionId = sectionCfg.id.split('_')[0];
+            const originalSectionId = sectionCfg.id;
+
+            let isCompleted = false;
+            if (sectionId === 'infra') {
                 if (infrastructure && infrastructure.classrooms.length > 0) {
-                     statusUpdates[sectionCfg.id] = { status: 'completed' };
+                     isCompleted = true;
                 }
             } else {
-                const sectionData = dynamicData[sectionCfg.id];
+                const sectionData = dynamicData[originalSectionId];
                 if (sectionData && Object.values(sectionData).some(v => v !== '' && v !== false && v !== null && v !== undefined)) {
-                    statusUpdates[sectionCfg.id] = { status: 'completed' };
+                    isCompleted = true;
                 }
             }
+             if (isCompleted) {
+                statusUpdates[sectionId] = { status: 'completed' };
+             }
         });
         
         const submissionData = {
           id: schoolId,
           schoolId: schoolId,
           dynamicData,
-          infrastructure: infrastructure,
-          ...statusUpdates, // Spread the status updates
+          infrastructure,
+          ...statusUpdates,
           submittedAt: serverTimestamp(),
           submittedBy: user?.uid || 'unknown'
         };
@@ -462,8 +461,9 @@ export function SchoolCensusForm() {
     }
     
     // Other users see only the sections their role permits.
+    const userPermissions = userProfile.role!.permissions;
     return formConfig.filter(section => 
-        userProfile.role!.permissions.some(p => section.id.startsWith(p))
+        userPermissions.some(p => section.id.startsWith(p))
     );
   }, [formConfig, userProfile, isAdmin]);
 
@@ -608,7 +608,3 @@ export function SchoolCensusForm() {
     </Card>
   );
 }
-
-    
-
-    
