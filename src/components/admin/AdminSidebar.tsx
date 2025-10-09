@@ -16,6 +16,7 @@ import {
   School,
   LogOut,
   Users,
+  Globe,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
@@ -55,6 +56,7 @@ export function AdminSidebar() {
 
   const menuItems = [
     { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard, requiredPermission: null },
+    { href: "/", label: "Ver Site", icon: Globe, requiredPermission: null },
     { href: "/admin/users", label: "Usuários e Perfis", icon: Users, requiredPermission: 'users' },
     { href: "/admin/settings", label: "Configurações", icon: Settings, requiredPermission: 'users' },
   ];
