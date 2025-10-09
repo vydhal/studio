@@ -12,16 +12,11 @@ export function MetricsCards({ submissions, schools }: MetricsCardsProps) {
   
   const totalClassrooms = submissions.reduce((acc, sub) => acc + (sub.infrastructure?.classrooms?.length || 0), 0);
   
-  const totalDesks = submissions.reduce((acc, sub) => {
-    const generalData = sub.dynamicData?.general;
-    if (generalData) {
-      const deskField = Object.keys(generalData).find(key => key.startsWith('f_desk_'));
-      if (deskField && typeof generalData[deskField] === 'number') {
-        return acc + generalData[deskField];
-      }
-    }
-    return acc;
+  const totalStudentCapacity = submissions.reduce((acc, sub) => {
+    const classroomCapacity = sub.infrastructure?.classrooms?.reduce((classAcc, room) => classAcc + (room.studentCapacity || 0), 0) || 0;
+    return acc + classroomCapacity;
   }, 0);
+
 
   // Use the length of the filtered schools array directly
   const totalSchools = schools.length;
@@ -30,14 +25,18 @@ export function MetricsCards({ submissions, schools }: MetricsCardsProps) {
       // Assuming 5 sections for completion status for now
       const sections = [s.general, s.infrastructure, s.technology, s.cultural, s.maintenance];
       const completedCount = sections.filter(sec => sec?.status === 'completed').length;
-      return completedCount >= 5;
+      // This logic should be tied to the number of sections in formConfig. For now, assuming a fixed number might be fragile.
+      // A better approach would be to pass formConfig length here.
+      // Let's assume totalSections = 5 for now.
+      const totalSections = 5; 
+      return completedCount >= totalSections;
   }).length;
 
 
   const metrics = [
     { title: "Escolas", value: totalSchools, icon: School2, description: "Total de unidades no filtro" },
-    { title: "Total de Carteiras", value: totalDesks.toLocaleString(), icon: Armchair, description: "Soma de todas as unidades" },
-    { title: "Salas de Aula", value: totalClassrooms.toLocaleString(), icon: Users, description: "Soma de todas as salas" },
+    { title: "Total de Alunos", value: totalStudentCapacity.toLocaleString(), icon: Users, description: "Capacidade total no filtro" },
+    { title: "Salas de Aula", value: totalClassrooms.toLocaleString(), icon: Armchair, description: "Soma de todas as salas" },
     { title: "Questionários Completos", value: `${completedSubmissions}/${totalSchools}`, icon: Wifi, description: "Total de censos finalizados" },
   ];
 

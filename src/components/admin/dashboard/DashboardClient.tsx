@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import type { SchoolCensusSubmission, School } from "@/types";
+import type { SchoolCensusSubmission, School, FormSectionConfig } from "@/types";
 import { MetricsCards } from "./MetricsCards";
 import { ChartsSection } from "./ChartsSection";
 import { Button } from "@/components/ui/button"
@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { db } from "@/lib/firebase";
-import { collection, onSnapshot, Timestamp } from "firebase/firestore";
+import { collection, onSnapshot, Timestamp, doc, getDoc } from "firebase/firestore";
 import { useAuth } from "@/hooks/useAuth";
 import { X } from "lucide-react";
 import { SubmissionsTable } from "./SubmissionsTable";
@@ -47,6 +47,7 @@ const processSubmissionDoc = (doc: any): SchoolCensusSubmission => {
 export function DashboardClient() {
   const [submissions, setSubmissions] = useState<SchoolCensusSubmission[]>([]);
   const [schools, setSchools] = useState<School[]>([]);
+  const [formConfig, setFormConfig] = useState<FormSectionConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const { user, loading: authLoading } = useAuth();
   
@@ -63,6 +64,7 @@ export function DashboardClient() {
     setLoading(true);
 
     const schoolsQuery = collection(db, 'schools');
+    const formConfigDocRef = doc(db, 'settings', 'formConfig');
     
     // Set up real-time listeners
     const submissionsUnsubscribe = onSnapshot(collection(db, 'submissions'), (snapshot) => {
@@ -80,10 +82,20 @@ export function DashboardClient() {
     }, (error) => {
         console.error("Error listening to schools:", error);
     });
+    
+    const formConfigUnsubscribe = onSnapshot(formConfigDocRef, (doc) => {
+        if (doc.exists()) {
+            setFormConfig(doc.data().sections || []);
+        }
+    }, (error) => {
+        console.error("Error listening to form config:", error);
+    });
+
 
     return () => {
       submissionsUnsubscribe();
       schoolsUnsubscribe();
+      formConfigUnsubscribe();
     }
   }, [user, authLoading]);
 
@@ -254,7 +266,7 @@ export function DashboardClient() {
                     </CardContent>
                 </Card>
                 <MetricsCards submissions={filteredSubmissions} schools={filteredSchools} />
-                <ChartsSection submissions={filteredSubmissions} schoolMap={schoolMap} />
+                <ChartsSection submissions={filteredSubmissions} schoolMap={schoolMap} formConfig={formConfig} />
             </TabsContent>
             <TabsContent value="submissions" className="space-y-4">
                 <Card>
