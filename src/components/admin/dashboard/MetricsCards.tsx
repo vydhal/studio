@@ -23,18 +23,22 @@ export function MetricsCards({ submissions, schools }: MetricsCardsProps) {
     return acc;
   }, 0);
 
+  // Use the length of the filtered schools array directly
+  const totalSchools = schools.length;
 
   const completedSubmissions = submissions.filter(s => {
+      // Assuming 5 sections for completion status for now
       const sections = [s.general, s.infrastructure, s.technology, s.cultural, s.maintenance];
-      return sections.every(sec => sec?.status === 'completed');
+      const completedCount = sections.filter(sec => sec?.status === 'completed').length;
+      return completedCount >= 5;
   }).length;
 
 
   const metrics = [
-    { title: "Escolas Cadastradas", value: schools.length, icon: School2, description: "Total de unidades" },
-    { title: "Total de Carteiras", value: totalDesks, icon: Armchair, description: "Soma de todas as unidades" },
-    { title: "Salas de Aula", value: totalClassrooms, icon: Users, description: "Soma de todas as salas" },
-    { title: "Questionários Completos", value: `${completedSubmissions}/${schools.length}`, icon: Wifi, description: "Total de censos finalizados" },
+    { title: "Escolas", value: totalSchools, icon: School2, description: "Total de unidades no filtro" },
+    { title: "Total de Carteiras", value: totalDesks.toLocaleString(), icon: Armchair, description: "Soma de todas as unidades" },
+    { title: "Salas de Aula", value: totalClassrooms.toLocaleString(), icon: Users, description: "Soma de todas as salas" },
+    { title: "Questionários Completos", value: `${completedSubmissions}/${totalSchools}`, icon: Wifi, description: "Total de censos finalizados" },
   ];
 
   return (
