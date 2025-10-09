@@ -74,6 +74,24 @@ const sectionIcons: { [key: string]: React.ElementType } = {
   maintenance: Wrench,
 };
 
+const gradeLevels = [
+  "Infantil I",
+  "Infantil II",
+  "Infantil III",
+  "Infantil IV",
+  "Infantil V",
+  "1º Ano",
+  "2º Ano",
+  "3º Ano",
+  "4º Ano",
+  "5º Ano",
+  "6º Ano",
+  "7º Ano",
+  "8º Ano",
+  "9º Ano",
+  "Não se aplica",
+];
+
 const DynamicField = ({ control, fieldConfig }: { control: any, fieldConfig: FormFieldConfig }) => {
     const fieldName = `dynamicData.${fieldConfig.sectionId}.${fieldConfig.id}`;
     
@@ -154,8 +172,8 @@ const InfrastructureSection = ({ control }: { control: any }) => {
                     {fields.map((item, index) => (
                         <AccordionItem value={`item-${index}`} key={item.id} className="border-b-0">
                             <Card className="bg-muted/20">
-                                <div className="flex items-center p-4">
-                                    <AccordionTrigger className="flex-1">
+                                 <div className="flex items-center p-4">
+                                     <AccordionTrigger className="flex-1">
                                         <h4 className="font-bold text-left">{`Sala ${index + 1}`}</h4>
                                     </AccordionTrigger>
                                     <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
@@ -180,16 +198,16 @@ const InfrastructureSection = ({ control }: { control: any }) => {
                                         
                                         <p className="font-medium text-sm">Ocupação Atual</p>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <FormField control={control} name={`infrastructure.classrooms.${index}.gradeMorning`} render={({ field }) => (<FormItem><FormLabel>Série - Manhã</FormLabel><FormControl><Input {...field} placeholder="Ex: 5º Ano A" /></FormControl><FormMessage /></FormItem>)} />
-                                            <FormField control={control} name={`infrastructure.classrooms.${index}.gradeAfternoon`} render={({ field }) => (<FormItem><FormLabel>Série - Tarde</FormLabel><FormControl><Input {...field} placeholder="Ex: 3º Ano B" /></FormControl><FormMessage /></FormItem>)} />
+                                            <FormField control={control} name={`infrastructure.classrooms.${index}.gradeMorning`} render={({ field }) => (<FormItem><FormLabel>Série - Manhã</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecione a série" /></SelectTrigger></FormControl><SelectContent>{gradeLevels.map(grade => <SelectItem key={grade} value={grade}>{grade}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
+                                            <FormField control={control} name={`infrastructure.classrooms.${index}.gradeAfternoon`} render={({ field }) => (<FormItem><FormLabel>Série - Tarde</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecione a série" /></SelectTrigger></FormControl><SelectContent>{gradeLevels.map(grade => <SelectItem key={grade} value={grade}>{grade}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
                                         </div>
 
                                         <Separator/>
 
                                         <p className="font-medium text-sm">Projeção 2026</p>
                                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <FormField control={control} name={`infrastructure.classrooms.${index}.gradeProjection2026Morning`} render={({ field }) => (<FormItem><FormLabel>Projeção Manhã 2026</FormLabel><FormControl><Input {...field} placeholder="Ex: 6º Ano A" /></FormControl><FormMessage /></FormItem>)} />
-                                            <FormField control={control} name={`infrastructure.classrooms.${index}.gradeProjection2026Afternoon`} render={({ field }) => (<FormItem><FormLabel>Projeção Tarde 2026</FormLabel><FormControl><Input {...field} placeholder="Ex: 4º Ano B" /></FormControl><FormMessage /></FormItem>)} />
+                                            <FormField control={control} name={`infrastructure.classrooms.${index}.gradeProjection2026Morning`} render={({ field }) => (<FormItem><FormLabel>Projeção Manhã 2026</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecione a série" /></SelectTrigger></FormControl><SelectContent>{gradeLevels.map(grade => <SelectItem key={grade} value={grade}>{grade}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
+                                            <FormField control={control} name={`infrastructure.classrooms.${index}.gradeProjection2026Afternoon`} render={({ field }) => (<FormItem><FormLabel>Projeção Tarde 2026</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecione a série" /></SelectTrigger></FormControl><SelectContent>{gradeLevels.map(grade => <SelectItem key={grade} value={grade}>{grade}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
                                         </div>
 
                                         <Separator/>
@@ -245,8 +263,17 @@ export function SchoolCensusForm() {
   
   const generateDefaultValues = useCallback((config: FormSectionConfig[]) => {
       const defaultDynamicValues: { [key: string]: any } = {};
+      
+      const generalSection = config.find(s => s.id === 'general');
+      if (generalSection) {
+          defaultDynamicValues[generalSection.id] = {};
+          generalSection.fields.forEach(field => {
+              defaultDynamicValues[generalSection.id][field.id] = field.type === 'boolean' ? false : '';
+          });
+      }
+
       config.forEach((section: FormSectionConfig) => {
-          if (!section.id.startsWith('infra')) {
+          if (!section.id.startsWith('infra') && section.id !== 'general') {
             defaultDynamicValues[section.id] = {};
             section.fields.forEach((field: FormFieldConfig) => {
                 defaultDynamicValues[section.id][field.id] = 
@@ -276,7 +303,13 @@ export function SchoolCensusForm() {
             const schoolsData = schoolsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as School[];
             setSchools(schoolsData);
 
-            const configData = formConfigDoc.exists() ? formConfigDoc.data().sections : [];
+            let configData = formConfigDoc.exists() ? formConfigDoc.data().sections : [];
+            // Manually ensure the general section has the desk field for older configs
+            let generalSection = configData.find((s: FormSectionConfig) => s.id === 'general');
+            if (generalSection && !generalSection.fields.some((f: FormFieldConfig) => f.id.startsWith('f_desk'))) {
+                generalSection.fields.unshift({ id: 'f_desk_1', name: 'Total de Carteiras na Unidade', type: 'number', required: false, sectionId: 'general' });
+            }
+
             setFormConfig(configData);
             
             // Now that config is loaded, handle initial form state
@@ -502,6 +535,34 @@ export function SchoolCensusForm() {
                             </TabsContent>
                         )
                      }
+                    if (section.id === 'general') {
+                       const deskField = section.fields.find(f => f.id.startsWith('f_desk'));
+                       const modalityFields = section.fields.filter(f => !f.id.startsWith('f_desk'));
+                        return (
+                        <TabsContent key={section.id} value={section.id}>
+                            <Card>
+                                <CardHeader>
+                                <CardTitle>{section.name}</CardTitle>
+                                {section.description && <CardDescription>{section.description}</CardDescription>}
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="space-y-6">
+                                        {deskField && <DynamicField key={deskField.id} control={form.control} fieldConfig={deskField} />}
+                                        
+                                        <Separator/>
+
+                                        <p className="font-medium">Modalidades de Ensino Oferecidas</p>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                            {modalityFields.map(field => (
+                                                <DynamicField key={field.id} control={form.control} fieldConfig={field} />
+                                            ))}
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
+                    )
+                    }
                     return (
                         <TabsContent key={section.id} value={section.id}>
                             <Card>
@@ -546,5 +607,7 @@ export function SchoolCensusForm() {
     </Card>
   );
 }
+
+    
 
     
