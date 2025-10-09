@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { SchoolCensusSubmission, School } from "@/types";
 import { Users, School2, Wifi, Armchair } from "lucide-react";
@@ -23,8 +24,6 @@ export function MetricsCards({ submissions, schools }: MetricsCardsProps) {
   }, 0);
 
 
-  const schoolsWithInternet = submissions.filter(s => s.technology?.hasInternetAccess).length;
-  
   const completedSubmissions = submissions.filter(s => {
       const sections = [s.general, s.infrastructure, s.technology, s.cultural, s.maintenance];
       return sections.every(sec => sec?.status === 'completed');

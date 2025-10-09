@@ -1,8 +1,8 @@
 
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend, Pie, PieChart, Cell } from "recharts";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend } from "recharts";
 import type { SchoolCensusSubmission, School } from "@/types";
 
 interface ChartsSectionProps {
@@ -13,112 +13,93 @@ interface ChartsSectionProps {
 const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
 
 export function ChartsSection({ submissions, schoolMap }: ChartsSectionProps) {
-  
-  const techResourcesBySchool = submissions.map(sub => {
-    const schoolName = schoolMap.get(sub.schoolId)?.name.substring(0,15) + '...' || 'Desconhecida';
-    const resources = sub.technology?.resources?.reduce((acc, resource) => {
-        acc[resource.name] = resource.quantity;
-        return acc;
-    }, {} as Record<string, number>) || {};
-    return {
-        name: schoolName,
-        ...resources
-    };
-  });
 
-  const allTechKeys = [...new Set(submissions.flatMap(s => s.technology?.resources?.map(r => r.name) || []))];
+  const dataByNeighborhood = Array.from(schoolMap.values()).reduce((acc, school) => {
+    const neighborhood = school.neighborhood || "Sem Bairro";
+    if (!acc[neighborhood]) {
+      acc[neighborhood] = {
+        name: neighborhood,
+        totalStudents: 0,
+        projectedRooms2026: 0,
+        schoolCount: 0,
+      };
+    }
+    acc[neighborhood].schoolCount += 1;
 
-  const teachingModalitiesCount = submissions.flatMap(s => s.teachingModalities || [])
-    .filter(m => m.offered)
-    .reduce((acc, modality) => {
-        acc[modality.name] = (acc[modality.name] || 0) + 1;
-        return acc;
-    }, {} as Record<string, number>);
-  
-  const totalOfferedModalities = Object.values(teachingModalitiesCount).reduce((sum, count) => sum + count, 0);
+    const submission = submissions.find(s => s.schoolId === school.id);
+    if (submission?.infrastructure?.classrooms) {
+      submission.infrastructure.classrooms.forEach(room => {
+        acc[neighborhood].totalStudents += room.studentCapacity || 0;
+        if (room.gradeProjection2026Morning || room.gradeProjection2026Afternoon) {
+          acc[neighborhood].projectedRooms2026 += 1;
+        }
+      });
+    }
+    return acc;
+  }, {} as Record<string, { name: string, totalStudents: number, projectedRooms2026: number, schoolCount: number }>);
 
-  const modalitiesChartData = Object.entries(teachingModalitiesCount).map(([name, value]) => ({
-      name,
-      value,
-      percentage: totalOfferedModalities > 0 ? ((value / totalOfferedModalities) * 100).toFixed(0) : 0
-  }));
+  const studentsByNeighborhoodChartData = Object.values(dataByNeighborhood);
+  const roomsByNeighborhoodChartData = Object.values(dataByNeighborhood);
 
-  const CustomTooltip = ({ active, payload }: any) => {
+
+  const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
         <div className="p-2 bg-background border rounded-md shadow-lg">
-          <p className="font-bold">{`${payload[0].name}`}</p>
-          <p className="text-sm">{`Quantidade: ${payload[0].value}`}</p>
+          <p className="font-bold">{label}</p>
+          {payload.map((p: any) => (
+            <p key={p.dataKey} className="text-sm" style={{ color: p.color }}>
+              {`${p.name}: ${p.value.toLocaleString()}`}
+            </p>
+          ))}
         </div>
       );
     }
     return null;
   };
-  
-  const PieLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, payload, index }: any) => {
-      const RADIAN = Math.PI / 180;
-      const radius = innerRadius + (outerRadius - innerRadius) * 1.25;
-      const x = cx + radius * Math.cos(-midAngle * RADIAN);
-      const y = cy + radius * Math.sin(-midAngle * RADIAN);
-
-      return (
-        <text x={x} y={y} fill="hsl(var(--foreground))" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central">
-          {`${payload.name} ${payload.percentage}%`}
-        </text>
-      );
-  };
 
 
   return (
-    <div className="grid gap-4 md:grid-cols-2">
+    <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-2">
       <Card>
         <CardHeader>
-          <CardTitle>Recursos Tecnológicos por Escola</CardTitle>
+          <CardTitle>Capacidade de Alunos por Bairro</CardTitle>
+           <CardDescription>Soma da capacidade de todas as salas em cada bairro.</CardDescription>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={techResourcesBySchool}>
+            <BarChart data={studentsByNeighborhoodChartData}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} interval={0} />
-              <YAxis />
+              <YAxis allowDecimals={false} />
               <Tooltip
                 cursor={{fill: 'hsl(var(--muted))'}}
-                contentStyle={{
-                  backgroundColor: "hsl(var(--background))",
-                  borderColor: "hsl(var(--border))",
-                }}
+                content={<CustomTooltip />}
               />
               <Legend />
-              {allTechKeys.map((key, index) => (
-                  <Bar key={key} dataKey={key} stackId="a" fill={COLORS[index % COLORS.length]} />
-              ))}
+              <Bar dataKey="totalStudents" name="Total de Alunos" fill={COLORS[0]} />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
       </Card>
       <Card>
         <CardHeader>
-          <CardTitle>Modalidades de Ensino</CardTitle>
+          <CardTitle>Salas com Projeção para 2026</CardTitle>
+          <CardDescription>Número de salas com projeção de turma para 2026 informada.</CardDescription>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
-             <PieChart>
-              <Pie
-                data={modalitiesChartData}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                outerRadius={80}
-                fill="#8884d8"
-                dataKey="value"
-                label={<PieLabel />}
-              >
-                {modalitiesChartData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip content={<CustomTooltip />} />
-            </PieChart>
+             <BarChart data={roomsByNeighborhoodChartData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} interval={0} />
+              <YAxis allowDecimals={false}/>
+              <Tooltip
+                cursor={{fill: 'hsl(var(--muted))'}}
+                content={<CustomTooltip />}
+              />
+              <Legend />
+               <Bar dataKey="projectedRooms2026" name="Salas Projetadas" fill={COLORS[1]} />
+            </BarChart>
           </ResponsiveContainer>
         </CardContent>
       </Card>

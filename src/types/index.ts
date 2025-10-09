@@ -4,6 +4,9 @@ export interface School {
   id: string;
   name: string;
   inep: string;
+  address?: string;
+  number?: string;
+  neighborhood?: string;
 }
 
 export interface Classroom {

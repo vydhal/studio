@@ -30,13 +30,13 @@ const schoolListSchema = z.object({
       return Array.isArray(parsed) && parsed.every(item => 
         typeof item === 'object' && 
         ('inep' in item || 'INEP' in item) && 
-        ('name' in item || 'UNIDADE EDUCACIONAL' in item)
+        ('name' in item || 'UNIDADE EDUCACIONAL' in item || 'UNIDADE' in item)
       );
     } catch (e) {
       return false;
     }
   }, {
-    message: "O JSON fornecido é inválido. Verifique se é um array de objetos, onde cada objeto deve conter as chaves 'inep' (ou 'INEP') e 'name' (ou 'UNIDADE EDUCACIONAL').",
+    message: "O JSON fornecido é inválido. Verifique se é um array de objetos, onde cada objeto deve conter as chaves 'inep' (ou 'INEP') e 'name' (ou 'UNIDADE EDUCACIONAL'/'UNIDADE').",
   }),
 });
 
@@ -82,27 +82,29 @@ export function SchoolSettingsForm() {
       const batch = writeBatch(db);
 
       const schoolsWithIds: School[] = parsedSchools.map((school: any, index: number) => {
-        const schoolName = school.name || school['UNIDADE EDUCACIONAL'];
+        const schoolName = school.name || school['UNIDADE EDUCACIONAL'] || school['UNIDADE'];
         const schoolInep = school.inep || school['INEP'];
-
+        
         if (!schoolName || !schoolInep) {
             throw new Error(`Objeto de escola inválido encontrado no índice ${index}.`);
         }
 
-        // Use INEP as a stable, unique ID
         const schoolId = String(schoolInep);
         const schoolRef = doc(db, 'schools', schoolId);
 
-        const schoolData = {
+        const schoolData: Omit<School, 'id'> = {
           name: schoolName,
           inep: String(schoolInep),
+          address: school.address || school['DS_ENDERECO'],
+          number: school.number || school['NU_ENDERECO'],
+          neighborhood: school.neighborhood || school['NO_BAIRRO'],
         };
+
         batch.set(schoolRef, schoolData);
         
         return {
           id: schoolId,
-          name: schoolName,
-          inep: String(schoolInep),
+          ...schoolData
         };
       });
       
@@ -130,7 +132,7 @@ export function SchoolSettingsForm() {
       <CardHeader>
         <CardTitle>Gerenciamento de Escolas</CardTitle>
         <CardDescription>
-          Adicione ou atualize a lista de escolas disponíveis para o censo. Cole o conteúdo em formato JSON. O INEP será usado como ID único.
+          Adicione ou atualize a lista de escolas. Cole o conteúdo em formato JSON. O INEP será usado como ID único de cada escola.
         </CardDescription>
       </CardHeader>
       <Form {...form}>
@@ -146,12 +148,12 @@ export function SchoolSettingsForm() {
                     <FormControl>
                       <Textarea
                         rows={15}
-                        placeholder='[{"UNIDADE EDUCACIONAL": "Nome da Escola", "INEP": "12345678"}]'
+                        placeholder='[{"UNIDADE EDUCACIONAL": "Nome da Escola", "INEP": "12345678", "NO_BAIRRO": "Centro"}]'
                         {...field}
                       />
                     </FormControl>
                     <FormDescription>
-                      Cole um array de objetos JSON. O campo INEP é obrigatório e será usado como o ID.
+                      Cole um array de objetos JSON. O campo INEP e o nome da unidade são obrigatórios.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
