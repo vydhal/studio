@@ -53,6 +53,8 @@ const classroomSchema = z.object({
   hasAirConditioning: z.boolean().optional(),
   gradeMorning: z.string().optional(),
   gradeAfternoon: z.string().optional(),
+  gradeProjection2025Morning: z.string().optional(),
+  gradeProjection2025Afternoon: z.string().optional(),
   gradeProjection2026Morning: z.string().optional(),
   gradeProjection2026Afternoon: z.string().optional(),
 });
@@ -74,7 +76,7 @@ const sectionIcons: { [key: string]: React.ElementType } = {
   maintenance: Wrench,
 };
 
-const gradeLevels = [
+export const gradeLevels = [
     "Berçário I",
     "Berçário II",
     "Maternal I",
@@ -157,6 +159,8 @@ const InfrastructureSection = ({ control }: { control: any }) => {
             hasAirConditioning: false,
             gradeMorning: '',
             gradeAfternoon: '',
+            gradeProjection2025Morning: '',
+            gradeProjection2025Afternoon: '',
             gradeProjection2026Morning: '',
             gradeProjection2026Afternoon: '',
         });
@@ -201,6 +205,14 @@ const InfrastructureSection = ({ control }: { control: any }) => {
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <FormField control={control} name={`infrastructure.classrooms.${index}.gradeMorning`} render={({ field }) => (<FormItem><FormLabel>Série - Manhã</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecione a série" /></SelectTrigger></FormControl><SelectContent>{gradeLevels.map(grade => <SelectItem key={grade} value={grade}>{grade}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
                                             <FormField control={control} name={`infrastructure.classrooms.${index}.gradeAfternoon`} render={({ field }) => (<FormItem><FormLabel>Série - Tarde</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecione a série" /></SelectTrigger></FormControl><SelectContent>{gradeLevels.map(grade => <SelectItem key={grade} value={grade}>{grade}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
+                                        </div>
+
+                                        <Separator/>
+                                        
+                                        <p className="font-medium text-sm">Projeção 2025</p>
+                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <FormField control={control} name={`infrastructure.classrooms.${index}.gradeProjection2025Morning`} render={({ field }) => (<FormItem><FormLabel>Projeção Manhã 2025</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecione a série" /></SelectTrigger></FormControl><SelectContent>{gradeLevels.map(grade => <SelectItem key={grade} value={grade}>{grade}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
+                                            <FormField control={control} name={`infrastructure.classrooms.${index}.gradeProjection2025Afternoon`} render={({ field }) => (<FormItem><FormLabel>Projeção Tarde 2025</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecione a série" /></SelectTrigger></FormControl><SelectContent>{gradeLevels.map(grade => <SelectItem key={grade} value={grade}>{grade}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
                                         </div>
 
                                         <Separator/>
@@ -423,6 +435,8 @@ export function SchoolCensusForm() {
                 }
             }
              if (isCompleted) {
+                // The key for status update should match the section type (general, infra, etc.)
+                // not the dynamic section ID (e.g. infra_167). We extract it.
                 statusUpdates[sectionId] = { status: 'completed' };
              }
         });

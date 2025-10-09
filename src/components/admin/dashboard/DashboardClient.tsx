@@ -33,6 +33,7 @@ import { collection, onSnapshot, Timestamp, doc, getDoc } from "firebase/firesto
 import { useAuth } from "@/hooks/useAuth";
 import { X } from "lucide-react";
 import { SubmissionsTable } from "./SubmissionsTable";
+import { gradeLevels } from "@/components/census/SchoolCensusForm";
 
 const processSubmissionDoc = (doc: any): SchoolCensusSubmission => {
     const data = doc.data();
@@ -53,6 +54,7 @@ export function DashboardClient() {
   
   const [schoolFilter, setSchoolFilter] = useState("");
   const [neighborhoodFilter, setNeighborhoodFilter] = useState("");
+  const [gradeFilter, setGradeFilter] = useState("");
 
   useEffect(() => {
     // Wait for authentication to be resolved and user to be logged in
@@ -113,22 +115,37 @@ export function DashboardClient() {
 
         const schoolMatch = schoolFilter === "" || school.id === schoolFilter;
         const neighborhoodMatch = neighborhoodFilter === "" || school.neighborhood === neighborhoodFilter;
+        
+        const gradeMatch = gradeFilter === "" || submission.infrastructure?.classrooms?.some(c => 
+            c.gradeMorning === gradeFilter || c.gradeAfternoon === gradeFilter
+        );
 
-        return schoolMatch && neighborhoodMatch;
+        return schoolMatch && neighborhoodMatch && gradeMatch;
     });
-  }, [submissions, schoolMap, schoolFilter, neighborhoodFilter]);
+  }, [submissions, schoolMap, schoolFilter, neighborhoodFilter, gradeFilter]);
 
   const filteredSchools = useMemo(() => {
      return schools.filter(school => {
         const schoolMatch = schoolFilter === "" || school.id === schoolFilter;
         const neighborhoodMatch = neighborhoodFilter === "" || school.neighborhood === neighborhoodFilter;
+        
+        // If a grade is filtered, we need to check if the school has a submission with that grade
+        if (gradeFilter) {
+            const submission = submissions.find(s => s.schoolId === school.id);
+            const gradeMatch = submission?.infrastructure?.classrooms?.some(c => 
+                c.gradeMorning === gradeFilter || c.gradeAfternoon === gradeFilter
+            );
+            return schoolMatch && neighborhoodMatch && gradeMatch;
+        }
+
         return schoolMatch && neighborhoodMatch;
      });
-  }, [schools, schoolFilter, neighborhoodFilter]);
+  }, [schools, submissions, schoolFilter, neighborhoodFilter, gradeFilter]);
 
   const handleClearFilters = () => {
     setSchoolFilter("");
     setNeighborhoodFilter("");
+    setGradeFilter("");
   };
   
   const handleExport = () => {
@@ -237,7 +254,7 @@ export function DashboardClient() {
                         <CardDescription>Use os filtros para analisar os dados do censo.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                             <Select value={schoolFilter} onValueChange={setSchoolFilter}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Filtrar por escola..." />
@@ -258,7 +275,17 @@ export function DashboardClient() {
                                     ))}
                                 </SelectContent>
                             </Select>
-                            <Button variant="outline" onClick={handleClearFilters} disabled={!schoolFilter && !neighborhoodFilter}>
+                            <Select value={gradeFilter} onValueChange={setGradeFilter}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Filtrar por série..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {gradeLevels.map(grade => (
+                                        <SelectItem key={grade} value={grade}>{grade}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <Button variant="outline" onClick={handleClearFilters} disabled={!schoolFilter && !neighborhoodFilter && !gradeFilter}>
                                 <X className="mr-2 h-4 w-4" />
                                 Limpar Filtros
                             </Button>
@@ -266,7 +293,7 @@ export function DashboardClient() {
                     </CardContent>
                 </Card>
                 <MetricsCards submissions={filteredSubmissions} schools={filteredSchools} />
-                <ChartsSection submissions={filteredSubmissions} schoolMap={schoolMap} formConfig={formConfig} />
+                <ChartsSection submissions={filteredSubmissions} schoolMap={schoolMap} formConfig={formConfig} gradeFilter={gradeFilter} />
             </TabsContent>
             <TabsContent value="submissions" className="space-y-4">
                 <Card>

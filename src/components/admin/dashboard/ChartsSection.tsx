@@ -5,11 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend, PieChart, Pie, Cell, Sector } from "recharts";
 import type { SchoolCensusSubmission, School, FormSectionConfig } from "@/types";
 import { useMemo, useState } from "react";
+import { gradeLevels } from "@/components/census/SchoolCensusForm";
 
 interface ChartsSectionProps {
   submissions: SchoolCensusSubmission[];
   schoolMap: Map<string, School>;
   formConfig: FormSectionConfig[];
+  gradeFilter: string;
 }
 
 const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
@@ -77,14 +79,14 @@ const renderActiveShape = (props: any) => {
 };
 
 
-export function ChartsSection({ submissions, schoolMap, formConfig }: ChartsSectionProps) {
+export function ChartsSection({ submissions, schoolMap, formConfig, gradeFilter }: ChartsSectionProps) {
   const [activeIndex, setActiveIndex] = useState(0);
 
   const onPieEnter = (_: any, index: number) => {
     setActiveIndex(index);
   };
 
-  const { neighborhoodChartData, modalitiesChartData, techByNeighborhoodData } = useMemo(() => {
+  const { neighborhoodChartData, modalitiesChartData, techByNeighborhoodData, projectionChartData } = useMemo(() => {
     // MODALITIES
     const generalSection = formConfig.find(s => s.id === 'general');
     const modalityFields = generalSection?.fields.filter(f => f.id.startsWith('f_mod_')) || [];
@@ -93,6 +95,38 @@ export function ChartsSection({ submissions, schoolMap, formConfig }: ChartsSect
         name: field.name,
         value: 0,
     }));
+
+    // PROJECTIONS
+    const projectionData: {
+        name: string;
+        current: number;
+        proj2025: number;
+        proj2026: number;
+    }[] = [];
+
+    if (gradeFilter) {
+        const data = {
+            name: gradeFilter,
+            current: 0,
+            proj2025: 0,
+            proj2026: 0,
+        };
+        submissions.forEach(sub => {
+            sub.infrastructure?.classrooms?.forEach(room => {
+                if (room.gradeMorning === gradeFilter || room.gradeAfternoon === gradeFilter) {
+                    data.current += 1;
+                }
+                if (room.gradeProjection2025Morning === gradeFilter || room.gradeProjection2025Afternoon === gradeFilter) {
+                    data.proj2025 += 1;
+                }
+                if (room.gradeProjection2026Morning === gradeFilter || room.gradeProjection2026Afternoon === gradeFilter) {
+                    data.proj2026 += 1;
+                }
+            });
+        });
+        projectionData.push(data);
+    }
+
 
     submissions.forEach(sub => {
         const generalData = sub.dynamicData?.general;
@@ -141,8 +175,9 @@ export function ChartsSection({ submissions, schoolMap, formConfig }: ChartsSect
         neighborhoodChartData: Object.values(dataByNeighborhood),
         modalitiesChartData: modalitiesCount.filter(m => m.value > 0),
         techByNeighborhoodData: Object.values(dataByNeighborhood),
+        projectionChartData: projectionData
     };
-  }, [submissions, schoolMap, formConfig]);
+  }, [submissions, schoolMap, formConfig, gradeFilter]);
 
 
   return (
@@ -192,9 +227,9 @@ export function ChartsSection({ submissions, schoolMap, formConfig }: ChartsSect
                 content={<CustomTooltip />}
               />
               <Legend wrapperStyle={{ paddingTop: '20px' }}/>
-               <Bar dataKey="tvCount" name="Nº de TVs" fill={COLORS[0]} />
-               <Bar dataKey="roomsWithInternet" name="Salas com Internet" fill={COLORS[1]} />
-               <Bar dataKey="roomsWithAirCo" name="Salas com Ar" fill={COLORS[2]} />
+               <Bar dataKey="tvCount" name="Nº de TVs" stackId="a" fill={COLORS[0]} />
+               <Bar dataKey="roomsWithInternet" name="Salas com Internet" stackId="a" fill={COLORS[1]} />
+               <Bar dataKey="roomsWithAirCo" name="Salas com Ar" stackId="a" fill={COLORS[2]} />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
@@ -222,23 +257,31 @@ export function ChartsSection({ submissions, schoolMap, formConfig }: ChartsSect
       </Card>
       <Card>
         <CardHeader>
-          <CardTitle>Salas com Projeção para 2026</CardTitle>
-          <CardDescription>Número de salas com projeção de turma para 2026 informada.</CardDescription>
+          <CardTitle>Projeção de Turmas (2025-2026)</CardTitle>
+          <CardDescription>{gradeFilter ? `Mostrando projeções para: ${gradeFilter}`: "Selecione uma série no filtro para ver as projeções."}</CardDescription>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-             <BarChart data={neighborhoodChartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} interval={0} tick={{ fontSize: 12 }} />
-              <YAxis allowDecimals={false}/>
-              <Tooltip
-                cursor={{fill: 'hsl(var(--muted))'}}
-                content={<CustomTooltip />}
-              />
-              <Legend wrapperStyle={{ paddingTop: '20px' }}/>
-               <Bar dataKey="projectedRooms2026" name="Salas Projetadas" fill={COLORS[1]} />
-            </BarChart>
-          </ResponsiveContainer>
+            {gradeFilter ? (
+                <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={projectionChartData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                        <YAxis allowDecimals={false}/>
+                        <Tooltip
+                            cursor={{fill: 'hsl(var(--muted))'}}
+                            content={<CustomTooltip />}
+                        />
+                        <Legend wrapperStyle={{ paddingTop: '20px' }}/>
+                        <Bar dataKey="current" name="Turmas Atuais" fill={COLORS[0]} />
+                        <Bar dataKey="proj2025" name="Projeção 2025" fill={COLORS[1]} />
+                        <Bar dataKey="proj2026" name="Projeção 2026" fill={COLORS[2]} />
+                    </BarChart>
+                </ResponsiveContainer>
+            ) : (
+                <div className="flex items-center justify-center h-full text-muted-foreground">
+                    <p>Selecione uma série para visualizar os dados.</p>
+                </div>
+            )}
         </CardContent>
       </Card>
     </div>
