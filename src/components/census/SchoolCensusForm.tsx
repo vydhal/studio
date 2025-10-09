@@ -154,14 +154,14 @@ const InfrastructureSection = ({ control }: { control: any }) => {
                     {fields.map((item, index) => (
                         <AccordionItem value={`item-${index}`} key={item.id} className="border-b-0">
                             <Card className="bg-muted/20">
-                                <AccordionTrigger className="p-4">
-                                     <div className="flex justify-between items-center w-full">
-                                        <h4 className="font-bold">{`Sala ${index + 1}`}</h4>
-                                        <Button type="button" variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); remove(index); }}>
-                                            <Trash2 className="h-4 w-4 text-destructive" />
-                                        </Button>
-                                    </div>
-                                </AccordionTrigger>
+                                <div className="flex items-center p-4">
+                                    <AccordionTrigger className="flex-1">
+                                        <h4 className="font-bold text-left">{`Sala ${index + 1}`}</h4>
+                                    </AccordionTrigger>
+                                    <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
+                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                </div>
                                 <AccordionContent className="px-4 pb-4">
                                     <div className="space-y-4">
                                         <FormField
