@@ -162,6 +162,11 @@ export function DashboardClient() {
       const resources = sub.technology?.resources
         ?.map(r => `${r.name}: ${r.quantity}`)
         .join('; ') || '';
+      
+      const modalidades = sub.teachingModalities
+        ?.filter(m => m.offered)
+        .map(m => m.name)
+        .join('; ') || '';
 
       return [
         `"${school.name}"`,
@@ -175,6 +180,7 @@ export function DashboardClient() {
         totalOutlets,
         totalTvs,
         `"${sub.technology?.hasInternetAccess ? 'Sim' : 'Não'}"`,
+        `"${modalidades}"`,
         `"${resources}"`
       ].join(',');
     }).filter(Boolean);
@@ -245,7 +251,6 @@ export function DashboardClient() {
                                     <SelectValue placeholder="Filtrar por bairro..." />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="">Todos os Bairros</SelectItem>
                                     {availableNeighborhoods.map(bairro => (
                                         <SelectItem key={bairro} value={bairro}>{bairro}</SelectItem>
                                     ))}
@@ -278,3 +283,4 @@ export function DashboardClient() {
     </div>
   );
 }
+
