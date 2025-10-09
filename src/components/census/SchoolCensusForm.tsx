@@ -75,11 +75,12 @@ const sectionIcons: { [key: string]: React.ElementType } = {
 };
 
 const gradeLevels = [
-  "Infantil I",
-  "Infantil II",
-  "Infantil III",
-  "Infantil IV",
-  "Infantil V",
+  "Berçário I",
+  "Berçário II",
+  "Maternal I",
+  "Maternal II",
+  "Pré I",
+  "Pré II",
   "1º Ano",
   "2º Ano",
   "3º Ano",
