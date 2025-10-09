@@ -510,10 +510,15 @@ export function SchoolCensusForm() {
                                 {section.description && <CardDescription>{section.description}</CardDescription>}
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        {section.fields.map(field => (
+                                    <div className="space-y-6">
+                                        {section.fields.filter(f => f.type !== 'boolean').map(field => (
                                             <DynamicField key={field.id} control={form.control} fieldConfig={field} />
                                         ))}
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            {section.fields.filter(f => f.type === 'boolean').map(field => (
+                                                <DynamicField key={field.id} control={form.control} fieldConfig={field} />
+                                            ))}
+                                        </div>
                                     </div>
                                 </CardContent>
                             </Card>
@@ -541,3 +546,5 @@ export function SchoolCensusForm() {
     </Card>
   );
 }
+
+    
