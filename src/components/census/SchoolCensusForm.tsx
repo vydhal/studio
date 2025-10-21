@@ -219,10 +219,6 @@ const InfrastructureSection = ({ control }: { control: any }) => {
                                         </div>
 
                                         <Separator/>
-
-                                        <FormField control={control} name={`infrastructure.classrooms.${index}.deskType`} render={({ field }) => (<FormItem><FormLabel>Tipo de Carteira</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecione o tipo de carteira" /></SelectTrigger></FormControl><SelectContent>{deskTypes.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
-
-                                        <Separator/>
                                         
                                         <p className="font-medium text-sm">Projeção 2026</p>
                                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -233,7 +229,8 @@ const InfrastructureSection = ({ control }: { control: any }) => {
                                         <Separator/>
                                         
                                         <p className="font-medium text-sm">Recursos da Sala</p>
-                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                        <FormField control={control} name={`infrastructure.classrooms.${index}.deskType`} render={({ field }) => (<FormItem><FormLabel>Tipo de Carteira</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecione o tipo de carteira" /></SelectTrigger></FormControl><SelectContent>{deskTypes.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
+                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-4">
                                             <FormField control={control} name={`infrastructure.classrooms.${index}.studentCapacity`} render={({ field }) => (<FormItem><FormLabel>Capacidade Alunos</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} /></FormControl><FormMessage /></FormItem>)} />
                                             <FormField control={control} name={`infrastructure.classrooms.${index}.chairCount`} render={({ field }) => (<FormItem><FormLabel>Nº de Cadeiras</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} /></FormControl><FormMessage /></FormItem>)} />
                                             <FormField control={control} name={`infrastructure.classrooms.${index}.outlets`} render={({ field }) => (<FormItem><FormLabel>Nº de Tomadas</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)}/></FormControl><FormMessage /></FormItem>)} />
@@ -424,8 +421,6 @@ export function SchoolCensusForm() {
         
         const statusUpdates: { [key: string]: { status: 'completed' } } = {};
         
-        // **FIX:** Iterate over the full `formConfig` instead of `visibleSections`
-        // to ensure all submitted data is checked for completion status.
         formConfig.forEach(sectionCfg => {
             const sectionId = sectionCfg.id.split('_')[0];
             const originalSectionId = sectionCfg.id;
@@ -442,9 +437,7 @@ export function SchoolCensusForm() {
                 }
             }
              if (isCompleted) {
-                // The key for status update should match the section type (general, infra, etc.)
-                // not the dynamic section ID (e.g. infra_167). We extract it.
-                statusUpdates[sectionId] = { status: 'completed' };
+                statusUpdates[sectionId as 'general' | 'infrastructure' | 'technology' | 'cultural' | 'maintenance'] = { status: 'completed' };
              }
         });
         
