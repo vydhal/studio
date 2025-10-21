@@ -13,6 +13,9 @@ export interface Classroom {
   id?: string; // Optional because it's generated on the fly
   name: string;
   studentCapacity?: number;
+  studentsMorning?: number;
+  studentsAfternoon?: number;
+  deskType?: string;
   outlets?: number;
   tvCount?: number;
   chairCount?: number;
@@ -21,8 +24,6 @@ export interface Classroom {
   hasAirConditioning?: boolean;
   gradeMorning?: string;
   gradeAfternoon?: string;
-  gradeProjection2025Morning?: string;
-  gradeProjection2025Afternoon?: string;
   gradeProjection2026Morning?: string;
   gradeProjection2026Afternoon?: string;
 }

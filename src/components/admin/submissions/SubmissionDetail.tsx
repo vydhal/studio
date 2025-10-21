@@ -38,7 +38,10 @@ const ClassroomDetails = ({ classroom }: { classroom: Classroom }) => (
         <InfoItem icon={Zap} label="Tomadas" value={classroom.outlets} />
         <InfoItem icon={Tv} label="TVs" value={classroom.tvCount} />
         <InfoItem icon={Wind} label="Ventiladores" value={classroom.fanCount} />
+        <InfoItem icon={Armchair} label="Tipo de Carteira" value={classroom.deskType} />
+        <InfoItem icon={Users} label="Alunos Manhã" value={classroom.studentsMorning} />
         <InfoItem icon={Users} label="Série Manhã" value={classroom.gradeMorning} />
+        <InfoItem icon={Users} label="Alunos Tarde" value={classroom.studentsAfternoon} />
         <InfoItem icon={Users} label="Série Tarde" value={classroom.gradeAfternoon} />
         <InfoItem icon={Users} label="Projeção Manhã 2026" value={classroom.gradeProjection2026Morning} />
         <InfoItem icon={Users} label="Projeção Tarde 2026" value={classroom.gradeProjection2026Afternoon} />
