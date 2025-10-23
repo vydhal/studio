@@ -204,6 +204,8 @@ const InfrastructureSection = ({ control }: { control: any }) => {
             gradeProjection2026Afternoon: '',
         });
     };
+    
+    const watchedClassrooms = useWatch({ control, name: "infrastructure.classrooms" });
 
     return (
         <Card>
@@ -213,12 +215,14 @@ const InfrastructureSection = ({ control }: { control: any }) => {
             </CardHeader>
             <CardContent className="space-y-6">
                 <Accordion type="multiple" className="w-full space-y-4">
-                    {fields.map((item, index) => (
+                    {fields.map((item, index) => {
+                        const classroomName = watchedClassrooms?.[index]?.name || `Sala ${index + 1}`;
+                        return (
                         <AccordionItem value={`item-${index}`} key={item.id} className="border-b-0">
                             <Card className="bg-muted/20">
                                  <div className="flex items-center p-4">
                                      <AccordionTrigger className="flex-1">
-                                        <h4 className="font-bold text-left">{control.getValues(`infrastructure.classrooms.${index}.name`) || `Sala ${index + 1}`}</h4>
+                                        <h4 className="font-bold text-left">{classroomName}</h4>
                                     </AccordionTrigger>
                                     <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
                                         <Trash2 className="h-4 w-4 text-destructive" />
@@ -260,9 +264,9 @@ const InfrastructureSection = ({ control }: { control: any }) => {
                                         
                                         <p className="font-medium text-sm">Recursos da Sala</p>
                                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-4">
+                                            <FormField control={control} name={`infrastructure.classrooms.${index}.deskType`} render={({ field }) => (<FormItem><FormLabel>Tipo de Carteira</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecione o tipo" /></SelectTrigger></FormControl><SelectContent>{deskTypes.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
                                             <FormField control={control} name={`infrastructure.classrooms.${index}.studentCapacity`} render={({ field }) => (<FormItem><FormLabel>Capacidade Alunos</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} /></FormControl><FormMessage /></FormItem>)} />
                                             <FormField control={control} name={`infrastructure.classrooms.${index}.chairCount`} render={({ field }) => (<FormItem><FormLabel>Nº de Cadeiras</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} /></FormControl><FormMessage /></FormItem>)} />
-                                            <FormField control={control} name={`infrastructure.classrooms.${index}.deskType`} render={({ field }) => (<FormItem><FormLabel>Tipo de Carteira</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecione o tipo" /></SelectTrigger></FormControl><SelectContent>{deskTypes.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
                                             <FormField control={control} name={`infrastructure.classrooms.${index}.outlets`} render={({ field }) => (<FormItem><FormLabel>Nº de Tomadas</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)}/></FormControl><FormMessage /></FormItem>)} />
                                             <FormField control={control} name={`infrastructure.classrooms.${index}.tvCount`} render={({ field }) => (<FormItem><FormLabel>Nº de TVs</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} /></FormControl><FormMessage /></FormItem>)} />
                                             <FormField control={control} name={`infrastructure.classrooms.${index}.fanCount`} render={({ field }) => (<FormItem><FormLabel>Nº de Ventiladores</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} /></FormControl><FormMessage /></FormItem>)} />
@@ -275,7 +279,7 @@ const InfrastructureSection = ({ control }: { control: any }) => {
                                 </AccordionContent>
                             </Card>
                         </AccordionItem>
-                    ))}
+                    )})}
                 </Accordion>
                  <Button type="button" variant="outline" onClick={addNewClassroom}>
                     <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Sala de Aula
