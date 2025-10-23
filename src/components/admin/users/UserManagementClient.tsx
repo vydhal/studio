@@ -45,6 +45,7 @@ const userSchema = z.object({
 const formSections: { id: FormSectionPermission; label: string }[] = [
     { id: 'general', label: 'Dados Gerais' },
     { id: 'infrastructure', label: 'Infraestrutura' },
+    { id: 'professionals', label: 'Profissionais' },
     { id: 'technology', label: 'Tecnologia' },
     { id: 'cultural', label: 'Cultural' },
     { id: 'maintenance', label: 'Manutenção' },

@@ -2,11 +2,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import type { SchoolCensusSubmission, School, Classroom, FormSectionConfig } from "@/types";
+import type { SchoolCensusSubmission, School, Classroom, FormSectionConfig, Professional } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CheckCircle2, XCircle, Users, Tv, Wind, Zap, Armchair, Wifi, Snowflake, Bot, Laptop, Printer, Router, AlertTriangle, Loader2 } from "lucide-react";
+import { CheckCircle2, XCircle, Users, Tv, Wind, Zap, Armchair, Wifi, Snowflake, Bot, Laptop, Printer, Router, AlertTriangle, Loader2, UserCog } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from 'date-fns/locale';
 import Link from "next/link";
@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Skeleton } from "@/components/ui/skeleton";
 import { db } from "@/lib/firebase";
-import { doc, getDoc, onSnapshot, Timestamp } from "firebase/firestore";
+import { doc, getDoc, onSnapshot, Timestamp, collection, getDocs } from "firebase/firestore";
 import { useAuth } from "@/hooks/useAuth";
 
 interface SubmissionDetailProps {
@@ -70,9 +70,12 @@ const techIcons: { [key: string]: React.ElementType } = {
 export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
     const [submission, setSubmission] = useState<SchoolCensusSubmission | null>(null);
     const [school, setSchool] = useState<School | null>(null);
+    const [professionals, setProfessionals] = useState<Professional[]>([]);
     const [formConfig, setFormConfig] = useState<FormSectionConfig[]>([]);
     const [loading, setLoading] = useState(true);
     const { user, loading: authLoading } = useAuth();
+    
+    const professionalMap = new Map(professionals.map(p => [p.id, p.name]));
 
     useEffect(() => {
         if (authLoading || !user || !db) {
@@ -87,16 +90,22 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
             try {
                 const schoolDocRef = doc(db, 'schools', schoolId);
                 const formConfigDocRef = doc(db, 'settings', 'formConfig');
+                const professionalsQuery = collection(db, 'professionals');
 
-                const [schoolDoc, formConfigDoc] = await Promise.all([
+                const [schoolDoc, formConfigDoc, professionalsSnapshot] = await Promise.all([
                     getDoc(schoolDocRef),
-                    getDoc(formConfigDocRef)
+                    getDoc(formConfigDocRef),
+                    getDocs(professionalsQuery)
                 ]);
 
                 if (schoolDoc.exists()) {
                     setSchool({ id: schoolDoc.id, ...schoolDoc.data() } as School);
                 } else {
                     console.warn("School not found");
+                }
+                
+                if (professionalsSnapshot) {
+                    setProfessionals(professionalsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Professional[]);
                 }
 
                 if (formConfigDoc.exists()) {
@@ -140,10 +149,11 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
 
   if (loading || authLoading) {
     return (
-        <div className="space-y-4">
-             <Skeleton className="h-10 w-48" />
-             <Skeleton className="h-12 w-full" />
-             <Skeleton className="h-24 w-full" />
+        <div className="space-y-4 p-4 md:p-8">
+             <Skeleton className="h-10 w-32" />
+             <Skeleton className="h-12 w-96" />
+             <Skeleton className="h-8 w-80" />
+             <Skeleton className="h-24 w-full mt-4" />
              <Skeleton className="h-48 w-full" />
              <Skeleton className="h-48 w-full" />
         </div>
@@ -152,7 +162,7 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
 
   if (!school) {
         return (
-            <Card>
+            <Card className="m-4 md:m-8">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-destructive">
                         <AlertTriangle/>
@@ -171,7 +181,7 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
   
   if (!submission) {
         return (
-            <Card>
+            <Card className="m-4 md:m-8">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <AlertTriangle className="text-yellow-500" />
@@ -181,15 +191,21 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
                 <CardContent>
                     <p>A escola <span className="font-semibold">{school.name}</span> ainda não iniciou o preenchimento do censo.</p>
                      <Button asChild variant="link" className="px-0">
-                        <Link href="/admin/dashboard">Voltar para o Dashboard</Link>
+                        <Link href={`/census?schoolId=${schoolId}`}>Iniciar Preenchimento</Link>
                     </Button>
                 </CardContent>
             </Card>
         )
     }
+  
+   const visibleSections = formConfig.filter(section => {
+        const sectionId = section.id.startsWith('infra') ? 'infrastructure' : section.id;
+        return submission[sectionId as keyof SchoolCensusSubmission] || submission.dynamicData?.[section.id];
+   });
+
 
   return (
-    <div className="space-y-6">
+    <div className="p-4 md:p-8 space-y-6">
         <div>
             <Button variant="outline" asChild>
                 <Link href="/admin/dashboard">← Voltar</Link>
@@ -222,8 +238,8 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
         </CardContent>
       </Card>
       
-       <Accordion type="multiple" className="w-full space-y-4" defaultValue={formConfig.map(s => s.id)}>
-        {formConfig.map(sectionConfig => {
+       <Accordion type="multiple" className="w-full space-y-4" defaultValue={visibleSections.map(s => s.id)}>
+        {visibleSections.map(sectionConfig => {
           const sectionData = submission.dynamicData?.[sectionConfig.id];
 
           if (sectionConfig.id.startsWith('infra')) {
@@ -231,8 +247,8 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
             return (
                 <AccordionItem value={sectionConfig.id} key={sectionConfig.id} className="border-b-0">
                     <Card>
-                        <AccordionTrigger className="p-6">
-                            <CardTitle>{sectionConfig.name}</CardTitle>
+                        <AccordionTrigger className="p-6 text-left">
+                            <CardTitle className="flex items-center gap-2"><HardHat /> {sectionConfig.name}</CardTitle>
                         </AccordionTrigger>
                         <AccordionContent className="px-6 space-y-4">
                             {classrooms.length > 0 ? (
@@ -257,11 +273,55 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
                 </AccordionItem>
             );
           }
+
+          if (sectionConfig.id === 'professionals') {
+            const allocations = submission.professionals?.allocations || [];
+             return (
+                <AccordionItem value={sectionConfig.id} key={sectionConfig.id} className="border-b-0">
+                    <Card>
+                        <AccordionTrigger className="p-6 text-left">
+                           <CardTitle className="flex items-center gap-2"><UserCog/> {sectionConfig.name}</CardTitle>
+                        </AccordionTrigger>
+                        <AccordionContent className="px-6 space-y-4">
+                            {allocations.length > 0 ? (
+                               <Table>
+                                  <TableHeader>
+                                    <TableRow>
+                                      <TableHead>Sala</TableHead>
+                                      <TableHead>Turno</TableHead>
+                                      <TableHead>Série</TableHead>
+                                      <TableHead>Professor(a)</TableHead>
+                                      <TableHead>Vínculo</TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {allocations.map((alloc, index) => (
+                                      <TableRow key={index}>
+                                        <TableCell>{alloc.classroomName}</TableCell>
+                                        <TableCell className="capitalize">{alloc.turn === 'morning' ? 'Manhã' : 'Tarde'}</TableCell>
+                                        <TableCell>{alloc.grade}</TableCell>
+                                        <TableCell>{professionalMap.get(alloc.professionalId || '') || 'Não alocado'}</TableCell>
+                                        <TableCell>{alloc.contractType || 'N/A'}</TableCell>
+                                      </TableRow>
+                                    ))}
+                                  </TableBody>
+                                </Table>
+                            ) : (
+                                <Alert variant="default">
+                                  <AlertTriangle className="h-4 w-4" />
+                                  <AlertTitle>Nenhum profissional alocado</AlertTitle>
+                                </Alert>
+                            )}
+                        </AccordionContent>
+                    </Card>
+                </AccordionItem>
+            );
+          }
          
           return (
              <AccordionItem value={sectionConfig.id} key={sectionConfig.id} className="border-b-0">
                 <Card>
-                  <AccordionTrigger className="p-6">
+                  <AccordionTrigger className="p-6 text-left">
                       <CardTitle>{sectionConfig.name}</CardTitle>
                   </AccordionTrigger>
                   <AccordionContent className="px-6">

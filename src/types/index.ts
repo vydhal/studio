@@ -40,6 +40,23 @@ export interface TechnologyResource {
   quantity: number;
 }
 
+export interface Professional {
+  id: string;
+  name: string;
+}
+
+export const professionalContractTypes = ['Efetivo', 'Prestador de Serviço', 'Voluntário', 'Outro'];
+
+export interface ClassroomAllocation {
+    classroomId: string;
+    classroomName: string;
+    turn: 'morning' | 'afternoon';
+    grade: string;
+    professionalId?: string;
+    contractType?: string;
+}
+
+
 export interface GeneralData {
   status: 'pending' | 'completed';
   totalDesks?: number;
@@ -49,6 +66,11 @@ export interface GeneralData {
 export interface InfrastructureData {
   status: 'pending' | 'completed';
   classrooms: Classroom[];
+}
+
+export interface ProfessionalsData {
+  status: 'pending' | 'completed';
+  allocations: ClassroomAllocation[];
 }
 
 export interface TechnologyData {
@@ -67,7 +89,7 @@ export interface MaintenanceData {
     // Adicionar campos de dados de manutenção aqui futuramente
 }
 
-export type FormSectionPermission = 'general' | 'infrastructure' | 'technology' | 'cultural' | 'maintenance' | 'users';
+export type FormSectionPermission = 'general' | 'infrastructure' | 'professionals' | 'technology' | 'cultural' | 'maintenance' | 'users';
 
 export interface Role {
     id: string;
@@ -90,6 +112,7 @@ export interface SchoolCensusSubmission {
   schoolId: string;
   general?: GeneralData;
   infrastructure?: InfrastructureData;
+  professionals?: ProfessionalsData;
   technology?: TechnologyData;
   cultural?: CulturalData;
   maintenance?: MaintenanceData;

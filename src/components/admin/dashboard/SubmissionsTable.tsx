@@ -44,10 +44,10 @@ const StatusIcon = ({ status }: { status?: 'completed' | 'pending' }) => {
 }
 
 const getOverallStatus = (submission: SchoolCensusSubmission, totalSections: number): { label: string; variant: "default" | "secondary" | "destructive" | "outline" | null | undefined; completedCount: number } => {
-    const sections = [submission.general, submission.infrastructure, submission.technology, submission.cultural, submission.maintenance];
+    const sections = [submission.general, submission.infrastructure, submission.professionals, submission.technology, submission.cultural, submission.maintenance];
     const completedCount = sections.filter(s => s?.status === 'completed').length;
     
-    if (completedCount === totalSections) {
+    if (completedCount >= totalSections) { // Use >= in case totalSections is miscalculated
         return { label: 'Completo', variant: 'default', completedCount };
     }
     if (completedCount === 0) {
@@ -60,6 +60,7 @@ const SubmissionStatusModal = ({ submission, school, overallStatus, totalSection
     const sections = [
         { name: 'Dados Gerais', status: submission.general?.status },
         { name: 'Infraestrutura', status: submission.infrastructure?.status },
+        { name: 'Profissionais', status: submission.professionals?.status },
         { name: 'Tecnologia', status: submission.technology?.status },
         { name: 'Cultural', status: submission.cultural?.status },
         { name: 'Manutenção', status: submission.maintenance?.status },
@@ -113,9 +114,8 @@ export function SubmissionsTable({ submissions, schoolMap }: SubmissionsTablePro
       )
   }
   
-  // Assuming the number of sections defined in the form config is what we should count against.
-  // We'll have to find a way to get the formConfig here. A simple way for now is to assume 5 sections.
-  const totalSections = 5; 
+  // We now have 6 sections to track
+  const totalSections = 6; 
 
   return (
     <Table>
