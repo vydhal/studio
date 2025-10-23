@@ -6,7 +6,7 @@ import type { SchoolCensusSubmission, School, Classroom, FormSectionConfig, Prof
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CheckCircle2, XCircle, Users, Tv, Wind, Zap, Armchair, Wifi, Snowflake, Bot, Laptop, Printer, Router, AlertTriangle, Loader2, UserCog } from "lucide-react";
+import { CheckCircle2, XCircle, Users, Tv, Wind, Zap, Armchair, Wifi, Snowflake, Bot, Laptop, Printer, Router, AlertTriangle, Loader2, UserCog, HardHat, Clock, MessageSquare } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from 'date-fns/locale';
 import Link from "next/link";
@@ -292,6 +292,8 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
                                       <TableHead>Série</TableHead>
                                       <TableHead>Professor(a)</TableHead>
                                       <TableHead>Vínculo</TableHead>
+                                      <TableHead>C.H.</TableHead>
+                                      <TableHead>Obs.</TableHead>
                                     </TableRow>
                                   </TableHeader>
                                   <TableBody>
@@ -302,6 +304,21 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
                                         <TableCell>{alloc.grade}</TableCell>
                                         <TableCell>{professionalMap.get(alloc.professionalId || '') || 'Não alocado'}</TableCell>
                                         <TableCell>{alloc.contractType || 'N/A'}</TableCell>
+                                        <TableCell>{alloc.workload ? `${alloc.workload}h` : 'N/A'}</TableCell>
+                                        <TableCell>
+                                            {alloc.observations && (
+                                                <TooltipProvider>
+                                                    <Tooltip>
+                                                        <TooltipTrigger>
+                                                            <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>
+                                                            <p>{alloc.observations}</p>
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                </TooltipProvider>
+                                            )}
+                                        </TableCell>
                                       </TableRow>
                                     ))}
                                   </TableBody>

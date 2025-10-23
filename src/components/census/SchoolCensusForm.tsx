@@ -55,6 +55,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import { Textarea } from "../ui/textarea";
 
 
 const classroomSchema = z.object({
@@ -83,6 +84,8 @@ const classroomAllocationSchema = z.object({
     grade: z.string(),
     professionalId: z.string().optional(),
     contractType: z.string().optional(),
+    workload: z.number().optional(),
+    observations: z.string().optional(),
 });
 
 const formSchema = z.object({
@@ -132,6 +135,8 @@ const deskTypes = [
     "Laranja",
     "Hexagonal",
 ];
+
+const workloadOptions = [20, 30, 40, 50];
 
 const DynamicField = ({ control, fieldConfig }: { control: any, fieldConfig: FormFieldConfig }) => {
     const fieldName = `dynamicData.${fieldConfig.sectionId}.${fieldConfig.id}`;
@@ -271,8 +276,8 @@ const InfrastructureSection = ({ control }: { control: any }) => {
                                             <FormField control={control} name={`infrastructure.classrooms.${index}.fanCount`} render={({ field }) => (<FormItem><FormLabel>Nº de Ventiladores</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? 0} onChange={e => field.onChange(e.target.valueAsNumber || 0)} /></FormControl><FormMessage /></FormItem>)} />
                                         </div>
                                         <div className="flex items-center gap-6 pt-2">
-                                            <FormField control={control} name={`infrastructure.classrooms.${index}.hasInternet`} render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Tem Internet</FormLabel></FormItem>)} />
-                                            <FormField control={control} name={`infrastructure.classrooms.${index}.hasAirConditioning`} render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Tem Ar Condicionado</FormLabel></FormItem>)} />
+                                            <FormField control={control} name={`infrastructure.classrooms.${index}.hasInternet`} render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0"><FormControl><Checkbox checked={field.value ?? false} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Tem Internet</FormLabel></FormItem>)} />
+                                            <FormField control={control} name={`infrastructure.classrooms.${index}.hasAirConditioning`} render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0"><FormControl><Checkbox checked={field.value ?? false} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Tem Ar Condicionado</FormLabel></FormItem>)} />
                                         </div>
                                     </div>
                                 </AccordionContent>
@@ -288,8 +293,8 @@ const InfrastructureSection = ({ control }: { control: any }) => {
     );
 };
 
-const ProfessionalsAllocationSection = ({ professionalsList, filteredSchoolName }: { professionalsList: Professional[], filteredSchoolName?: string }) => {
-    const { control, getValues } = useFormContext(); // Use the form context here
+const ProfessionalsAllocationSection = ({ professionalsList }: { professionalsList: Professional[] }) => {
+    const { control, getValues } = useFormContext(); 
 
     const classrooms = useWatch({
         control,
@@ -302,7 +307,7 @@ const ProfessionalsAllocationSection = ({ professionalsList, filteredSchoolName 
     });
 
     const availableProfessionals = useMemo(() => {
-        // Return the full list of professionals, ignoring the school filter for now.
+        // Return the full list of professionals, as requested.
         return professionalsList;
     }, [professionalsList]);
 
@@ -328,7 +333,6 @@ const ProfessionalsAllocationSection = ({ professionalsList, filteredSchoolName 
             }
         });
 
-        // Merge existing data with new structure
         const currentAllocations = getValues('professionals.allocations') || [];
         const mergedAllocations = newAllocations.map(newAlloc => {
             const existing = currentAllocations.find((a: ClassroomAllocation) => a.classroomId === newAlloc.classroomId && a.turn === newAlloc.turn);
@@ -437,7 +441,7 @@ const ProfessionalsAllocationSection = ({ professionalsList, filteredSchoolName 
                                             render={({ field }) => (
                                                 <FormItem>
                                                     <FormLabel>Vínculo</FormLabel>
-                                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                    <Select onValueChange={field.onChange} value={field.value ?? ''}>
                                                         <FormControl>
                                                             <SelectTrigger>
                                                                 <SelectValue placeholder="Selecione o vínculo" />
@@ -454,6 +458,48 @@ const ProfessionalsAllocationSection = ({ professionalsList, filteredSchoolName 
                                             )}
                                         />
                                     </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+                                        <FormField
+                                            control={control}
+                                            name={`professionals.allocations.${index}.workload`}
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Carga Horária</FormLabel>
+                                                    <Select onValueChange={(value) => field.onChange(Number(value))} value={String(field.value ?? '')}>
+                                                        <FormControl>
+                                                            <SelectTrigger>
+                                                                <SelectValue placeholder="Selecione a carga" />
+                                                            </SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent>
+                                                            {workloadOptions.map(wh => (
+                                                                <SelectItem key={wh} value={String(wh)}>{wh}h</SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+                                    <FormField
+                                        control={control}
+                                        name={`professionals.allocations.${index}.observations`}
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Observações</FormLabel>
+                                                <FormControl>
+                                                    <Textarea
+                                                        placeholder="Adicione qualquer observação relevante aqui..."
+                                                        className="resize-none"
+                                                        {...field}
+                                                        value={field.value ?? ''}
+                                                    />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
                                 </div>
                              )
                         })}
@@ -742,10 +788,6 @@ export function SchoolCensusForm() {
     );
   }, [formConfig, userProfile, isAdmin]);
   
-  const selectedSchoolId = form.watch('schoolId');
-  const selectedSchoolName = schools.find(s => s.id === selectedSchoolId)?.name;
-
-
   if (isConfigLoading || appLoading || authLoading) {
       return (
           <Card>
@@ -818,7 +860,7 @@ export function SchoolCensusForm() {
                       if (section.id === 'professionals') {
                         return (
                              <TabsContent key={section.id} value={section.id}>
-                                <ProfessionalsAllocationSection professionalsList={professionals} filteredSchoolName={selectedSchoolName} />
+                                <ProfessionalsAllocationSection professionalsList={professionals} />
                             </TabsContent>
                         )
                      }

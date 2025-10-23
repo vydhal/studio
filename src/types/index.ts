@@ -47,7 +47,7 @@ export interface Professional {
   unidade?: string;
 }
 
-export const professionalContractTypes = ['Efetivo', 'Prestador de Serviço', 'Voluntário', 'Outro'];
+export const professionalContractTypes = ['EFETIVO ATIVO', 'CONTRATO ATIVO', 'MOMENTO DO DESCANSO', 'JORNADA AMPLIADA'];
 
 export interface ClassroomAllocation {
     classroomId: string;
@@ -56,6 +56,8 @@ export interface ClassroomAllocation {
     grade: string;
     professionalId?: string;
     contractType?: string;
+    workload?: number;
+    observations?: string;
 }
 
 
