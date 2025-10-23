@@ -15,7 +15,9 @@ export interface Classroom {
   name: string;
   studentCapacity?: number;
   isAdapted?: boolean;
+  occupationType?: 'turn' | 'integral';
 
+  // Turno
   studentsMorning?: number;
   gradeMorning?: string;
   studentsAfternoon?: number;
@@ -27,6 +29,10 @@ export interface Classroom {
   gradeProjection2026Afternoon?: string;
   gradeProjection2026Night?: string;
   
+  // Integral
+  gradeIntegral?: string;
+  gradeProjection2026Integral?: string;
+
   hasTv?: boolean;
   hasInternet?: boolean;
   hasAirConditioning?: boolean;
@@ -68,7 +74,7 @@ export const professionalObservationTypes = [
 export interface ClassroomAllocation {
     classroomId: string;
     classroomName: string;
-    turn: 'morning' | 'afternoon' | 'night';
+    turn: 'morning' | 'afternoon' | 'night' | 'integral';
     grade: string;
     professionalId?: string;
     contractType?: string;

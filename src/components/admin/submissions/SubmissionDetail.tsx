@@ -25,7 +25,7 @@ interface SubmissionDetailProps {
 }
 
 const InfoItem = ({ icon: Icon, label, value, show = true }: { icon: React.ElementType, label: string, value: string | number | React.ReactNode, show?: boolean }) => {
-    if (!show) return null;
+    if (!show || value === null || value === undefined || value === '') return null;
     return (
         <div className="flex items-center gap-3 bg-muted/50 p-2 rounded-md">
             <Icon className="h-5 w-5 text-muted-foreground" />
@@ -50,28 +50,40 @@ const ClassroomDetails = ({ classroom }: { classroom: Classroom }) => (
             </div>
         </div>
 
-        <div>
-            <h4 className="font-semibold text-md mb-2">Ocupação Atual</h4>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                <InfoItem icon={Sun} label="Série Manhã" value={classroom.gradeMorning} show={!!classroom.gradeMorning} />
-                <InfoItem icon={Users} label="Alunos Manhã" value={classroom.studentsMorning} show={!!classroom.gradeMorning} />
-                <div></div>
-                <InfoItem icon={Sun} label="Série Tarde" value={classroom.gradeAfternoon} show={!!classroom.gradeAfternoon} />
-                <InfoItem icon={Users} label="Alunos Tarde" value={classroom.studentsAfternoon} show={!!classroom.gradeAfternoon} />
-                <div></div>
-                <InfoItem icon={Moon} label="Série Noite" value={classroom.gradeNight} show={!!classroom.gradeNight} />
-                <InfoItem icon={Users} label="Alunos Noite" value={classroom.studentsNight} show={!!classroom.gradeNight} />
-            </div>
-        </div>
-        
+       {classroom.occupationType === 'integral' ? (
          <div>
-            <h4 className="font-semibold text-md mb-2">Projeção 2026</h4>
+            <h4 className="font-semibold text-md mb-2">Ocupação (Período Integral)</h4>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                <InfoItem icon={Sun} label="Série Manhã" value={classroom.gradeProjection2026Morning} show={!!classroom.gradeProjection2026Morning} />
-                <InfoItem icon={Sun} label="Série Tarde" value={classroom.gradeProjection2026Afternoon} show={!!classroom.gradeProjection2026Afternoon} />
-                <InfoItem icon={Moon} label="Série Noite" value={classroom.gradeProjection2026Night} show={!!classroom.gradeProjection2026Night} />
+                <InfoItem icon={Sun} label="Série Integral" value={classroom.gradeIntegral} show={!!classroom.gradeIntegral} />
+                 <InfoItem icon={Clock} label="Projeção 2026" value={classroom.gradeProjection2026Integral} show={!!classroom.gradeProjection2026Integral} />
             </div>
         </div>
+       ) : (
+        <>
+            <div>
+                <h4 className="font-semibold text-md mb-2">Ocupação Atual (Turnos)</h4>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    <InfoItem icon={Sun} label="Série Manhã" value={classroom.gradeMorning} show={!!classroom.gradeMorning} />
+                    <InfoItem icon={Users} label="Alunos Manhã" value={classroom.studentsMorning} show={!!classroom.gradeMorning} />
+                    <div></div>
+                    <InfoItem icon={Sun} label="Série Tarde" value={classroom.gradeAfternoon} show={!!classroom.gradeAfternoon} />
+                    <InfoItem icon={Users} label="Alunos Tarde" value={classroom.studentsAfternoon} show={!!classroom.gradeAfternoon} />
+                    <div></div>
+                    <InfoItem icon={Moon} label="Série Noite" value={classroom.gradeNight} show={!!classroom.gradeNight} />
+                    <InfoItem icon={Users} label="Alunos Noite" value={classroom.studentsNight} show={!!classroom.gradeNight} />
+                </div>
+            </div>
+            
+            <div>
+                <h4 className="font-semibold text-md mb-2">Projeção 2026 (Turnos)</h4>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    <InfoItem icon={Sun} label="Série Manhã" value={classroom.gradeProjection2026Morning} show={!!classroom.gradeProjection2026Morning} />
+                    <InfoItem icon={Sun} label="Série Tarde" value={classroom.gradeProjection2026Afternoon} show={!!classroom.gradeProjection2026Afternoon} />
+                    <InfoItem icon={Moon} label="Série Noite" value={classroom.gradeProjection2026Night} show={!!classroom.gradeProjection2026Night} />
+                </div>
+            </div>
+        </>
+       )}
 
         <div>
              <h4 className="font-semibold text-md mb-2">Recursos</h4>
@@ -344,7 +356,7 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
                                     {allocations.map((alloc, index) => (
                                       <TableRow key={index}>
                                         <TableCell>{alloc.classroomName}</TableCell>
-                                        <TableCell className="capitalize">{alloc.turn === 'morning' ? 'Manhã' : alloc.turn === 'afternoon' ? 'Tarde' : 'Noite'}</TableCell>
+                                        <TableCell className="capitalize">{alloc.turn === 'morning' ? 'Manhã' : alloc.turn === 'afternoon' ? 'Tarde' : alloc.turn === 'night' ? 'Noite' : 'Integral'}</TableCell>
                                         <TableCell>{alloc.grade}</TableCell>
                                         <TableCell>{professionalMap.get(alloc.professionalId || '') || 'Não alocado'}</TableCell>
                                         <TableCell>{alloc.contractType || 'N/A'}</TableCell>

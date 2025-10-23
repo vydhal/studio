@@ -56,6 +56,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { Textarea } from "../ui/textarea";
+import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 
 
 const classroomSchema = z.object({
@@ -63,6 +64,7 @@ const classroomSchema = z.object({
   name: z.string().min(1, "O nome da sala é obrigatório."),
   studentCapacity: z.number().min(0).optional(),
   isAdapted: z.boolean().optional(),
+  occupationType: z.enum(['turn', 'integral']).default('turn'),
   
   studentsMorning: z.number().min(0).optional(),
   gradeMorning: z.string().optional(),
@@ -75,6 +77,9 @@ const classroomSchema = z.object({
   gradeProjection2026Afternoon: z.string().optional(),
   gradeProjection2026Night: z.string().optional(),
   
+  gradeIntegral: z.string().optional(),
+  gradeProjection2026Integral: z.string().optional(),
+
   hasTv: z.boolean().optional(),
   hasInternet: z.boolean().optional(),
   hasAirConditioning: z.boolean().optional(),
@@ -85,7 +90,7 @@ const classroomSchema = z.object({
 const classroomAllocationSchema = z.object({
     classroomId: z.string(),
     classroomName: z.string(),
-    turn: z.enum(['morning', 'afternoon', 'night']),
+    turn: z.enum(['morning', 'afternoon', 'night', 'integral']),
     grade: z.string(),
     professionalId: z.string().optional(),
     contractType: z.string().optional(),
@@ -192,6 +197,7 @@ const InfrastructureSection = () => {
             name: `Sala ${fields.length + 1}`,
             studentCapacity: 0,
             isAdapted: false,
+            occupationType: 'turn',
             studentsMorning: 0,
             gradeMorning: "",
             studentsAfternoon: 0,
@@ -201,6 +207,8 @@ const InfrastructureSection = () => {
             gradeProjection2026Morning: "",
             gradeProjection2026Afternoon: "",
             gradeProjection2026Night: "",
+            gradeIntegral: "",
+            gradeProjection2026Integral: "",
             hasTv: false,
             hasInternet: false,
             hasAirConditioning: false,
@@ -221,6 +229,7 @@ const InfrastructureSection = () => {
                 <Accordion type="multiple" className="w-full space-y-4">
                     {fields.map((item, index) => {
                         const classroomName = watchedClassrooms?.[index]?.name || `Sala ${index + 1}`;
+                        const occupationType = watchedClassrooms?.[index]?.occupationType;
                         return (
                         <AccordionItem value={`item-${index}`} key={item.id} className="border-b-0">
                             <Card className="bg-muted/20">
@@ -233,7 +242,7 @@ const InfrastructureSection = () => {
                                     </Button>
                                 </div>
                                 <AccordionContent className="px-4 pb-4">
-                                    <div className="space-y-4">
+                                    <div className="space-y-6">
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <FormField
                                                 control={control}
@@ -246,32 +255,80 @@ const InfrastructureSection = () => {
                                                     </FormItem>
                                                 )}
                                             />
-                                            <FormField control={control} name={`infrastructure.classrooms.${index}.studentCapacity`} render={({ field }) => (<FormItem><FormLabel>Capacidade de Alunos</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? 0} onChange={e => field.onChange(e.target.valueAsNumber || 0)} /></FormControl><FormMessage /></FormItem>)} />
+                                            <FormField control={control} name={`infrastructure.classrooms.${index}.studentCapacity`} render={({ field }) => (<FormItem><FormLabel>Capacidade de Alunos</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? 0} onChange={e => field.onChange(e.target.value === '' ? 0 : e.target.valueAsNumber)} /></FormControl><FormMessage /></FormItem>)} />
                                         </div>
                                          <FormField control={control} name={`infrastructure.classrooms.${index}.isAdapted`} render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0 pt-2"><FormControl><Checkbox checked={field.value ?? false} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Esta sala é adaptada</FormLabel></FormItem>)} />
 
                                         <Separator/>
-                                        
-                                        <p className="font-medium text-sm">Ocupação Atual</p>
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-6">
-                                            <FormField control={control} name={`infrastructure.classrooms.${index}.gradeMorning`} render={({ field }) => (<FormItem><FormLabel>Série - Manhã</FormLabel><Select onValueChange={field.onChange} value={field.value ?? ''}><FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl><SelectContent>{gradeLevels.map(grade => <SelectItem key={grade} value={grade}>{grade}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
-                                            <FormField control={control} name={`infrastructure.classrooms.${index}.studentsMorning`} render={({ field }) => (<FormItem><FormLabel>Alunos - Manhã</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? 0} onChange={e => field.onChange(e.target.valueAsNumber || 0)} /></FormControl><FormMessage /></FormItem>)} />
-                                             <div></div>
-                                            <FormField control={control} name={`infrastructure.classrooms.${index}.gradeAfternoon`} render={({ field }) => (<FormItem><FormLabel>Série - Tarde</FormLabel><Select onValueChange={field.onChange} value={field.value ?? ''}><FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl><SelectContent>{gradeLevels.map(grade => <SelectItem key={grade} value={grade}>{grade}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
-                                            <FormField control={control} name={`infrastructure.classrooms.${index}.studentsAfternoon`} render={({ field }) => (<FormItem><FormLabel>Alunos - Tarde</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? 0} onChange={e => field.onChange(e.target.valueAsNumber || 0)} /></FormControl><FormMessage /></FormItem>)} />
-                                             <div></div>
-                                             <FormField control={control} name={`infrastructure.classrooms.${index}.gradeNight`} render={({ field }) => (<FormItem><FormLabel>Série - Noite</FormLabel><Select onValueChange={field.onChange} value={field.value ?? ''}><FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl><SelectContent>{gradeLevels.map(grade => <SelectItem key={grade} value={grade}>{grade}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
-                                            <FormField control={control} name={`infrastructure.classrooms.${index}.studentsNight`} render={({ field }) => (<FormItem><FormLabel>Alunos - Noite</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? 0} onChange={e => field.onChange(e.target.valueAsNumber || 0)} /></FormControl><FormMessage /></FormItem>)} />
-                                        </div>
 
-                                        <Separator/>
-                                        
-                                        <p className="font-medium text-sm">Projeção 2026</p>
-                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                            <FormField control={control} name={`infrastructure.classrooms.${index}.gradeProjection2026Morning`} render={({ field }) => (<FormItem><FormLabel>Projeção Manhã</FormLabel><Select onValueChange={field.onChange} value={field.value ?? ''}><FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl><SelectContent>{gradeLevels.map(grade => <SelectItem key={grade} value={grade}>{grade}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
-                                            <FormField control={control} name={`infrastructure.classrooms.${index}.gradeProjection2026Afternoon`} render={({ field }) => (<FormItem><FormLabel>Projeção Tarde</FormLabel><Select onValueChange={field.onChange} value={field.value ?? ''}><FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl><SelectContent>{gradeLevels.map(grade => <SelectItem key={grade} value={grade}>{grade}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
-                                            <FormField control={control} name={`infrastructure.classrooms.${index}.gradeProjection2026Night`} render={({ field }) => (<FormItem><FormLabel>Projeção Noite</FormLabel><Select onValueChange={field.onChange} value={field.value ?? ''}><FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl><SelectContent>{gradeLevels.map(grade => <SelectItem key={grade} value={grade}>{grade}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
-                                        </div>
+                                        <FormField
+                                            control={control}
+                                            name={`infrastructure.classrooms.${index}.occupationType`}
+                                            render={({ field }) => (
+                                                <FormItem className="space-y-3">
+                                                <FormLabel>Tipo de Ocupação</FormLabel>
+                                                <FormControl>
+                                                    <RadioGroup
+                                                    onValueChange={field.onChange}
+                                                    defaultValue={field.value}
+                                                    className="flex flex-col space-y-1"
+                                                    >
+                                                    <FormItem className="flex items-center space-x-3 space-y-0">
+                                                        <FormControl>
+                                                        <RadioGroupItem value="turn" />
+                                                        </FormControl>
+                                                        <FormLabel className="font-normal">
+                                                        Por Turno (Manhã, Tarde, Noite)
+                                                        </FormLabel>
+                                                    </FormItem>
+                                                    <FormItem className="flex items-center space-x-3 space-y-0">
+                                                        <FormControl>
+                                                        <RadioGroupItem value="integral" />
+                                                        </FormControl>
+                                                        <FormLabel className="font-normal">
+                                                        Período Integral
+                                                        </FormLabel>
+                                                    </FormItem>
+                                                    </RadioGroup>
+                                                </FormControl>
+                                                <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+
+                                        {occupationType === 'integral' ? (
+                                            <>
+                                                <p className="font-medium text-sm">Ocupação Período Integral</p>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <FormField control={control} name={`infrastructure.classrooms.${index}.gradeIntegral`} render={({ field }) => (<FormItem><FormLabel>Série - Integral</FormLabel><Select onValueChange={field.onChange} value={field.value ?? ''}><FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl><SelectContent>{gradeLevels.map(grade => <SelectItem key={grade} value={grade}>{grade}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
+                                                    <div></div>
+                                                    <FormField control={control} name={`infrastructure.classrooms.${index}.gradeProjection2026Integral`} render={({ field }) => (<FormItem><FormLabel>Projeção 2026 - Integral</FormLabel><Select onValueChange={field.onChange} value={field.value ?? ''}><FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl><SelectContent>{gradeLevels.map(grade => <SelectItem key={grade} value={grade}>{grade}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <p className="font-medium text-sm">Ocupação Atual por Turno</p>
+                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-6">
+                                                    <FormField control={control} name={`infrastructure.classrooms.${index}.gradeMorning`} render={({ field }) => (<FormItem><FormLabel>Série - Manhã</FormLabel><Select onValueChange={field.onChange} value={field.value ?? ''}><FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl><SelectContent>{gradeLevels.map(grade => <SelectItem key={grade} value={grade}>{grade}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
+                                                    <FormField control={control} name={`infrastructure.classrooms.${index}.studentsMorning`} render={({ field }) => (<FormItem><FormLabel>Alunos - Manhã</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? 0} onChange={e => field.onChange(e.target.value === '' ? 0 : e.target.valueAsNumber)} /></FormControl><FormMessage /></FormItem>)} />
+                                                    <div></div>
+                                                    <FormField control={control} name={`infrastructure.classrooms.${index}.gradeAfternoon`} render={({ field }) => (<FormItem><FormLabel>Série - Tarde</FormLabel><Select onValueChange={field.onChange} value={field.value ?? ''}><FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl><SelectContent>{gradeLevels.map(grade => <SelectItem key={grade} value={grade}>{grade}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
+                                                    <FormField control={control} name={`infrastructure.classrooms.${index}.studentsAfternoon`} render={({ field }) => (<FormItem><FormLabel>Alunos - Tarde</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? 0} onChange={e => field.onChange(e.target.value === '' ? 0 : e.target.valueAsNumber)} /></FormControl><FormMessage /></FormItem>)} />
+                                                    <div></div>
+                                                    <FormField control={control} name={`infrastructure.classrooms.${index}.gradeNight`} render={({ field }) => (<FormItem><FormLabel>Série - Noite</FormLabel><Select onValueChange={field.onChange} value={field.value ?? ''}><FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl><SelectContent>{gradeLevels.map(grade => <SelectItem key={grade} value={grade}>{grade}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
+                                                    <FormField control={control} name={`infrastructure.classrooms.${index}.studentsNight`} render={({ field }) => (<FormItem><FormLabel>Alunos - Noite</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? 0} onChange={e => field.onChange(e.target.value === '' ? 0 : e.target.valueAsNumber)} /></FormControl><FormMessage /></FormItem>)} />
+                                                </div>
+
+                                                <Separator/>
+                                                
+                                                <p className="font-medium text-sm">Projeção 2026 por Turno</p>
+                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                    <FormField control={control} name={`infrastructure.classrooms.${index}.gradeProjection2026Morning`} render={({ field }) => (<FormItem><FormLabel>Projeção Manhã</FormLabel><Select onValueChange={field.onChange} value={field.value ?? ''}><FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl><SelectContent>{gradeLevels.map(grade => <SelectItem key={grade} value={grade}>{grade}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
+                                                    <FormField control={control} name={`infrastructure.classrooms.${index}.gradeProjection2026Afternoon`} render={({ field }) => (<FormItem><FormLabel>Projeção Tarde</FormLabel><Select onValueChange={field.onChange} value={field.value ?? ''}><FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl><SelectContent>{gradeLevels.map(grade => <SelectItem key={grade} value={grade}>{grade}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
+                                                    <FormField control={control} name={`infrastructure.classrooms.${index}.gradeProjection2026Night`} render={({ field }) => (<FormItem><FormLabel>Projeção Noite</FormLabel><Select onValueChange={field.onChange} value={field.value ?? ''}><FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl><SelectContent>{gradeLevels.map(grade => <SelectItem key={grade} value={grade}>{grade}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
+                                                </div>
+                                            </>
+                                        )}
                                         
                                         <Separator/>
 
@@ -287,7 +344,7 @@ const InfrastructureSection = () => {
                                 </AccordionContent>
                             </Card>
                         </AccordionItem>
-                    )})}
+                    )})})}
                 </Accordion>
                  <Button type="button" variant="outline" onClick={addNewClassroom}>
                     <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Sala de Aula
@@ -308,36 +365,46 @@ const ProfessionalsAllocationSection = ({ professionalsList }: { professionalsLi
     });
     
     const availableProfessionals = useMemo(() => {
+        // For now, show all professionals, regardless of school, as requested.
         return professionalsList || [];
     }, [professionalsList]);
 
 
     useEffect(() => {
-        const newAllocations: ClassroomAllocation[] = [];
+        const newAllocations: Omit<ClassroomAllocation, 'professionalId' | 'contractType' | 'workload' | 'observations'>[] = [];
         classrooms.forEach(room => {
-            if (room.gradeMorning) {
-                newAllocations.push({
-                    classroomId: room.id!,
-                    classroomName: room.name,
-                    turn: 'morning',
-                    grade: room.gradeMorning,
-                });
-            }
-            if (room.gradeAfternoon) {
-                newAllocations.push({
-                    classroomId: room.id!,
-                    classroomName: room.name,
-                    turn: 'afternoon',
-                    grade: room.gradeAfternoon,
-                });
-            }
-            if (room.gradeNight) {
+            if (room.occupationType === 'integral' && room.gradeIntegral) {
                  newAllocations.push({
                     classroomId: room.id!,
                     classroomName: room.name,
-                    turn: 'night',
-                    grade: room.gradeNight,
+                    turn: 'integral',
+                    grade: room.gradeIntegral,
                 });
+            } else if (room.occupationType === 'turn') {
+                if (room.gradeMorning) {
+                    newAllocations.push({
+                        classroomId: room.id!,
+                        classroomName: room.name,
+                        turn: 'morning',
+                        grade: room.gradeMorning,
+                    });
+                }
+                if (room.gradeAfternoon) {
+                    newAllocations.push({
+                        classroomId: room.id!,
+                        classroomName: room.name,
+                        turn: 'afternoon',
+                        grade: room.gradeAfternoon,
+                    });
+                }
+                if (room.gradeNight) {
+                    newAllocations.push({
+                        classroomId: room.id!,
+                        classroomName: room.name,
+                        turn: 'night',
+                        grade: room.gradeNight,
+                    });
+                }
             }
         });
 
@@ -367,16 +434,24 @@ const ProfessionalsAllocationSection = ({ professionalsList }: { professionalsLi
                         {fields.map((field, index) => {
                              const allocation = getValues(`professionals.allocations.${index}`) as ClassroomAllocation;
                              const room = classrooms.find(r => r.id === allocation.classroomId);
-                             const turnStudents = allocation.turn === 'morning' ? room?.studentsMorning : allocation.turn === 'afternoon' ? room?.studentsAfternoon : room?.studentsNight;
-                             const turnProjection = allocation.turn === 'morning' ? room?.gradeProjection2026Morning : allocation.turn === 'afternoon' ? room?.gradeProjection2026Afternoon : room?.gradeProjection2026Night;
+                             
+                             let turnStudents, turnProjection;
+                             if (allocation.turn === 'integral') {
+                                turnStudents = room?.studentCapacity; // Assuming integral uses full capacity
+                                turnProjection = room?.gradeProjection2026Integral;
+                             } else {
+                                turnStudents = allocation.turn === 'morning' ? room?.studentsMorning : allocation.turn === 'afternoon' ? room?.studentsAfternoon : room?.studentsNight;
+                                turnProjection = allocation.turn === 'morning' ? room?.gradeProjection2026Morning : allocation.turn === 'afternoon' ? room?.gradeProjection2026Afternoon : room?.gradeProjection2026Night;
+                             }
+
 
                              return (
                                 <div key={field.id} className="p-4 border rounded-lg bg-muted/20 space-y-4">
                                     <div>
                                         <h4 className="font-bold">{allocation.classroomName}</h4>
                                         <p className="text-sm text-muted-foreground">
-                                            Turno: <span className="font-medium capitalize">{allocation.turn === 'morning' ? 'Manhã' : allocation.turn === 'afternoon' ? 'Tarde' : 'Noite'}</span> | 
-                                            Série: <span className="font-medium">{allocation.grade}</span> ({turnStudents || 0} alunos)
+                                            Turno: <span className="font-medium capitalize">{allocation.turn === 'morning' ? 'Manhã' : allocation.turn === 'afternoon' ? 'Tarde' : allocation.turn === 'night' ? 'Noite' : 'Integral'}</span> | 
+                                            Série: <span className="font-medium">{allocation.grade}</span> {turnStudents ? `(${turnStudents} alunos)` : ''}
                                         </p>
                                         <p className="text-sm text-muted-foreground">
                                             Projeção 2026: <span className="font-medium">
@@ -700,9 +775,11 @@ export function SchoolCensusForm() {
     if (obj !== null && typeof obj === 'object') {
       return Object.keys(obj).reduce(
         (acc, key) => {
-          const value = cleanUndefined(obj[key]);
-          if (value !== undefined) {
-            acc[key] = value;
+          const value = obj[key];
+          // We keep 'undefined' here to let Firestore handle serverTimestamp, but remove it for other fields
+          const cleanedValue = cleanUndefined(value);
+          if (cleanedValue !== undefined) {
+            acc[key] = cleanedValue;
           }
           return acc;
         },
