@@ -305,7 +305,12 @@ const ProfessionalsAllocationSection = ({ professionalsList, filteredSchoolName 
         if (!filteredSchoolName) {
             return professionalsList;
         }
-        return professionalsList.filter(p => !p.unidade || p.unidade === filteredSchoolName);
+        const normalizedSchoolName = filteredSchoolName.toLowerCase();
+        return professionalsList.filter(p => {
+            if (!p.unidade) return true; // Always include professionals without a specific school
+            const normalizedUnidade = p.unidade.toLowerCase();
+            return normalizedUnidade.includes(normalizedSchoolName);
+        });
     }, [professionalsList, filteredSchoolName]);
 
 
