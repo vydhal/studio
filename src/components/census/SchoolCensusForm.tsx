@@ -41,7 +41,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import type { School, FormSectionConfig, FormFieldConfig, SchoolCensusSubmission, Classroom, Professional, ClassroomAllocation } from "@/types";
-import { professionalContractTypes } from "@/types";
+import { professionalContractTypes, professionalObservationTypes } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from "@/components/ui/card";
 import { Loader2, Building, HardHat, Laptop, Palette, Wrench, PlusCircle, Trash2, UserCog, ChevronsUpDown, Check } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -294,20 +294,16 @@ const InfrastructureSection = ({ control }: { control: any }) => {
 };
 
 const ProfessionalsAllocationSection = ({ professionalsList }: { professionalsList: Professional[] }) => {
-    const { control, getValues } = useFormContext(); 
+    const { control, getValues, watch } = useFormContext(); 
 
-    const classrooms = useWatch({
-        control,
-        name: "infrastructure.classrooms"
-    }) as Classroom[] || [];
+    const classrooms = watch("infrastructure.classrooms") as Classroom[] || [];
 
     const { fields, replace } = useFieldArray({
         control,
         name: "professionals.allocations",
     });
-
+    
     const availableProfessionals = useMemo(() => {
-        // Return the full list of professionals, as requested.
         return professionalsList;
     }, [professionalsList]);
 
@@ -481,25 +477,29 @@ const ProfessionalsAllocationSection = ({ professionalsList }: { professionalsLi
                                                 </FormItem>
                                             )}
                                         />
+                                        <FormField
+                                            control={control}
+                                            name={`professionals.allocations.${index}.observations`}
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Observações</FormLabel>
+                                                    <Select onValueChange={field.onChange} value={field.value ?? ''}>
+                                                        <FormControl>
+                                                            <SelectTrigger>
+                                                                <SelectValue placeholder="Selecione uma observação" />
+                                                            </SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent>
+                                                            {professionalObservationTypes.map(type => (
+                                                                <SelectItem key={type} value={type}>{type}</SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
                                     </div>
-                                    <FormField
-                                        control={control}
-                                        name={`professionals.allocations.${index}.observations`}
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Observações</FormLabel>
-                                                <FormControl>
-                                                    <Textarea
-                                                        placeholder="Adicione qualquer observação relevante aqui..."
-                                                        className="resize-none"
-                                                        {...field}
-                                                        value={field.value ?? ''}
-                                                    />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
                                 </div>
                              )
                         })}
@@ -687,7 +687,9 @@ export function SchoolCensusForm() {
       return Object.keys(obj).reduce(
         (acc, key) => {
           const value = cleanUndefined(obj[key]);
-          acc[key] = value;
+          if (value !== undefined) {
+            acc[key] = value;
+          }
           return acc;
         },
         {} as { [key: string]: any }

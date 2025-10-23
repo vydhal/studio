@@ -16,6 +16,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, onSnapshot, Timestamp, collection, getDocs } from "firebase/firestore";
 import { useAuth } from "@/hooks/useAuth";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
 
 interface SubmissionDetailProps {
   schoolId: string;
@@ -306,7 +308,7 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
                                         <TableCell>{alloc.contractType || 'N/A'}</TableCell>
                                         <TableCell>{alloc.workload ? `${alloc.workload}h` : 'N/A'}</TableCell>
                                         <TableCell>
-                                            {alloc.observations && (
+                                            {alloc.observations ? (
                                                 <TooltipProvider>
                                                     <Tooltip>
                                                         <TooltipTrigger>
@@ -317,7 +319,7 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
                                                         </TooltipContent>
                                                     </Tooltip>
                                                 </TooltipProvider>
-                                            )}
+                                            ) : 'N/A'}
                                         </TableCell>
                                       </TableRow>
                                     ))}

@@ -48,6 +48,15 @@ export interface Professional {
 }
 
 export const professionalContractTypes = ['EFETIVO ATIVO', 'CONTRATO ATIVO', 'MOMENTO DO DESCANSO', 'JORNADA AMPLIADA'];
+export const professionalObservationTypes = [
+    'PERMUTA',
+    'PERMUTA OUTRO MUNICÍPIO',
+    'LICENÇA MÉDICA',
+    'LICENÇA PRÊMIO',
+    'LICENÇA COM VENCIMENTOS',
+    'LICENÇA SEM VENCIMENTOS',
+    'VAGA DO GESTOR',
+];
 
 export interface ClassroomAllocation {
     classroomId: string;
