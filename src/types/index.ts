@@ -71,15 +71,19 @@ export const professionalObservationTypes = [
     'AFASTADO PARA APOSENTADORIA',
 ];
 
+export interface TeacherAllocation {
+    professionalId?: string;
+    contractType?: string;
+    workload?: number;
+    observations?: string;
+}
+
 export interface ClassroomAllocation {
     classroomId: string;
     classroomName: string;
     turn: 'morning' | 'afternoon' | 'night' | 'integral';
     grade: string;
-    professionalId?: string;
-    contractType?: string;
-    workload?: number;
-    observations?: string;
+    teachers: TeacherAllocation[];
 }
 
 

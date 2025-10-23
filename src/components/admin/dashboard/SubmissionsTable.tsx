@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useState } from 'react';
@@ -118,6 +119,8 @@ export function SubmissionsTable({ submissions, schoolMap }: SubmissionsTablePro
             date = dateValue;
         } else if (typeof dateValue === 'string' || typeof dateValue === 'number') {
             date = new Date(dateValue);
+        } else if (typeof dateValue === 'object' && dateValue.seconds) { // Handle serialized Timestamp
+            date = new Timestamp(dateValue.seconds, dateValue.nanoseconds).toDate();
         } else {
              return 'N/A';
         }
@@ -200,5 +203,3 @@ export function SubmissionsTable({ submissions, schoolMap }: SubmissionsTablePro
     </Table>
   );
 }
-
-    

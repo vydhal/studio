@@ -3,7 +3,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import type { SchoolCensusSubmission, School, Classroom, FormSectionConfig, Professional } from "@/types";
+import type { SchoolCensusSubmission, School, Classroom, FormSectionConfig, Professional, TeacherAllocation } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -339,7 +339,7 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
                            <CardTitle className="flex items-center gap-2"><UserCog/> {sectionConfig.name}</CardTitle>
                         </AccordionTrigger>
                         <AccordionContent className="px-6 space-y-4">
-                            {allocations.length > 0 ? (
+                            {allocations.length > 0 && allocations.some(a => a.teachers.length > 0) ? (
                                <Table>
                                   <TableHeader>
                                     <TableRow>
@@ -353,30 +353,32 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
                                     </TableRow>
                                   </TableHeader>
                                   <TableBody>
-                                    {allocations.map((alloc, index) => (
-                                      <TableRow key={index}>
-                                        <TableCell>{alloc.classroomName}</TableCell>
-                                        <TableCell className="capitalize">{alloc.turn === 'morning' ? 'Manhã' : alloc.turn === 'afternoon' ? 'Tarde' : alloc.turn === 'night' ? 'Noite' : 'Integral'}</TableCell>
-                                        <TableCell>{alloc.grade}</TableCell>
-                                        <TableCell>{professionalMap.get(alloc.professionalId || '') || 'Não alocado'}</TableCell>
-                                        <TableCell>{alloc.contractType || 'N/A'}</TableCell>
-                                        <TableCell>{alloc.workload ? `${alloc.workload}h` : 'N/A'}</TableCell>
-                                        <TableCell>
-                                            {alloc.observations && alloc.observations !== 'Nenhuma' ? (
-                                                <TooltipProvider>
-                                                    <Tooltip>
-                                                        <TooltipTrigger>
-                                                            <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                                                        </TooltipTrigger>
-                                                        <TooltipContent>
-                                                            <p>{alloc.observations}</p>
-                                                        </TooltipContent>
-                                                    </Tooltip>
-                                                </TooltipProvider>
-                                            ) : 'N/A'}
-                                        </TableCell>
-                                      </TableRow>
-                                    ))}
+                                    {allocations.flatMap((alloc, index) => 
+                                        alloc.teachers.map((teacher, teacherIndex) => (
+                                            <TableRow key={`${index}-${teacherIndex}`}>
+                                                <TableCell>{alloc.classroomName}</TableCell>
+                                                <TableCell className="capitalize">{alloc.turn === 'morning' ? 'Manhã' : alloc.turn === 'afternoon' ? 'Tarde' : alloc.turn === 'night' ? 'Noite' : 'Integral'}</TableCell>
+                                                <TableCell>{alloc.grade}</TableCell>
+                                                <TableCell>{professionalMap.get(teacher.professionalId || '') || 'Não alocado'}</TableCell>
+                                                <TableCell>{teacher.contractType || 'N/A'}</TableCell>
+                                                <TableCell>{teacher.workload ? `${teacher.workload}h` : 'N/A'}</TableCell>
+                                                <TableCell>
+                                                    {teacher.observations && teacher.observations !== 'Nenhuma' ? (
+                                                        <TooltipProvider>
+                                                            <Tooltip>
+                                                                <TooltipTrigger>
+                                                                    <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                                                                </TooltipTrigger>
+                                                                <TooltipContent>
+                                                                    <p>{teacher.observations}</p>
+                                                                </TooltipContent>
+                                                            </Tooltip>
+                                                        </TooltipProvider>
+                                                    ) : 'N/A'}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    )}
                                   </TableBody>
                                 </Table>
                             ) : (

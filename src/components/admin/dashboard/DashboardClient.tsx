@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -40,7 +41,7 @@ const processSubmissionDoc = (doc: any): SchoolCensusSubmission => {
     return {
         id: doc.id,
         ...data,
-        submittedAt: data.submittedAt, // Pass Timestamp directly
+        submittedAt: data.submittedAt, // Pass Timestamp or serialized object directly
     } as SchoolCensusSubmission;
 };
 
@@ -170,8 +171,6 @@ export function DashboardClient() {
 
       const totalClassrooms = sub.infrastructure?.classrooms?.length || 0;
       const totalStudentCapacity = sub.infrastructure?.classrooms?.reduce((acc, c) => acc + (c.studentCapacity || 0), 0) || 0;
-      const totalOutlets = sub.infrastructure?.classrooms?.reduce((acc, c) => acc + (c.outlets || 0), 0) || 0;
-      const totalTvs = sub.infrastructure?.classrooms?.reduce((acc, c) => acc + (c.tvCount || 0), 0) || 0;
       
       const resources = sub.technology?.resources
         ?.map(r => `${r.name}: ${r.quantity}`)
@@ -195,8 +194,8 @@ export function DashboardClient() {
         `"${sub.technology?.status || 'pendente'}"`,
         totalClassrooms,
         totalStudentCapacity,
-        totalOutlets,
-        totalTvs,
+        'N/A', // Total Outlets removed
+        'N/A', // Total TVs removed
         `"${sub.technology?.hasInternetAccess ? 'Sim' : 'Não'}"`,
         `"${modalidades}"`,
         `"${resources}"`
