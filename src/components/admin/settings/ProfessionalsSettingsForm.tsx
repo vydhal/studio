@@ -28,13 +28,13 @@ const professionalListSchema = z.object({
     try {
       const parsed = JSON.parse(val);
       return Array.isArray(parsed) && parsed.every(item => 
-        typeof item === 'object' && 'name' in item && typeof item.name === 'string'
+        typeof item === 'object' && ('PROFESSOR' in item || 'name' in item)
       );
     } catch (e) {
       return false;
     }
   }, {
-    message: "O JSON fornecido é inválido. Verifique se é um array de objetos, onde cada objeto deve conter a chave 'name'.",
+    message: "O JSON fornecido é inválido. Verifique se é um array de objetos, onde cada objeto deve conter a chave 'PROFESSOR' ou 'name'.",
   }),
 });
 
@@ -81,9 +81,18 @@ export function ProfessionalsSettingsForm() {
       const professionalsWithIds: Professional[] = [];
 
       for (const prof of parsedProfessionals) {
+        const profName = prof.PROFESSOR || prof.name;
+        if (!profName) continue;
+
         const profRef = prof.id ? doc(db, 'professionals', prof.id) : doc(collection(db, 'professionals'));
-        const profData = { id: profRef.id, name: prof.name };
-        batch.set(profRef, { name: prof.name }); // Save only name
+        
+        const profData: Professional = { 
+          id: profRef.id, 
+          name: profName,
+          unidade: prof.UNIDADE || prof.unidade || undefined
+        };
+
+        batch.set(profRef, { name: profData.name, unidade: profData.unidade });
         professionalsWithIds.push(profData);
       }
       
@@ -127,12 +136,12 @@ export function ProfessionalsSettingsForm() {
                     <FormControl>
                       <Textarea
                         rows={15}
-                        placeholder='[{"name": "João da Silva"}, {"name": "Maria Oliveira"}]'
+                        placeholder='[{"PROFESSOR": "João da Silva", "UNIDADE": "Nome da Escola"}]'
                         {...field}
                       />
                     </FormControl>
                     <FormDescription>
-                      Cole um array de objetos JSON. O campo "name" é obrigatório.
+                      Cole um array de objetos JSON. O campo "PROFESSOR" (ou "name") é obrigatório. O campo "UNIDADE" (ou "unidade") é opcional, mas recomendado.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>

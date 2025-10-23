@@ -44,6 +44,7 @@ export interface TechnologyResource {
 export interface Professional {
   id: string;
   name: string;
+  unidade?: string;
 }
 
 export const professionalContractTypes = ['Efetivo', 'Prestador de Serviço', 'Voluntário', 'Outro'];
@@ -156,5 +157,3 @@ export interface FormSectionConfig {
     description?: string;
     fields: FormFieldConfig[];
 }
-
-    

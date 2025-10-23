@@ -186,22 +186,21 @@ const InfrastructureSection = ({ control }: { control: any }) => {
 
     const addNewClassroom = () => {
         append({
-            id: `sala_${Date.now()}`,
             name: `Sala ${fields.length + 1}`,
             studentCapacity: 0,
             studentsMorning: 0,
             studentsAfternoon: 0,
-            deskType: '',
+            deskType: "",
             outlets: 0,
             tvCount: 0,
             chairCount: 0,
             fanCount: 0,
             hasInternet: false,
             hasAirConditioning: false,
-            gradeMorning: '',
-            gradeAfternoon: '',
-            gradeProjection2026Morning: '',
-            gradeProjection2026Afternoon: '',
+            gradeMorning: "",
+            gradeAfternoon: "",
+            gradeProjection2026Morning: "",
+            gradeProjection2026Afternoon: "",
         });
     };
     
@@ -259,9 +258,9 @@ const InfrastructureSection = ({ control }: { control: any }) => {
                                             <FormField control={control} name={`infrastructure.classrooms.${index}.gradeProjection2026Morning`} render={({ field }) => (<FormItem><FormLabel>Projeção Manhã 2026</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecione a série" /></SelectTrigger></FormControl><SelectContent>{gradeLevels.map(grade => <SelectItem key={grade} value={grade}>{grade}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
                                             <FormField control={control} name={`infrastructure.classrooms.${index}.gradeProjection2026Afternoon`} render={({ field }) => (<FormItem><FormLabel>Projeção Tarde 2026</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecione a série" /></SelectTrigger></FormControl><SelectContent>{gradeLevels.map(grade => <SelectItem key={grade} value={grade}>{grade}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
                                         </div>
-
-                                        <Separator/>
                                         
+                                        <Separator/>
+
                                         <p className="font-medium text-sm">Recursos da Sala</p>
                                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-4">
                                             <FormField control={control} name={`infrastructure.classrooms.${index}.deskType`} render={({ field }) => (<FormItem><FormLabel>Tipo de Carteira</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Selecione o tipo" /></SelectTrigger></FormControl><SelectContent>{deskTypes.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
@@ -289,7 +288,7 @@ const InfrastructureSection = ({ control }: { control: any }) => {
     );
 };
 
-const ProfessionalsAllocationSection = ({ professionalsList }: { professionalsList: Professional[] }) => {
+const ProfessionalsAllocationSection = ({ professionalsList, filteredSchoolName }: { professionalsList: Professional[], filteredSchoolName?: string }) => {
     const { control, getValues } = useFormContext(); // Use the form context here
 
     const classrooms = useWatch({
@@ -301,6 +300,14 @@ const ProfessionalsAllocationSection = ({ professionalsList }: { professionalsLi
         control,
         name: "professionals.allocations",
     });
+
+    const availableProfessionals = useMemo(() => {
+        if (!filteredSchoolName) {
+            return professionalsList;
+        }
+        return professionalsList.filter(p => !p.unidade || p.unidade === filteredSchoolName);
+    }, [professionalsList, filteredSchoolName]);
+
 
     useEffect(() => {
         const newAllocations: ClassroomAllocation[] = [];
@@ -337,7 +344,7 @@ const ProfessionalsAllocationSection = ({ professionalsList }: { professionalsLi
         <Card>
             <CardHeader>
                 <CardTitle>Alocação de Profissionais</CardTitle>
-                <CardDescription>Atribua um professor para cada turma cadastrada na aba de infraestrutura.</CardDescription>
+                <CardDescription>Atribua um professor para cada turma cadastrada na aba de infraestrutura. {filteredSchoolName && `(Mostrando profissionais de ${filteredSchoolName})`}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
                 {fields.length === 0 ? (
@@ -384,7 +391,7 @@ const ProfessionalsAllocationSection = ({ professionalsList }: { professionalsLi
                                                                     )}
                                                                 >
                                                                     {field.value
-                                                                        ? professionalsList.find(
+                                                                        ? availableProfessionals.find(
                                                                             (prof) => prof.id === field.value
                                                                         )?.name
                                                                         : "Selecione um profissional"}
@@ -398,7 +405,7 @@ const ProfessionalsAllocationSection = ({ professionalsList }: { professionalsLi
                                                                 <CommandList>
                                                                     <CommandEmpty>Nenhum profissional encontrado.</CommandEmpty>
                                                                     <CommandGroup>
-                                                                        {professionalsList.map((prof) => (
+                                                                        {availableProfessionals.map((prof) => (
                                                                             <CommandItem
                                                                                 value={prof.name}
                                                                                 key={prof.id}
@@ -626,22 +633,24 @@ export function SchoolCensusForm() {
   };
 
   const cleanUndefined = (obj: any): any => {
+    if (obj === undefined) {
+      return null;
+    }
     if (Array.isArray(obj)) {
       return obj.map(v => cleanUndefined(v));
-    } else if (obj !== null && typeof obj === 'object') {
+    }
+    if (obj !== null && typeof obj === 'object') {
       return Object.keys(obj).reduce(
         (acc, key) => {
           const value = cleanUndefined(obj[key]);
-          if (value !== undefined) {
-            acc[key] = value;
-          }
+          // No need to check for undefined anymore, as it's converted to null
+          acc[key] = value;
           return acc;
         },
         {} as { [key: string]: any }
       );
-    } else {
-      return obj === undefined ? null : obj;
     }
+    return obj;
   };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
@@ -735,6 +744,10 @@ export function SchoolCensusForm() {
         userPermissions.some(p => section.id.startsWith(p))
     );
   }, [formConfig, userProfile, isAdmin]);
+  
+  const selectedSchoolId = form.watch('schoolId');
+  const selectedSchoolName = schools.find(s => s.id === selectedSchoolId)?.name;
+
 
   if (isConfigLoading || appLoading || authLoading) {
       return (
@@ -808,7 +821,7 @@ export function SchoolCensusForm() {
                       if (section.id === 'professionals') {
                         return (
                              <TabsContent key={section.id} value={section.id}>
-                                <ProfessionalsAllocationSection professionalsList={professionals} />
+                                <ProfessionalsAllocationSection professionalsList={professionals} filteredSchoolName={selectedSchoolName} />
                             </TabsContent>
                         )
                      }
@@ -884,5 +897,3 @@ export function SchoolCensusForm() {
     </Card>
   );
 }
-
-    
