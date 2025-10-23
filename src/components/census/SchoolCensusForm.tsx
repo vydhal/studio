@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useForm, useFieldArray, Controller, useWatch } from "react-hook-form";
+import { useForm, useFieldArray, Controller, useWatch, useFormContext } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useState, useEffect, useCallback, useMemo } from "react";
@@ -285,7 +285,9 @@ const InfrastructureSection = ({ control }: { control: any }) => {
     );
 };
 
-const ProfessionalsAllocationSection = ({ control, professionalsList }: { control: any, professionalsList: Professional[] }) => {
+const ProfessionalsAllocationSection = ({ professionalsList }: { professionalsList: Professional[] }) => {
+    const { control, getValues } = useFormContext(); // Use the form context here
+
     const classrooms = useWatch({
         control,
         name: "infrastructure.classrooms"
@@ -318,14 +320,14 @@ const ProfessionalsAllocationSection = ({ control, professionalsList }: { contro
         });
 
         // Merge existing data with new structure
-        const currentAllocations = control.getValues('professionals.allocations') || [];
+        const currentAllocations = getValues('professionals.allocations') || [];
         const mergedAllocations = newAllocations.map(newAlloc => {
             const existing = currentAllocations.find((a: ClassroomAllocation) => a.classroomId === newAlloc.classroomId && a.turn === newAlloc.turn);
             return existing ? { ...newAlloc, ...existing } : newAlloc;
         });
 
         replace(mergedAllocations);
-    }, [classrooms, control, replace]);
+    }, [classrooms, getValues, replace]);
 
     return (
         <Card>
@@ -342,7 +344,7 @@ const ProfessionalsAllocationSection = ({ control, professionalsList }: { contro
                 ) : (
                     <div className="space-y-6">
                         {fields.map((field, index) => {
-                             const allocation = control.getValues(`professionals.allocations.${index}`) as ClassroomAllocation;
+                             const allocation = getValues(`professionals.allocations.${index}`) as ClassroomAllocation;
                              const room = classrooms.find(r => r.id === allocation.classroomId);
 
                              return (
@@ -781,7 +783,7 @@ export function SchoolCensusForm() {
                       if (section.id === 'professionals') {
                         return (
                              <TabsContent key={section.id} value={section.id}>
-                                <ProfessionalsAllocationSection control={form.control} professionalsList={professionals} />
+                                <ProfessionalsAllocationSection professionalsList={professionals} />
                             </TabsContent>
                         )
                      }
