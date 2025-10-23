@@ -56,6 +56,7 @@ export const professionalObservationTypes = [
     'LICENÇA COM VENCIMENTOS',
     'LICENÇA SEM VENCIMENTOS',
     'VAGA DO GESTOR',
+    'AFASTADO PARA APOSENTADORIA',
 ];
 
 export interface ClassroomAllocation {
