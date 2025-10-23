@@ -40,7 +40,7 @@ const processSubmissionDoc = (doc: any): SchoolCensusSubmission => {
     return {
         id: doc.id,
         ...data,
-        submittedAt: data.submittedAt instanceof Timestamp ? data.submittedAt.toDate() : new Date(data.submittedAt),
+        submittedAt: data.submittedAt, // Pass Timestamp directly
     } as SchoolCensusSubmission;
 };
 
@@ -182,10 +182,14 @@ export function DashboardClient() {
         .map(m => m.name)
         .join('; ') || '';
 
+      const submittedAtDate = sub.submittedAt && 'toDate' in sub.submittedAt 
+        ? (sub.submittedAt as Timestamp).toDate() 
+        : sub.submittedAt;
+
       return [
         `"${school.name}"`,
         `"${school.inep}"`,
-        `"${sub.submittedAt ? new Date(sub.submittedAt).toLocaleString('pt-BR') : 'N/A'}"`,
+        `"${submittedAtDate ? new Date(submittedAtDate).toLocaleString('pt-BR') : 'N/A'}"`,
         `"${sub.general?.status || 'pendente'}"`,
         `"${sub.infrastructure?.status || 'pendente'}"`,
         `"${sub.technology?.status || 'pendente'}"`,
@@ -312,3 +316,5 @@ export function DashboardClient() {
     </div>
   );
 }
+
+    

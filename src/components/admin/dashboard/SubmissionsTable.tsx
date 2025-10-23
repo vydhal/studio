@@ -29,6 +29,7 @@ import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Progress } from '@/components/ui/progress';
 import { useAppSettings } from '@/context/AppContext';
+import { Timestamp } from 'firebase/firestore';
 
 
 interface SubmissionsTableProps {
@@ -106,6 +107,32 @@ const SubmissionStatusModal = ({ submission, school, overallStatus, totalSection
 export function SubmissionsTable({ submissions, schoolMap }: SubmissionsTableProps) {
   const { settings } = useAppSettings();
 
+  const getFormattedDate = (dateValue: any): string => {
+    if (!dateValue) return 'N/A';
+
+    try {
+        let date: Date;
+        if (dateValue instanceof Timestamp) {
+            date = dateValue.toDate();
+        } else if (dateValue instanceof Date) {
+            date = dateValue;
+        } else if (typeof dateValue === 'string' || typeof dateValue === 'number') {
+            date = new Date(dateValue);
+        } else {
+             return 'N/A';
+        }
+
+        if (isNaN(date.getTime())) {
+            return 'N/A';
+        }
+
+        return format(date, 'dd/MM/yyyy HH:mm', { locale: ptBR });
+    } catch (error) {
+        return 'N/A';
+    }
+  }
+
+
   if (submissions.length === 0) {
       return (
           <div className="p-6 text-center text-muted-foreground">
@@ -139,7 +166,7 @@ export function SubmissionsTable({ submissions, schoolMap }: SubmissionsTablePro
             <TableRow key={submission.id}>
             <TableCell className="font-medium">{school?.name || 'Escola não encontrada'}</TableCell>
             <TableCell className="hidden md:table-cell">{school?.inep || 'N/A'}</TableCell>
-            <TableCell className="hidden md:table-cell">{submission.submittedAt ? format(new Date(submission.submittedAt), 'dd/MM/yyyy HH:mm', { locale: ptBR }) : 'N/A'}</TableCell>
+            <TableCell className="hidden md:table-cell">{getFormattedDate(submission.submittedAt)}</TableCell>
             <TableCell>
                 <Badge variant={overallStatus.variant}>{overallStatus.label}</Badge>
             </TableCell>
@@ -173,3 +200,5 @@ export function SubmissionsTable({ submissions, schoolMap }: SubmissionsTablePro
     </Table>
   );
 }
+
+    

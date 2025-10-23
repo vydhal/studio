@@ -1,4 +1,5 @@
 
+import { Timestamp } from "firebase/firestore";
 
 export interface School {
   id: string;
@@ -122,7 +123,7 @@ export interface SchoolCensusSubmission {
       [fieldId: string]: any;
     }
   };
-  submittedAt: Date;
+  submittedAt: Date | Timestamp;
   submittedBy?: string;
 }
 
@@ -155,3 +156,5 @@ export interface FormSectionConfig {
     description?: string;
     fields: FormFieldConfig[];
 }
+
+    
