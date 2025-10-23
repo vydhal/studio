@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -6,7 +7,7 @@ import type { SchoolCensusSubmission, School, Classroom, FormSectionConfig, Prof
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CheckCircle2, XCircle, Users, Tv, Wind, Zap, Armchair, Wifi, Snowflake, Bot, Laptop, Printer, Router, AlertTriangle, Loader2, UserCog, HardHat, Clock, MessageSquare } from "lucide-react";
+import { CheckCircle2, XCircle, Users, Tv, Wind, Zap, Armchair, Wifi, Snowflake, Bot, Laptop, Printer, Router, AlertTriangle, Loader2, UserCog, HardHat, Clock, MessageSquare, Sun, Moon, Star, Building2, Bath } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from 'date-fns/locale';
 import Link from "next/link";
@@ -23,38 +24,79 @@ interface SubmissionDetailProps {
   schoolId: string;
 }
 
-const InfoItem = ({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value: string | number | React.ReactNode }) => (
-    <div className="flex items-center gap-3 bg-muted/50 p-2 rounded-md">
-        <Icon className="h-5 w-5 text-muted-foreground" />
-        <div>
-            <p className="text-sm text-muted-foreground">{label}</p>
-            <p className="font-semibold">{value || 'N/A'}</p>
+const InfoItem = ({ icon: Icon, label, value, show = true }: { icon: React.ElementType, label: string, value: string | number | React.ReactNode, show?: boolean }) => {
+    if (!show) return null;
+    return (
+        <div className="flex items-center gap-3 bg-muted/50 p-2 rounded-md">
+            <Icon className="h-5 w-5 text-muted-foreground" />
+            <div>
+                <p className="text-sm text-muted-foreground">{label}</p>
+                <p className="font-semibold">{value || 'N/A'}</p>
+            </div>
         </div>
-    </div>
-)
+    )
+}
 
 const ClassroomDetails = ({ classroom }: { classroom: Classroom }) => (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-        <InfoItem icon={Users} label="Capacidade" value={classroom.studentCapacity} />
-        <InfoItem icon={Armchair} label="Cadeiras" value={classroom.chairCount} />
-        <InfoItem icon={Zap} label="Tomadas" value={classroom.outlets} />
-        <InfoItem icon={Tv} label="TVs" value={classroom.tvCount} />
-        <InfoItem icon={Wind} label="Ventiladores" value={classroom.fanCount} />
-        <InfoItem icon={Armchair} label="Tipo de Carteira" value={classroom.deskType} />
-        <InfoItem icon={Users} label="Alunos Manhã" value={classroom.studentsMorning} />
-        <InfoItem icon={Users} label="Série Manhã" value={classroom.gradeMorning} />
-        <InfoItem icon={Users} label="Alunos Tarde" value={classroom.studentsAfternoon} />
-        <InfoItem icon={Users} label="Série Tarde" value={classroom.gradeAfternoon} />
-        <InfoItem icon={Users} label="Projeção Manhã 2026" value={classroom.gradeProjection2026Morning} />
-        <InfoItem icon={Users} label="Projeção Tarde 2026" value={classroom.gradeProjection2026Afternoon} />
-
-        <div className="flex items-center gap-2">
-            {classroom.hasInternet ? <CheckCircle2 className="h-5 w-5 text-green-500" /> : <XCircle className="h-5 w-5 text-destructive" />}
-            <span className="flex items-center gap-1"><Wifi className="h-4 w-4 text-muted-foreground" /> Internet</span>
+    <div className="space-y-4">
+        <div>
+             <h4 className="font-semibold text-md mb-2">Geral</h4>
+             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                <InfoItem icon={Users} label="Capacidade" value={classroom.studentCapacity} />
+                <div className="flex items-center gap-2">
+                    {classroom.isAdapted ? <CheckCircle2 className="h-5 w-5 text-green-500" /> : <XCircle className="h-5 w-5 text-destructive" />}
+                    <span className="flex items-center gap-1"><Building2 className="h-4 w-4 text-muted-foreground" /> Sala Adaptada</span>
+                </div>
+            </div>
         </div>
-        <div className="flex items-center gap-2">
-            {classroom.hasAirConditioning ? <CheckCircle2 className="h-5 w-5 text-green-500" /> : <XCircle className="h-5 w-5 text-destructive" />}
-            <span className="flex items-center gap-1"><Snowflake className="h-4 w-4 text-muted-foreground" /> Ar Cond.</span>
+
+        <div>
+            <h4 className="font-semibold text-md mb-2">Ocupação Atual</h4>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                <InfoItem icon={Sun} label="Série Manhã" value={classroom.gradeMorning} show={!!classroom.gradeMorning} />
+                <InfoItem icon={Users} label="Alunos Manhã" value={classroom.studentsMorning} show={!!classroom.gradeMorning} />
+                <div></div>
+                <InfoItem icon={Sun} label="Série Tarde" value={classroom.gradeAfternoon} show={!!classroom.gradeAfternoon} />
+                <InfoItem icon={Users} label="Alunos Tarde" value={classroom.studentsAfternoon} show={!!classroom.gradeAfternoon} />
+                <div></div>
+                <InfoItem icon={Moon} label="Série Noite" value={classroom.gradeNight} show={!!classroom.gradeNight} />
+                <InfoItem icon={Users} label="Alunos Noite" value={classroom.studentsNight} show={!!classroom.gradeNight} />
+            </div>
+        </div>
+        
+         <div>
+            <h4 className="font-semibold text-md mb-2">Projeção 2026</h4>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                <InfoItem icon={Sun} label="Série Manhã" value={classroom.gradeProjection2026Morning} show={!!classroom.gradeProjection2026Morning} />
+                <InfoItem icon={Sun} label="Série Tarde" value={classroom.gradeProjection2026Afternoon} show={!!classroom.gradeProjection2026Afternoon} />
+                <InfoItem icon={Moon} label="Série Noite" value={classroom.gradeProjection2026Night} show={!!classroom.gradeProjection2026Night} />
+            </div>
+        </div>
+
+        <div>
+             <h4 className="font-semibold text-md mb-2">Recursos</h4>
+             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                <div className="flex items-center gap-2">
+                    {classroom.hasTv ? <CheckCircle2 className="h-5 w-5 text-green-500" /> : <XCircle className="h-5 w-5 text-destructive" />}
+                    <span className="flex items-center gap-1"><Tv className="h-4 w-4 text-muted-foreground" /> TV</span>
+                </div>
+                 <div className="flex items-center gap-2">
+                    {classroom.hasInternet ? <CheckCircle2 className="h-5 w-5 text-green-500" /> : <XCircle className="h-5 w-5 text-destructive" />}
+                    <span className="flex items-center gap-1"><Wifi className="h-4 w-4 text-muted-foreground" /> Internet</span>
+                </div>
+                <div className="flex items-center gap-2">
+                    {classroom.hasAirConditioning ? <CheckCircle2 className="h-5 w-5 text-green-500" /> : <XCircle className="h-5 w-5 text-destructive" />}
+                    <span className="flex items-center gap-1"><Snowflake className="h-4 w-4 text-muted-foreground" /> Ar Cond.</span>
+                </div>
+                 <div className="flex items-center gap-2">
+                    {classroom.hasCeiling ? <CheckCircle2 className="h-5 w-5 text-green-500" /> : <XCircle className="h-5 w-5 text-destructive" />}
+                    <span className="flex items-center gap-1"><Star className="h-4 w-4 text-muted-foreground" /> Forro</span>
+                </div>
+                 <div className="flex items-center gap-2">
+                    {classroom.hasBathroom ? <CheckCircle2 className="h-5 w-5 text-green-500" /> : <XCircle className="h-5 w-5 text-destructive" />}
+                    <span className="flex items-center gap-1"><Bath className="h-4 w-4 text-muted-foreground" /> Banheiro</span>
+                </div>
+            </div>
         </div>
     </div>
 )
@@ -302,13 +344,13 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
                                     {allocations.map((alloc, index) => (
                                       <TableRow key={index}>
                                         <TableCell>{alloc.classroomName}</TableCell>
-                                        <TableCell className="capitalize">{alloc.turn === 'morning' ? 'Manhã' : 'Tarde'}</TableCell>
+                                        <TableCell className="capitalize">{alloc.turn === 'morning' ? 'Manhã' : alloc.turn === 'afternoon' ? 'Tarde' : 'Noite'}</TableCell>
                                         <TableCell>{alloc.grade}</TableCell>
                                         <TableCell>{professionalMap.get(alloc.professionalId || '') || 'Não alocado'}</TableCell>
                                         <TableCell>{alloc.contractType || 'N/A'}</TableCell>
                                         <TableCell>{alloc.workload ? `${alloc.workload}h` : 'N/A'}</TableCell>
                                         <TableCell>
-                                            {alloc.observations ? (
+                                            {alloc.observations && alloc.observations !== 'Nenhuma' ? (
                                                 <TooltipProvider>
                                                     <Tooltip>
                                                         <TooltipTrigger>

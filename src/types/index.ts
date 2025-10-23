@@ -14,19 +14,24 @@ export interface Classroom {
   id?: string; // Optional because it's generated on the fly
   name: string;
   studentCapacity?: number;
+  isAdapted?: boolean;
+
   studentsMorning?: number;
-  studentsAfternoon?: number;
-  deskType?: string;
-  outlets?: number;
-  tvCount?: number;
-  chairCount?: number;
-  fanCount?: number;
-  hasInternet?: boolean;
-  hasAirConditioning?: boolean;
   gradeMorning?: string;
+  studentsAfternoon?: number;
   gradeAfternoon?: string;
+  studentsNight?: number;
+  gradeNight?: string;
+
   gradeProjection2026Morning?: string;
   gradeProjection2026Afternoon?: string;
+  gradeProjection2026Night?: string;
+  
+  hasTv?: boolean;
+  hasInternet?: boolean;
+  hasAirConditioning?: boolean;
+  hasCeiling?: boolean;
+  hasBathroom?: boolean;
 }
 
 export interface TeachingModality {
@@ -63,7 +68,7 @@ export const professionalObservationTypes = [
 export interface ClassroomAllocation {
     classroomId: string;
     classroomName: string;
-    turn: 'morning' | 'afternoon';
+    turn: 'morning' | 'afternoon' | 'night';
     grade: string;
     professionalId?: string;
     contractType?: string;
