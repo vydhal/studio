@@ -110,7 +110,7 @@ const formSchema = z.object({
   professionals: z.object({
       allocations: z.array(classroomAllocationSchema)
   }).optional(),
-  professionalsList: z.array(z.any()).optional(), // Helper to pass list to context
+  professionalsList: z.array(z.any()).optional(),
 });
 
 
@@ -514,15 +514,72 @@ const TeacherAllocationForm = ({ allocationIndex, teacherIndex, removeTeacher }:
     )
 }
 
-const ProfessionalsAllocationSection = ({ professionalsList }: { professionalsList: Professional[] }) => {
+const ClassroomAllocationItem = ({ allocationIndex }: { allocationIndex: number }) => {
+    const { control, getValues, watch } = useFormContext();
+    const classrooms = watch("infrastructure.classrooms") as Classroom[] || [];
+    const allocation = getValues(`professionals.allocations.${allocationIndex}`) as ClassroomAllocation;
+    const room = classrooms.find(r => r.id === allocation.classroomId);
+
+    const { fields: teacherFields, append: appendTeacher, remove: removeTeacher } = useFieldArray({
+        control,
+        name: `professionals.allocations.${allocationIndex}.teachers`
+    });
+
+    let turnStudents, turnProjection;
+    if (allocation.turn === 'integral') {
+        turnStudents = room?.studentCapacity; // Assuming integral uses full capacity
+        turnProjection = room?.gradeProjection2026Integral;
+    } else {
+        turnStudents = allocation.turn === 'morning' ? room?.studentsMorning : allocation.turn === 'afternoon' ? room?.studentsAfternoon : room?.studentsNight;
+        turnProjection = allocation.turn === 'morning' ? room?.gradeProjection2026Morning : allocation.turn === 'afternoon' ? room?.gradeProjection2026Afternoon : room?.gradeProjection2026Night;
+    }
+
+    return (
+        <div className="p-4 border rounded-lg bg-muted/20 space-y-4">
+            <div>
+                <h4 className="font-bold">{allocation.classroomName}</h4>
+                <p className="text-sm text-muted-foreground">
+                    Turno: <span className="font-medium capitalize">{allocation.turn === 'morning' ? 'Manhã' : allocation.turn === 'afternoon' ? 'Tarde' : allocation.turn === 'night' ? 'Noite' : 'Integral'}</span> | 
+                    Série: <span className="font-medium">{allocation.grade}</span> {turnStudents ? `(${turnStudents} alunos)` : ''}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                    Projeção 2026: <span className="font-medium">
+                        {turnProjection || 'N/A'}
+                    </span>
+                </p>
+            </div>
+
+            <div className="space-y-4 pl-4 border-l-2">
+                {teacherFields.map((teacherField, teacherIndex) => (
+                    <TeacherAllocationForm 
+                        key={teacherField.id}
+                        allocationIndex={allocationIndex}
+                        teacherIndex={teacherIndex}
+                        removeTeacher={removeTeacher}
+                    />
+                ))}
+                <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => appendTeacher({})}
+                >
+                    <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Professor
+                </Button>
+            </div>
+        </div>
+    );
+};
+
+const ProfessionalsAllocationSection = () => {
     const { control, getValues, watch, setValue } = useFormContext();
     const classrooms = watch("infrastructure.classrooms") as Classroom[] || [];
+    const professionalsList = watch("professionalsList") as Professional[] || [];
     const { fields, replace } = useFieldArray({
         control,
         name: "professionals.allocations",
     });
 
-    // Pass the full professionals list down to the context for the sub-form
     useEffect(() => {
         setValue('professionalsList', professionalsList);
     }, [professionalsList, setValue]);
@@ -591,60 +648,9 @@ const ProfessionalsAllocationSection = ({ professionalsList }: { professionalsLi
                     </div>
                 ) : (
                     <div className="space-y-6">
-                        {(fields as (ClassroomAllocation & { id: string })[]).map((field, index) => {
-                             const allocation = getValues(`professionals.allocations.${index}`) as ClassroomAllocation;
-                             const room = classrooms.find(r => r.id === allocation.classroomId);
-
-                             const { fields: teacherFields, append: appendTeacher, remove: removeTeacher } = useFieldArray({
-                                control,
-                                name: `professionals.allocations.${index}.teachers`
-                             });
-                             
-                             let turnStudents, turnProjection;
-                             if (allocation.turn === 'integral') {
-                                turnStudents = room?.studentCapacity; // Assuming integral uses full capacity
-                                turnProjection = room?.gradeProjection2026Integral;
-                             } else {
-                                turnStudents = allocation.turn === 'morning' ? room?.studentsMorning : allocation.turn === 'afternoon' ? room?.studentsAfternoon : room?.studentsNight;
-                                turnProjection = allocation.turn === 'morning' ? room?.gradeProjection2026Morning : allocation.turn === 'afternoon' ? room?.gradeProjection2026Afternoon : room?.gradeProjection2026Night;
-                             }
-
-                             return (
-                                <div key={field.id} className="p-4 border rounded-lg bg-muted/20 space-y-4">
-                                    <div>
-                                        <h4 className="font-bold">{allocation.classroomName}</h4>
-                                        <p className="text-sm text-muted-foreground">
-                                            Turno: <span className="font-medium capitalize">{allocation.turn === 'morning' ? 'Manhã' : allocation.turn === 'afternoon' ? 'Tarde' : allocation.turn === 'night' ? 'Noite' : 'Integral'}</span> | 
-                                            Série: <span className="font-medium">{allocation.grade}</span> {turnStudents ? `(${turnStudents} alunos)` : ''}
-                                        </p>
-                                        <p className="text-sm text-muted-foreground">
-                                            Projeção 2026: <span className="font-medium">
-                                                {turnProjection || 'N/A'}
-                                            </span>
-                                        </p>
-                                    </div>
-
-                                    <div className="space-y-4 pl-4 border-l-2">
-                                        {teacherFields.map((teacherField, teacherIndex) => (
-                                            <TeacherAllocationForm 
-                                                key={teacherField.id}
-                                                allocationIndex={index}
-                                                teacherIndex={teacherIndex}
-                                                removeTeacher={removeTeacher}
-                                            />
-                                        ))}
-                                        <Button 
-                                            type="button" 
-                                            variant="outline" 
-                                            size="sm"
-                                            onClick={() => appendTeacher({})}
-                                        >
-                                            <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Professor
-                                        </Button>
-                                    </div>
-                                </div>
-                             )
-                        })}
+                        {(fields as (ClassroomAllocation & { id: string })[]).map((field, index) => (
+                            <ClassroomAllocationItem key={field.id} allocationIndex={index} />
+                        ))}
                     </div>
                 )}
             </CardContent>
@@ -661,7 +667,7 @@ export function SchoolCensusForm() {
   const { settings: appSettings, loading: appLoading } = useAppSettings();
   const { user, userProfile, loading: authLoading } = useAuth();
   const [schools, setSchools] = useState<School[]>([]);
-  const [professionals, setProfessionals] = useState<Professional[]>([]);
+  const [availableProfessionals, setAvailableProfessionals] = useState<Professional[]>([]);
   const [formConfig, setFormConfig] = useState<FormSectionConfig[]>([]);
   const [isConfigLoading, setIsConfigLoading] = useState(true);
   
@@ -713,7 +719,7 @@ export function SchoolCensusForm() {
             setSchools(schoolsData);
 
             const professionalsData = professionalsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Professional[];
-            setProfessionals(professionalsData);
+            setAvailableProfessionals(professionalsData);
 
             let configData: FormSectionConfig[] = formConfigDoc.exists() ? formConfigDoc.data().sections : [];
             // Manually ensure the professionals section exists for older configs
@@ -792,7 +798,7 @@ export function SchoolCensusForm() {
           dynamicData: defaultValues,
           infrastructure: { classrooms: [] },
           professionals: { allocations: [] },
-          professionalsList: professionals
+          professionalsList: availableProfessionals,
       };
       
       const submissionDoc = await getDoc(doc(db, 'submissions', schoolId));
@@ -1006,7 +1012,7 @@ export function SchoolCensusForm() {
                       if (section.id === 'professionals') {
                         return (
                              <TabsContent key={section.id} value={section.id}>
-                                <ProfessionalsAllocationSection professionalsList={professionals} />
+                                <ProfessionalsAllocationSection />
                             </TabsContent>
                         )
                      }
