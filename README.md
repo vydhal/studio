@@ -1,4 +1,4 @@
-# School Central - Sistema de Gerenciamento de Censo Escolar
+School Central - Sistema de Gerenciamento de Censo Escolar
 
 Bem-vindo ao School Central, uma plataforma robusta e flexível para gerenciamento de censos escolares, construída com Next.js e Firebase.
 
