@@ -45,18 +45,24 @@ const StatusIcon = ({ status }: { status?: 'completed' | 'pending' }) => {
     return <Circle className="h-5 w-5 text-yellow-500" />;
 }
 
-const getSectionStatus = (submission: SchoolCensusSubmission, sectionId: keyof SchoolCensusSubmission) => {
-    const sectionData = submission[sectionId];
+const getSectionStatus = (submission: SchoolCensusSubmission, sectionId: keyof SchoolCensusSubmission | 'professionals') => {
+    const sectionData = submission[sectionId as keyof SchoolCensusSubmission];
+
+    if (sectionId === 'professionals') {
+        const professionalsData = submission.professionals;
+        // Check if there's at least one allocation with at least one teacher assigned.
+        return professionalsData?.allocations?.some(alloc => alloc.teachers && alloc.teachers.some(teacher => teacher.professionalId)) 
+            ? 'completed' 
+            : 'pending';
+    }
 
     if (!sectionData) {
         return 'pending';
     }
 
     if (sectionId === 'infrastructure') {
+        // Completed if there's at least one classroom
         return (sectionData as any)?.classrooms?.length > 0 ? 'completed' : 'pending';
-    }
-    if (sectionId === 'professionals') {
-        return (sectionData as any)?.allocations?.some((a: any) => a.professionalId) ? 'completed' : 'pending';
     }
     
     if (submission.dynamicData?.[sectionId as string] && Object.values(submission.dynamicData[sectionId as string]).some(v => v !== '' && v !== false && v !== null && v !== undefined)) {
@@ -68,12 +74,20 @@ const getSectionStatus = (submission: SchoolCensusSubmission, sectionId: keyof S
         return (sectionData as any).status;
     }
 
+    // This is for sections that might not be in dynamicData and are just top-level objects.
+    if (typeof sectionData === 'object' && sectionData !== null && !Array.isArray(sectionData)) {
+        // Check if any value in the object is meaningful
+        if (Object.values(sectionData).some(v => v !== '' && v !== false && v !== null && v !== undefined && v !== 'pending')) {
+             return 'completed';
+        }
+    }
+
     return 'pending';
 };
 
 
 const getOverallStatus = (submission: SchoolCensusSubmission, totalSections: number): { label: string; variant: "default" | "secondary" | "destructive" | "outline" | null | undefined; completedCount: number } => {
-    const sectionKeys: (keyof SchoolCensusSubmission)[] = ['general', 'infrastructure', 'professionals', 'technology', 'cultural', 'maintenance'];
+    const sectionKeys: (keyof SchoolCensusSubmission | 'professionals')[] = ['general', 'infrastructure', 'professionals', 'technology', 'cultural', 'maintenance'];
     
     let completedCount = 0;
     sectionKeys.forEach(key => {
