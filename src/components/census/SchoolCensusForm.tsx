@@ -364,6 +364,7 @@ const TeacherAllocationForm = ({ allocationIndex, teacherIndex, removeTeacher }:
     const professionalsList = watch('professionalsList') as Professional[];
     
     const availableProfessionals = useMemo(() => {
+        // This component doesn't filter, just uses the provided list.
         return professionalsList || [];
     }, [professionalsList]);
 
@@ -571,6 +572,7 @@ const ClassroomAllocationItem = ({ allocationIndex }: { allocationIndex: number 
     );
 };
 
+
 const ProfessionalsAllocationSection = () => {
     const { control, getValues, watch, setValue } = useFormContext();
     const classrooms = watch("infrastructure.classrooms") as Classroom[] || [];
@@ -702,6 +704,8 @@ export function SchoolCensusForm() {
   useEffect(() => {
     if (appLoading || !db) return; // Wait for app settings and db to be ready
     
+    const schoolIdFromUrl = searchParams.get('schoolId');
+
     const fetchInitialData = async () => {
         setIsConfigLoading(true);
         try {
@@ -740,10 +744,9 @@ export function SchoolCensusForm() {
             setFormConfig(configData);
             
             // Now that config is loaded, handle initial form state
-            const schoolId = searchParams.get('schoolId');
             const defaultDynamicValues = generateDefaultValues(configData);
             let initialValues: z.infer<typeof formSchema> = {
-                schoolId: schoolId || "",
+                schoolId: schoolIdFromUrl || "",
                 dynamicData: defaultDynamicValues,
                 infrastructure: { classrooms: [] },
                 professionals: { allocations: [] },
@@ -751,8 +754,8 @@ export function SchoolCensusForm() {
             };
 
             // Only attempt to load submission data if a school is selected and user is logged in
-            if (schoolId && user) {
-                const submissionDoc = await getDoc(doc(db, 'submissions', schoolId));
+            if (schoolIdFromUrl && user) {
+                const submissionDoc = await getDoc(doc(db, 'submissions', schoolIdFromUrl));
                 if (submissionDoc.exists()) {
                     const existingSubmission = submissionDoc.data() as SchoolCensusSubmission;
                      const mergedDynamicData = produce(defaultDynamicValues, draft => {
@@ -785,12 +788,11 @@ export function SchoolCensusForm() {
         }
     }
     fetchInitialData();
-  }, [searchParams, form, generateDefaultValues, appLoading, toast, user]);
+  }, [ form, generateDefaultValues, appLoading, toast, user, searchParams]);
 
 
   const handleSchoolChange = async (schoolId: string) => {
       if (!db || !user) return;
-      router.push(`/census?schoolId=${schoolId}`, { scroll: false });
       
       const defaultValues = generateDefaultValues(formConfig);
       let resetValues: z.infer<typeof formSchema> = {
