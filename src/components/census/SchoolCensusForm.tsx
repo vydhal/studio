@@ -515,7 +515,7 @@ const TeacherAllocationForm = ({ allocationIndex, teacherIndex, removeTeacher }:
     )
 }
 
-const ClassroomAllocationItem = ({ allocationIndex }: { allocationIndex: number }) => {
+const ClassroomAllocationItem = ({ allocationIndex }: { allocationIndex: number; }) => {
     const { control, getValues, watch } = useFormContext();
     const classrooms = watch("infrastructure.classrooms") as Classroom[] || [];
     const allocation = getValues(`professionals.allocations.${allocationIndex}`) as ClassroomAllocation;
@@ -576,7 +576,8 @@ const ClassroomAllocationItem = ({ allocationIndex }: { allocationIndex: number 
 const ProfessionalsAllocationSection = () => {
     const { control, getValues, watch, setValue } = useFormContext();
     const classrooms = watch("infrastructure.classrooms") as Classroom[] || [];
-    const professionalsList = watch("professionalsList") as Professional[] || [];
+    const professionalsList = watch('professionalsList') as Professional[];
+
     const { fields, replace } = useFieldArray({
         control,
         name: "professionals.allocations",
@@ -661,6 +662,22 @@ const ProfessionalsAllocationSection = () => {
 };
 
 
+const generateDefaultValues = (config: FormSectionConfig[]) => {
+      const defaultDynamicValues: { [key: string]: any } = {};
+      
+      config.forEach((section: FormSectionConfig) => {
+          if (!section.id.startsWith('infra')) {
+            defaultDynamicValues[section.id] = {};
+            section.fields.forEach((field: FormFieldConfig) => {
+                defaultDynamicValues[section.id][field.id] = 
+                    field.type === 'boolean' ? false :
+                    '';
+            });
+          }
+      });
+      return defaultDynamicValues;
+};
+
 
 export function SchoolCensusForm() {
   const { toast } = useToast();
@@ -684,21 +701,6 @@ export function SchoolCensusForm() {
     },
   });
   
-  const generateDefaultValues = useCallback((config: FormSectionConfig[]) => {
-      const defaultDynamicValues: { [key: string]: any } = {};
-      
-      config.forEach((section: FormSectionConfig) => {
-          if (!section.id.startsWith('infra')) {
-            defaultDynamicValues[section.id] = {};
-            section.fields.forEach((field: FormFieldConfig) => {
-                defaultDynamicValues[section.id][field.id] = 
-                    field.type === 'boolean' ? false :
-                    '';
-            });
-          }
-      });
-      return defaultDynamicValues;
-  }, []);
 
   // Fetch schools and form config from Firestore
   useEffect(() => {
@@ -788,7 +790,7 @@ export function SchoolCensusForm() {
         }
     }
     fetchInitialData();
-  }, [ form, generateDefaultValues, appLoading, toast, user, searchParams]);
+  }, [form, appLoading, toast, user, searchParams]);
 
 
   const handleSchoolChange = async (schoolId: string) => {
