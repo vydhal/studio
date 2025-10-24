@@ -597,7 +597,7 @@ const ProfessionalsAllocationSection = () => {
         control,
         name: "professionals.allocations",
     });
-
+    
     useEffect(() => {
         setValue('professionalsList', professionalsList);
     }, [professionalsList, setValue]);
