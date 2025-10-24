@@ -682,20 +682,14 @@ export function SchoolCensusForm() {
   const router = useRouter();
   const { settings: appSettings, loading: appLoading } = useAppSettings();
   const { user, userProfile, loading: authLoading } = useAuth();
-  
   const [schools, setSchools] = useState<School[]>([]);
+  const [formConfig, setFormConfig] = useState<FormSectionConfig[]>([]);
   const [isConfigLoading, setIsConfigLoading] = useState(true);
-
+  
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      schoolId: '',
-      dynamicData: {},
-      infrastructure: { classrooms: [] },
-      professionals: { allocations: [] },
-      professionalsList: [],
-    }
   });
+
   const { reset } = form;
 
   const schoolIdFromUrl = searchParams.get('schoolId');
@@ -715,10 +709,10 @@ export function SchoolCensusForm() {
         getDoc(formConfigDocRef)
       ]);
 
-      const schoolsData = schoolsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as School[];
+      const schoolsData = schoolsSnapshot.docs.map(d => ({ id: d.id, ...d.data() })) as School[];
       setSchools(schoolsData);
 
-      const professionalsData = professionalsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Professional[];
+      const professionalsData = professionalsSnapshot.docs.map(d => ({ id: d.id, ...d.data() })) as Professional[];
 
       let configData: FormSectionConfig[] = formConfigDoc.exists() ? formConfigDoc.data().sections : [];
       if (!configData.some(s => s.id === 'professionals')) {
@@ -730,6 +724,7 @@ export function SchoolCensusForm() {
           configData.push(newSection);
         }
       }
+      setFormConfig(configData);
       
       const defaultDynamicValues = generateDefaultValues(configData);
       let initialValues: z.infer<typeof formSchema> = {
@@ -778,6 +773,7 @@ export function SchoolCensusForm() {
     fetchInitialData(schoolIdFromUrl);
   }, [schoolIdFromUrl, fetchInitialData]);
 
+
   const cleanData = (data: any): any => {
     if (Array.isArray(data)) {
       return data.map(v => cleanData(v));
@@ -798,6 +794,7 @@ export function SchoolCensusForm() {
     return data === undefined ? null : data;
   };
 
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!db) {
         toast({ title: "Erro de Conexão", variant: "destructive"});
@@ -809,6 +806,7 @@ export function SchoolCensusForm() {
         return;
     }
 
+    // Explicitly remove the helper field before submission
     const { professionalsList, ...submissionValues } = values;
     const { schoolId, dynamicData, infrastructure, professionals } = submissionValues;
 
@@ -820,11 +818,9 @@ export function SchoolCensusForm() {
     try {
         const submissionRef = doc(db, 'submissions', schoolId);
         
-        const formConfig = (await getDoc(doc(db, 'settings', 'formConfig'))).data()?.sections || [];
-
         const statusUpdates: { [key: string]: { status: 'completed' } } = {};
         
-        formConfig.forEach((sectionCfg: FormSectionConfig) => {
+        formConfig.forEach(sectionCfg => {
             const sectionId = sectionCfg.id.split('_')[0] as FormSectionPermission;
             const originalSectionId = sectionCfg.id;
 
@@ -877,10 +873,6 @@ export function SchoolCensusForm() {
   const isAdmin = useMemo(() => userProfile?.role?.permissions.includes('users') ?? false, [userProfile]);
 
   const visibleSections = useMemo(() => {
-    if (isConfigLoading || !form.getValues('professionalsList')) return [];
-    
-    const formConfig = (form.getValues('professionalsList') as any)?.formConfig || [];
-
     if (!userProfile?.role) {
       return [];
     }
@@ -890,10 +882,10 @@ export function SchoolCensusForm() {
     }
     
     const userPermissions = userProfile.role!.permissions;
-    return formConfig.filter((section: FormSectionConfig) => 
+    return formConfig.filter(section => 
         userPermissions.some(p => section.id.startsWith(p))
     );
-  }, [isConfigLoading, userProfile, isAdmin, form]);
+  }, [formConfig, userProfile, isAdmin]);
   
   if (isConfigLoading || appLoading || authLoading) {
       return (
@@ -945,8 +937,8 @@ export function SchoolCensusForm() {
                     <p>Você precisa estar logado para preencher o formulário.</p>
                 </div>
             )}
-            {user && (
-                 <Tabs defaultValue={visibleSections.length > 0 ? visibleSections[0].id : ''} className="w-full">
+            {user && visibleSections.length > 0 && (
+                 <Tabs defaultValue={visibleSections[0].id} className="w-full">
                   <TabsList className="mb-4 flex h-auto flex-wrap justify-start">
                       {visibleSections.map(section => {
                           const Icon = sectionIcons[section.id.split('_')[0]] || Building;
@@ -972,8 +964,8 @@ export function SchoolCensusForm() {
                         )
                      }
                     if (section.id === 'general') {
-                       const deskField = section.fields.find((f: any) => f.id.startsWith('f_desk'));
-                       const modalityFields = section.fields.filter((f: any) => !f.id.startsWith('f_desk'));
+                       const deskField = section.fields.find(f => f.id.startsWith('f_desk'));
+                       const modalityFields = section.fields.filter(f => !f.id.startsWith('f_desk'));
                         return (
                         <TabsContent key={section.id} value={section.id}>
                             <Card>
@@ -989,7 +981,7 @@ export function SchoolCensusForm() {
 
                                         <p className="font-medium">Modalidades de Ensino Oferecidas</p>
                                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                            {modalityFields.map((field: any) => (
+                                            {modalityFields.map(field => (
                                                 <DynamicField key={field.id} control={form.control} fieldConfig={field} />
                                             ))}
                                         </div>
@@ -1008,11 +1000,11 @@ export function SchoolCensusForm() {
                                 </CardHeader>
                                 <CardContent>
                                     <div className="space-y-6">
-                                        {section.fields.filter((f: any) => f.type !== 'boolean').map((field: any) => (
+                                        {section.fields.filter(f => f.type !== 'boolean').map(field => (
                                             <DynamicField key={field.id} control={form.control} fieldConfig={field} />
                                         ))}
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            {section.fields.filter((f: any) => f.type === 'boolean').map((field: any) => (
+                                            {section.fields.filter(f => f.type === 'boolean').map(field => (
                                                 <DynamicField key={field.id} control={form.control} fieldConfig={field} />
                                             ))}
                                         </div>
