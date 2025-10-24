@@ -43,7 +43,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { School, FormSectionConfig, FormFieldConfig, SchoolCensusSubmission, Classroom, Professional, ClassroomAllocation, TeacherAllocation } from "@/types";
 import { professionalContractTypes, professionalObservationTypes } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from "@/components/ui/card";
-import { Loader2, Building, HardHat, Laptop, Palette, Wrench, PlusCircle, Trash2, UserCog, ChevronsUpDown, Check } from "lucide-react";
+import { Loader2, Building, HardHat, Laptop, Palette, Wrench, PlusCircle, Trash2, UserCog, ChevronsUpDown, Check, RefreshCw } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -688,14 +688,20 @@ export function SchoolCensusForm() {
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
+    defaultValues: {
+      schoolId: '',
+      dynamicData: {},
+      infrastructure: { classrooms: [] },
+      professionals: { allocations: [] },
+      professionalsList: [],
+    }
   });
 
   const { reset } = form;
   const schoolIdFromUrl = searchParams.get('schoolId');
 
-  const fetchInitialData = useCallback(async () => {
-    if (appLoading || !db || !user) return;
-
+  const fetchInitialData = useCallback(async (schoolIdToLoad: string | null) => {
+    if (!db || !user) return;
     setIsConfigLoading(true);
     try {
         const schoolsQuery = collection(db, 'schools');
@@ -727,15 +733,15 @@ export function SchoolCensusForm() {
         
         const defaultDynamicValues = generateDefaultValues(configData);
         let initialValues: z.infer<typeof formSchema> = {
-            schoolId: schoolIdFromUrl || "",
+            schoolId: schoolIdToLoad || "",
             dynamicData: defaultDynamicValues,
             infrastructure: { classrooms: [] },
             professionals: { allocations: [] },
             professionalsList: professionalsData,
         };
 
-        if (schoolIdFromUrl) {
-            const submissionDoc = await getDoc(doc(db, 'submissions', schoolIdFromUrl));
+        if (schoolIdToLoad) {
+            const submissionDoc = await getDoc(doc(db, 'submissions', schoolIdToLoad));
             if (submissionDoc.exists()) {
                 const existingSubmission = submissionDoc.data() as SchoolCensusSubmission;
                 const mergedDynamicData = produce(defaultDynamicValues, draft => {
@@ -766,11 +772,13 @@ export function SchoolCensusForm() {
     } finally {
         setIsConfigLoading(false);
     }
-  }, [appLoading, user, schoolIdFromUrl, toast, reset]);
+  }, [user, reset, toast]);
 
   useEffect(() => {
-    fetchInitialData();
-  }, [fetchInitialData]);
+    if(!appLoading && !authLoading) {
+        fetchInitialData(schoolIdFromUrl);
+    }
+  }, [appLoading, authLoading, schoolIdFromUrl, fetchInitialData]);
 
 
   const cleanData = (data: any): any => {
@@ -805,7 +813,6 @@ export function SchoolCensusForm() {
         return;
     }
 
-    // Explicitly remove the helper field before submission
     const { professionalsList, ...submissionValues } = values;
     const { schoolId, dynamicData, infrastructure, professionals } = submissionValues;
 
@@ -869,6 +876,19 @@ export function SchoolCensusForm() {
     }
   }
   
+  const handleLoadSchoolData = () => {
+    const selectedSchoolId = form.getValues('schoolId');
+    if (selectedSchoolId) {
+        router.push(`/census?schoolId=${selectedSchoolId}`);
+    } else {
+        toast({
+            title: "Nenhuma escola selecionada",
+            description: "Por favor, selecione uma escola no menu para carregar os dados.",
+            variant: "destructive",
+        });
+    }
+  };
+
   const isAdmin = useMemo(() => userProfile?.role?.permissions.includes('users') ?? false, [userProfile]);
 
   const visibleSections = useMemo(() => {
@@ -902,41 +922,49 @@ export function SchoolCensusForm() {
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <CardHeader>
              <CardTitle>Identificação da Escola</CardTitle>
-              <FormField
-                    control={form.control}
-                    name="schoolId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Selecione a escola que está sendo recenseada</FormLabel>
-                        <Select onValueChange={(value) => {
-                            field.onChange(value);
-                            router.push(`/census?schoolId=${value}`, { scroll: false });
-                        }} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione uma escola" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {schools.map((school) => (
-                              <SelectItem key={school.id} value={school.id}>
-                                {school.name} (INEP: {school.inep})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+              <div className="flex flex-col sm:flex-row sm:items-end sm:gap-2 space-y-2 sm:space-y-0">
+                  <FormField
+                        control={form.control}
+                        name="schoolId"
+                        render={({ field }) => (
+                          <FormItem className="flex-grow">
+                            <FormLabel>Selecione a escola para preencher/editar o censo</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecione uma escola" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {schools.map((school) => (
+                                  <SelectItem key={school.id} value={school.id}>
+                                    {school.name} (INEP: {school.inep})
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    <Button type="button" onClick={handleLoadSchoolData}>
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                        Carregar Dados
+                    </Button>
+              </div>
           </CardHeader>
           <CardContent className="pt-6">
-            {!user && (
+            {!form.getValues('schoolId') && (
+                 <div className="text-center text-muted-foreground py-10">
+                    <p>Selecione uma escola e clique em "Carregar Dados" para começar.</p>
+                </div>
+            )}
+            {form.getValues('schoolId') && !user && (
                  <div className="text-center text-muted-foreground py-10">
                     <p>Você precisa estar logado para preencher o formulário.</p>
                 </div>
             )}
-            {user && visibleSections.length > 0 && (
+            {form.getValues('schoolId') && user && visibleSections.length > 0 && (
                  <Tabs defaultValue={visibleSections[0].id} className="w-full">
                   <TabsList className="mb-4 flex h-auto flex-wrap justify-start">
                       {visibleSections.map(section => {
@@ -1016,7 +1044,7 @@ export function SchoolCensusForm() {
                  
                 </Tabs>
             )}
-             {user && visibleSections.length === 0 && !isConfigLoading && (
+             {form.getValues('schoolId') && user && visibleSections.length === 0 && !isConfigLoading && (
                 <div className="text-center text-muted-foreground py-10">
                     <p>Seu perfil não tem permissão para editar nenhuma seção do formulário.</p>
                     <p>Por favor, entre em contato com um administrador.</p>
