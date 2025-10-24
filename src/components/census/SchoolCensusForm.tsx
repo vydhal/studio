@@ -682,98 +682,101 @@ export function SchoolCensusForm() {
   const router = useRouter();
   const { settings: appSettings, loading: appLoading } = useAppSettings();
   const { user, userProfile, loading: authLoading } = useAuth();
-  const [schools, setSchools] = useState<School[]>([]);
-  const [availableProfessionals, setAvailableProfessionals] = useState<Professional[]>([]);
-  const [formConfig, setFormConfig] = useState<FormSectionConfig[]>([]);
-  const [isConfigLoading, setIsConfigLoading] = useState(true);
   
+  const [schools, setSchools] = useState<School[]>([]);
+  const [isConfigLoading, setIsConfigLoading] = useState(true);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
+    defaultValues: {
+      schoolId: '',
+      dynamicData: {},
+      infrastructure: { classrooms: [] },
+      professionals: { allocations: [] },
+      professionalsList: [],
+    }
   });
-
-  const schoolIdFromUrl = searchParams.get('schoolId');
   const { reset } = form;
 
-  // Fetch schools and form config from Firestore
-  useEffect(() => {
+  const schoolIdFromUrl = searchParams.get('schoolId');
+
+  const fetchInitialData = useCallback(async (schoolId: string | null) => {
     if (appLoading || !db || !user) return;
-    
-    const fetchInitialData = async () => {
-        setIsConfigLoading(true);
-        try {
-            const schoolsQuery = collection(db, 'schools');
-            const professionalsQuery = collection(db, 'professionals');
-            const formConfigDocRef = doc(db, 'settings', 'formConfig');
 
-            const [schoolsSnapshot, professionalsSnapshot, formConfigDoc] = await Promise.all([
-                getDocs(schoolsQuery),
-                getDocs(professionalsQuery),
-                getDoc(formConfigDocRef)
-            ]);
+    setIsConfigLoading(true);
+    try {
+      const schoolsQuery = collection(db, 'schools');
+      const professionalsQuery = collection(db, 'professionals');
+      const formConfigDocRef = doc(db, 'settings', 'formConfig');
 
-            const schoolsData = schoolsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as School[];
-            setSchools(schoolsData);
+      const [schoolsSnapshot, professionalsSnapshot, formConfigDoc] = await Promise.all([
+        getDocs(schoolsQuery),
+        getDocs(professionalsQuery),
+        getDoc(formConfigDocRef)
+      ]);
 
-            const professionalsData = professionalsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Professional[];
-            setAvailableProfessionals(professionalsData);
+      const schoolsData = schoolsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as School[];
+      setSchools(schoolsData);
 
-            let configData: FormSectionConfig[] = formConfigDoc.exists() ? formConfigDoc.data().sections : [];
-            if (!configData.some(s => s.id === 'professionals')) {
-                const infraIndex = configData.findIndex(s => s.id.startsWith('infra'));
-                const newSection = { id: 'professionals', name: 'Profissionais', description: 'Alocação de profissionais por turma.', fields: [] };
-                if (infraIndex !== -1) {
-                    configData.splice(infraIndex + 1, 0, newSection);
-                } else {
-                    configData.push(newSection);
-                }
-            }
-            setFormConfig(configData);
-            
-            const defaultDynamicValues = generateDefaultValues(configData);
-            let initialValues: z.infer<typeof formSchema> = {
-                schoolId: schoolIdFromUrl || "",
-                dynamicData: defaultDynamicValues,
-                infrastructure: { classrooms: [] },
-                professionals: { allocations: [] },
-                professionalsList: professionalsData,
-            };
+      const professionalsData = professionalsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Professional[];
 
-            if (schoolIdFromUrl) {
-                const submissionDoc = await getDoc(doc(db, 'submissions', schoolIdFromUrl));
-                if (submissionDoc.exists()) {
-                    const existingSubmission = submissionDoc.data() as SchoolCensusSubmission;
-                    const mergedDynamicData = produce(defaultDynamicValues, draft => {
-                        if (existingSubmission.dynamicData) {
-                            for (const sectionId in existingSubmission.dynamicData) {
-                                if (draft[sectionId]) {
-                                    Object.assign(draft[sectionId], existingSubmission.dynamicData[sectionId]);
-                                } else {
-                                    draft[sectionId] = existingSubmission.dynamicData[sectionId];
-                                }
-                            }
-                        }
-                    });
-                    initialValues.dynamicData = mergedDynamicData;
-                    if (existingSubmission.infrastructure?.classrooms) {
-                        initialValues.infrastructure = existingSubmission.infrastructure;
-                    }
-                    if (existingSubmission.professionals?.allocations) {
-                        initialValues.professionals = existingSubmission.professionals;
-                    }
-                }
-            }
-            reset(initialValues);
-
-        } catch (error) {
-            console.error("Failed to load config from Firestore", error);
-            toast({ title: "Erro ao carregar configurações", variant: "destructive" });
-        } finally {
-            setIsConfigLoading(false);
+      let configData: FormSectionConfig[] = formConfigDoc.exists() ? formConfigDoc.data().sections : [];
+      if (!configData.some(s => s.id === 'professionals')) {
+        const infraIndex = configData.findIndex(s => s.id.startsWith('infra'));
+        const newSection = { id: 'professionals', name: 'Profissionais', description: 'Alocação de profissionais por turma.', fields: [] };
+        if (infraIndex !== -1) {
+          configData.splice(infraIndex + 1, 0, newSection);
+        } else {
+          configData.push(newSection);
         }
-    }
-    fetchInitialData();
-  }, [appLoading, user, schoolIdFromUrl, reset, toast]);
+      }
+      
+      const defaultDynamicValues = generateDefaultValues(configData);
+      let initialValues: z.infer<typeof formSchema> = {
+        schoolId: schoolId || "",
+        dynamicData: defaultDynamicValues,
+        infrastructure: { classrooms: [] },
+        professionals: { allocations: [] },
+        professionalsList: professionalsData,
+      };
 
+      if (schoolId) {
+        const submissionDoc = await getDoc(doc(db, 'submissions', schoolId));
+        if (submissionDoc.exists()) {
+          const existingSubmission = submissionDoc.data() as SchoolCensusSubmission;
+          const mergedDynamicData = produce(defaultDynamicValues, draft => {
+            if (existingSubmission.dynamicData) {
+              for (const sectionId in existingSubmission.dynamicData) {
+                if (draft[sectionId]) {
+                  Object.assign(draft[sectionId], existingSubmission.dynamicData[sectionId]);
+                } else {
+                  draft[sectionId] = existingSubmission.dynamicData[sectionId];
+                }
+              }
+            }
+          });
+          initialValues.dynamicData = mergedDynamicData;
+          if (existingSubmission.infrastructure?.classrooms) {
+            initialValues.infrastructure = existingSubmission.infrastructure;
+          }
+          if (existingSubmission.professionals?.allocations) {
+            initialValues.professionals = existingSubmission.professionals;
+          }
+        }
+      }
+      reset(initialValues);
+
+    } catch (error) {
+      console.error("Failed to load config from Firestore", error);
+      toast({ title: "Erro ao carregar configurações", variant: "destructive" });
+    } finally {
+      setIsConfigLoading(false);
+    }
+  }, [appLoading, user, reset, toast]);
+
+  useEffect(() => {
+    fetchInitialData(schoolIdFromUrl);
+  }, [schoolIdFromUrl, fetchInitialData]);
 
   const cleanData = (data: any): any => {
     if (Array.isArray(data)) {
@@ -795,7 +798,6 @@ export function SchoolCensusForm() {
     return data === undefined ? null : data;
   };
 
-
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!db) {
         toast({ title: "Erro de Conexão", variant: "destructive"});
@@ -807,7 +809,6 @@ export function SchoolCensusForm() {
         return;
     }
 
-    // Explicitly remove the helper field before submission
     const { professionalsList, ...submissionValues } = values;
     const { schoolId, dynamicData, infrastructure, professionals } = submissionValues;
 
@@ -819,9 +820,11 @@ export function SchoolCensusForm() {
     try {
         const submissionRef = doc(db, 'submissions', schoolId);
         
+        const formConfig = (await getDoc(doc(db, 'settings', 'formConfig'))).data()?.sections || [];
+
         const statusUpdates: { [key: string]: { status: 'completed' } } = {};
         
-        formConfig.forEach(sectionCfg => {
+        formConfig.forEach((sectionCfg: FormSectionConfig) => {
             const sectionId = sectionCfg.id.split('_')[0] as FormSectionPermission;
             const originalSectionId = sectionCfg.id;
 
@@ -874,6 +877,10 @@ export function SchoolCensusForm() {
   const isAdmin = useMemo(() => userProfile?.role?.permissions.includes('users') ?? false, [userProfile]);
 
   const visibleSections = useMemo(() => {
+    if (isConfigLoading || !form.getValues('professionalsList')) return [];
+    
+    const formConfig = (form.getValues('professionalsList') as any)?.formConfig || [];
+
     if (!userProfile?.role) {
       return [];
     }
@@ -883,10 +890,10 @@ export function SchoolCensusForm() {
     }
     
     const userPermissions = userProfile.role!.permissions;
-    return formConfig.filter(section => 
+    return formConfig.filter((section: FormSectionConfig) => 
         userPermissions.some(p => section.id.startsWith(p))
     );
-  }, [formConfig, userProfile, isAdmin]);
+  }, [isConfigLoading, userProfile, isAdmin, form]);
   
   if (isConfigLoading || appLoading || authLoading) {
       return (
@@ -913,7 +920,7 @@ export function SchoolCensusForm() {
                         <Select onValueChange={(value) => {
                             field.onChange(value);
                             router.push(`/census?schoolId=${value}`, { scroll: false });
-                        }} value={field.value ?? ""}>
+                        }} value={field.value}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Selecione uma escola" />
@@ -938,8 +945,8 @@ export function SchoolCensusForm() {
                     <p>Você precisa estar logado para preencher o formulário.</p>
                 </div>
             )}
-            {user && visibleSections.length > 0 && (
-                 <Tabs defaultValue={visibleSections[0].id} className="w-full">
+            {user && (
+                 <Tabs defaultValue={visibleSections.length > 0 ? visibleSections[0].id : ''} className="w-full">
                   <TabsList className="mb-4 flex h-auto flex-wrap justify-start">
                       {visibleSections.map(section => {
                           const Icon = sectionIcons[section.id.split('_')[0]] || Building;
@@ -965,8 +972,8 @@ export function SchoolCensusForm() {
                         )
                      }
                     if (section.id === 'general') {
-                       const deskField = section.fields.find(f => f.id.startsWith('f_desk'));
-                       const modalityFields = section.fields.filter(f => !f.id.startsWith('f_desk'));
+                       const deskField = section.fields.find((f: any) => f.id.startsWith('f_desk'));
+                       const modalityFields = section.fields.filter((f: any) => !f.id.startsWith('f_desk'));
                         return (
                         <TabsContent key={section.id} value={section.id}>
                             <Card>
@@ -982,7 +989,7 @@ export function SchoolCensusForm() {
 
                                         <p className="font-medium">Modalidades de Ensino Oferecidas</p>
                                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                            {modalityFields.map(field => (
+                                            {modalityFields.map((field: any) => (
                                                 <DynamicField key={field.id} control={form.control} fieldConfig={field} />
                                             ))}
                                         </div>
@@ -1001,11 +1008,11 @@ export function SchoolCensusForm() {
                                 </CardHeader>
                                 <CardContent>
                                     <div className="space-y-6">
-                                        {section.fields.filter(f => f.type !== 'boolean').map(field => (
+                                        {section.fields.filter((f: any) => f.type !== 'boolean').map((field: any) => (
                                             <DynamicField key={field.id} control={form.control} fieldConfig={field} />
                                         ))}
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            {section.fields.filter(f => f.type === 'boolean').map(field => (
+                                            {section.fields.filter((f: any) => f.type === 'boolean').map((field: any) => (
                                                 <DynamicField key={field.id} control={form.control} fieldConfig={field} />
                                             ))}
                                         </div>
@@ -1018,7 +1025,7 @@ export function SchoolCensusForm() {
                  
                 </Tabs>
             )}
-             {user && visibleSections.length === 0 && (
+             {user && visibleSections.length === 0 && !isConfigLoading && (
                 <div className="text-center text-muted-foreground py-10">
                     <p>Seu perfil não tem permissão para editar nenhuma seção do formulário.</p>
                     <p>Por favor, entre em contato com um administrador.</p>
