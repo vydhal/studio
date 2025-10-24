@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useForm, useFieldArray, Controller, useWatch, useFormContext } from "react-hook-form";
@@ -672,6 +671,7 @@ export function SchoolCensusForm() {
       dynamicData: {},
       infrastructure: { classrooms: [] },
       professionals: { allocations: [] },
+      professionalsList: [],
     },
   });
   
