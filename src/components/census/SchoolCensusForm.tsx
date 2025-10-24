@@ -6,7 +6,7 @@ import { useForm, useFieldArray, Controller, useWatch, useFormContext, FormProvi
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 import { Button } from "@/components/ui/button";
 import {
@@ -679,6 +679,7 @@ const ProfessionalsAllocationSection = () => {
 export function SchoolCensusForm() {
   const { toast } = useToast();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const { settings: appSettings, loading: appLoading } = useAppSettings();
   const { user, userProfile, loading: authLoading } = useAuth();
   const [schools, setSchools] = useState<School[]>([]);
@@ -687,7 +688,7 @@ export function SchoolCensusForm() {
   const [isConfigLoading, setIsConfigLoading] = useState(true);
   
   const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema)
+    resolver: zodResolver(formSchema),
   });
 
   const schoolIdFromUrl = searchParams.get('schoolId');
@@ -770,46 +771,8 @@ export function SchoolCensusForm() {
         }
     }
     fetchInitialData();
-  }, [appLoading, user, schoolIdFromUrl]);
+  }, [appLoading, user, schoolIdFromUrl, form.reset, toast]);
 
-
-  const handleSchoolChange = async (schoolId: string) => {
-      if (!db || !user) return;
-      
-      const defaultValues = generateDefaultValues(formConfig);
-      let resetValues: z.infer<typeof formSchema> = {
-          schoolId,
-          dynamicData: defaultValues,
-          infrastructure: { classrooms: [] },
-          professionals: { allocations: [] },
-          professionalsList: availableProfessionals,
-      };
-      
-      const submissionDoc = await getDoc(doc(db, 'submissions', schoolId));
-
-      if (submissionDoc.exists()) {
-          const existingSubmission = submissionDoc.data() as SchoolCensusSubmission;
-          const mergedDynamicData = produce(defaultValues, draft => {
-              if(existingSubmission.dynamicData) {
-                for (const sectionId in existingSubmission.dynamicData) {
-                    if (draft[sectionId]) {
-                        Object.assign(draft[sectionId], existingSubmission.dynamicData[sectionId]);
-                    } else {
-                         draft[sectionId] = existingSubmission.dynamicData[sectionId];
-                    }
-                }
-              }
-          });
-          resetValues.dynamicData = mergedDynamicData;
-          if (existingSubmission.infrastructure?.classrooms) {
-              resetValues.infrastructure = existingSubmission.infrastructure;
-          }
-          if (existingSubmission.professionals?.allocations) {
-              resetValues.professionals = existingSubmission.professionals;
-          }
-      } 
-      form.reset(resetValues);
-  };
 
   const cleanData = (data: any): any => {
     if (Array.isArray(data)) {
@@ -948,7 +911,7 @@ export function SchoolCensusForm() {
                         <FormLabel>Selecione a escola que está sendo recenseada</FormLabel>
                         <Select onValueChange={(value) => {
                             field.onChange(value);
-                            handleSchoolChange(value);
+                            router.push(`/census?schoolId=${value}`, { scroll: false });
                         }} value={field.value}>
                           <FormControl>
                             <SelectTrigger>
