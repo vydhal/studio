@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useForm, useFieldArray, Controller, useWatch, useFormContext, FormProvider } from "react-hook-form";
@@ -692,6 +691,7 @@ export function SchoolCensusForm() {
   });
 
   const schoolIdFromUrl = searchParams.get('schoolId');
+  const { reset } = form;
 
   // Fetch schools and form config from Firestore
   useEffect(() => {
@@ -761,7 +761,7 @@ export function SchoolCensusForm() {
                     }
                 }
             }
-            form.reset(initialValues);
+            reset(initialValues);
 
         } catch (error) {
             console.error("Failed to load config from Firestore", error);
@@ -771,7 +771,7 @@ export function SchoolCensusForm() {
         }
     }
     fetchInitialData();
-  }, [appLoading, user, schoolIdFromUrl, form.reset, toast]);
+  }, [appLoading, user, schoolIdFromUrl, reset, toast]);
 
 
   const cleanData = (data: any): any => {
