@@ -45,84 +45,65 @@ const StatusIcon = ({ status }: { status?: 'completed' | 'pending' }) => {
     return <Circle className="h-5 w-5 text-yellow-500" />;
 }
 
-const getSectionStatus = (submission: SchoolCensusSubmission, sectionId: keyof SchoolCensusSubmission | 'professionals') => {
-    const sectionData = submission[sectionId as keyof SchoolCensusSubmission];
-
-    if (sectionId === 'professionals') {
-        const professionalsData = submission.professionals;
-        // Check if there's at least one allocation with at least one teacher assigned.
-        return professionalsData?.allocations?.some(alloc => alloc.teachers && alloc.teachers.some(teacher => teacher.professionalId)) 
-            ? 'completed' 
-            : 'pending';
-    }
-
-    if (!sectionData) {
-        return 'pending';
-    }
-
-    if (sectionId === 'infrastructure') {
-        // Completed if there's at least one classroom
-        return (sectionData as any)?.classrooms?.length > 0 ? 'completed' : 'pending';
-    }
-    
-    if (submission.dynamicData?.[sectionId as string] && Object.values(submission.dynamicData[sectionId as string]).some(v => v !== '' && v !== false && v !== null && v !== undefined)) {
-        return 'completed';
-    }
-
-    // Fallback for general section which is directly on the object in some cases.
-    if(sectionId === 'general' && (sectionData as any).status) {
-        return (sectionData as any).status;
-    }
-
-    // This is for sections that might not be in dynamicData and are just top-level objects.
-    if (typeof sectionData === 'object' && sectionData !== null && !Array.isArray(sectionData)) {
-        // Check if any value in the object is meaningful
-        if (Object.values(sectionData).some(v => v !== '' && v !== false && v !== null && v !== undefined && v !== 'pending')) {
-             return 'completed';
+const getSectionStatus = (submission: SchoolCensusSubmission, sectionId: keyof SchoolCensusSubmission | 'professionals' | 'infra_167') => {
+    // Handle dynamic sections stored in dynamicData
+    if (!['infrastructure', 'professionals', 'infra_167'].includes(sectionId)) {
+        const dynamicSectionData = submission.dynamicData?.[sectionId as string];
+        if (dynamicSectionData && Object.values(dynamicSectionData).some(v => v !== '' && v !== false && v !== null && v !== undefined)) {
+            return 'completed';
         }
     }
 
-    return 'pending';
+    // Handle specific static sections
+    switch(sectionId) {
+        case 'infrastructure':
+        case 'infra_167': // Legacy ID check
+            return submission.infrastructure?.classrooms && submission.infrastructure.classrooms.length > 0
+                ? 'completed'
+                : 'pending';
+        case 'professionals':
+            return submission.professionals?.allocations?.some(alloc => alloc.teachers && alloc.teachers.some(teacher => teacher.professionalId))
+                ? 'completed'
+                : 'pending';
+        default:
+            return 'pending';
+    }
 };
 
 
-const getOverallStatus = (submission: SchoolCensusSubmission, totalSections: number): { label: string; variant: "default" | "secondary" | "destructive" | "outline" | null | undefined; completedCount: number } => {
-    const sectionKeys: (keyof SchoolCensusSubmission | 'professionals')[] = ['general', 'infrastructure', 'professionals', 'technology', 'cultural', 'maintenance'];
-    
+const getOverallStatus = (submission: SchoolCensusSubmission, formConfig: FormSectionConfig[]): { label: string; variant: "default" | "secondary" | "destructive" | "outline" | null | undefined; completedCount: number, totalSections: number } => {
+    const totalSections = formConfig.length;
+    if (totalSections === 0) {
+        return { label: 'N/A', variant: 'outline', completedCount: 0, totalSections: 0 };
+    }
+
     let completedCount = 0;
-    sectionKeys.forEach(key => {
-        if(getSectionStatus(submission, key) === 'completed') {
+    formConfig.forEach(section => {
+        if(getSectionStatus(submission, section.id) === 'completed') {
             completedCount++;
         }
     })
     
-    if (completedCount >= totalSections) { // Use >= in case totalSections is miscalculated
-        return { label: 'Completo', variant: 'default', completedCount };
+    if (completedCount >= totalSections) {
+        return { label: 'Completo', variant: 'default', completedCount, totalSections };
     }
     if (completedCount === 0) {
-        return { label: 'Pendente', variant: 'destructive', completedCount };
+        return { label: 'Pendente', variant: 'destructive', completedCount, totalSections };
     }
-    return { label: 'Em Andamento', variant: 'secondary', completedCount };
+    return { label: 'Em Andamento', variant: 'secondary', completedCount, totalSections };
 }
 
 
-const SubmissionStatusModal = ({ submission, school, overallStatus, totalSections }: { submission: SchoolCensusSubmission, school: School | undefined, overallStatus: ReturnType<typeof getOverallStatus>, totalSections: number }) => {
-    const sections = [
-        { name: 'Dados Gerais', status: getSectionStatus(submission, 'general') },
-        { name: 'Infraestrutura', status: getSectionStatus(submission, 'infrastructure') },
-        { name: 'Profissionais', status: getSectionStatus(submission, 'professionals') },
-        { name: 'Tecnologia', status: getSectionStatus(submission, 'technology') },
-        { name: 'Cultural', status: getSectionStatus(submission, 'cultural') },
-        { name: 'Manutenção', status: getSectionStatus(submission, 'maintenance') },
-    ];
+const SubmissionStatusModal = ({ submission, school, overallStatus, formConfig }: { submission: SchoolCensusSubmission, school: School | undefined, overallStatus: ReturnType<typeof getOverallStatus>, formConfig: FormSectionConfig[] }) => {
+    const { totalSections, completedCount } = overallStatus;
 
     return (
         <Dialog>
             <DialogTrigger asChild>
                 <button className="w-full text-left">
                     <div className="flex items-center gap-2">
-                        <Progress value={(overallStatus.completedCount / totalSections) * 100} className="w-24 h-2" />
-                        <span className="text-xs text-muted-foreground">{overallStatus.completedCount} de {totalSections}</span>
+                        <Progress value={(completedCount / (totalSections || 1)) * 100} className="w-24 h-2" />
+                        <span className="text-xs text-muted-foreground">{completedCount} de {totalSections}</span>
                     </div>
                 </button>
             </DialogTrigger>
@@ -130,22 +111,25 @@ const SubmissionStatusModal = ({ submission, school, overallStatus, totalSection
                 <DialogHeader>
                     <DialogTitle>Status do Censo - {school?.name}</DialogTitle>
                      <div className="flex items-center gap-4 pt-2">
-                        <Progress value={(overallStatus.completedCount / totalSections) * 100} className="w-full" />
-                        <span className="text-sm font-semibold text-muted-foreground whitespace-nowrap">{overallStatus.completedCount} de {totalSections} preenchidas</span>
+                        <Progress value={(completedCount / (totalSections || 1)) * 100} className="w-full" />
+                        <span className="text-sm font-semibold text-muted-foreground whitespace-nowrap">{completedCount} de {totalSections} preenchidas</span>
                     </div>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
-                    {sections.map(section => (
-                        <div key={section.name} className="flex items-center justify-between">
-                            <span className="text-sm font-medium">{section.name}</span>
-                            <div className="flex items-center gap-2">
-                                <StatusIcon status={section.status as 'completed' | 'pending'} />
-                                <span className={`text-sm ${section.status === 'completed' ? 'text-green-600' : 'text-yellow-600'}`}>
-                                    {section.status === 'completed' ? 'Preenchido' : 'Pendente'}
-                                </span>
+                    {formConfig.map(section => {
+                        const status = getSectionStatus(submission, section.id)
+                        return (
+                            <div key={section.id} className="flex items-center justify-between">
+                                <span className="text-sm font-medium">{section.name}</span>
+                                <div className="flex items-center gap-2">
+                                    <StatusIcon status={status} />
+                                    <span className={`text-sm ${status === 'completed' ? 'text-green-600' : 'text-yellow-600'}`}>
+                                        {status === 'completed' ? 'Preenchido' : 'Pendente'}
+                                    </span>
+                                </div>
                             </div>
-                        </div>
-                    ))}
+                        )
+                    })}
                 </div>
             </DialogContent>
         </Dialog>
@@ -155,6 +139,8 @@ const SubmissionStatusModal = ({ submission, school, overallStatus, totalSection
 
 export function SubmissionsTable({ submissions, schoolMap }: SubmissionsTableProps) {
   const { settings } = useAppSettings();
+  const formConfig = settings?.formConfig || [];
+
 
   const getFormattedDate = (dateValue: any): string => {
     if (!dateValue) return 'N/A';
@@ -192,9 +178,6 @@ export function SubmissionsTable({ submissions, schoolMap }: SubmissionsTablePro
       )
   }
   
-  // We now have 6 sections to track
-  const totalSections = 6; 
-
   return (
     <Table>
     <TableHeader>
@@ -212,7 +195,7 @@ export function SubmissionsTable({ submissions, schoolMap }: SubmissionsTablePro
     <TableBody>
         {submissions.map((submission) => {
         const school = schoolMap.get(submission.schoolId);
-        const overallStatus = getOverallStatus(submission, totalSections);
+        const overallStatus = getOverallStatus(submission, formConfig);
         return (
             <TableRow key={submission.id}>
             <TableCell className="font-medium">{school?.name || 'Escola não encontrada'}</TableCell>
@@ -222,7 +205,7 @@ export function SubmissionsTable({ submissions, schoolMap }: SubmissionsTablePro
                 <Badge variant={overallStatus.variant}>{overallStatus.label}</Badge>
             </TableCell>
             <TableCell className="hidden md:table-cell">
-                 <SubmissionStatusModal submission={submission} school={school} overallStatus={overallStatus} totalSections={totalSections} />
+                 <SubmissionStatusModal submission={submission} school={school} overallStatus={overallStatus} formConfig={formConfig} />
             </TableCell>
             <TableCell>
                  <DropdownMenu>

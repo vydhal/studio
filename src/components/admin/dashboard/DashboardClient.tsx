@@ -35,6 +35,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { X } from "lucide-react";
 import { SubmissionsTable } from "./SubmissionsTable";
 import { gradeLevels } from "@/components/census/SchoolCensusForm";
+import { useAppSettings } from "@/context/AppContext";
 
 const processSubmissionDoc = (doc: any): SchoolCensusSubmission => {
     const data = doc.data();
@@ -49,7 +50,8 @@ const processSubmissionDoc = (doc: any): SchoolCensusSubmission => {
 export function DashboardClient() {
   const [submissions, setSubmissions] = useState<SchoolCensusSubmission[]>([]);
   const [schools, setSchools] = useState<School[]>([]);
-  const [formConfig, setFormConfig] = useState<FormSectionConfig[]>([]);
+  const { settings, loading: appLoading } = useAppSettings();
+  const formConfig = settings?.formConfig || [];
   const [loading, setLoading] = useState(true);
   const { user, loading: authLoading } = useAuth();
   
@@ -58,22 +60,20 @@ export function DashboardClient() {
   const [gradeFilter, setGradeFilter] = useState("");
 
   useEffect(() => {
-    // Wait for authentication to be resolved and user to be logged in
-    if (authLoading || !user || !db) {
-        if (!authLoading) setLoading(false);
+    if (authLoading || appLoading) return;
+    if (!user || !db) {
+        setLoading(false);
         return;
     }
 
     setLoading(true);
 
     const schoolsQuery = collection(db, 'schools');
-    const formConfigDocRef = doc(db, 'settings', 'formConfig');
     
-    // Set up real-time listeners
     const submissionsUnsubscribe = onSnapshot(collection(db, 'submissions'), (snapshot) => {
         const submissionsData = snapshot.docs.map(processSubmissionDoc);
         setSubmissions(submissionsData);
-        setLoading(false);
+        if(!schools.length) setLoading(false); // Only stop loading if schools are also loaded or fail
     }, (error) => {
         console.error("Error listening to submissions:", error);
         setLoading(false);
@@ -82,25 +82,17 @@ export function DashboardClient() {
     const schoolsUnsubscribe = onSnapshot(schoolsQuery, (snapshot) => {
         const schoolsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as School[];
         setSchools(schoolsData);
+        setLoading(false);
     }, (error) => {
         console.error("Error listening to schools:", error);
+        setLoading(false);
     });
     
-    const formConfigUnsubscribe = onSnapshot(formConfigDocRef, (doc) => {
-        if (doc.exists()) {
-            setFormConfig(doc.data().sections || []);
-        }
-    }, (error) => {
-        console.error("Error listening to form config:", error);
-    });
-
-
     return () => {
       submissionsUnsubscribe();
       schoolsUnsubscribe();
-      formConfigUnsubscribe();
     }
-  }, [user, authLoading]);
+  }, [user, authLoading, appLoading, schools.length]);
 
   const schoolMap = useMemo(() => new Map(schools.map(s => [s.id, s])), [schools]);
 
@@ -130,7 +122,6 @@ export function DashboardClient() {
         const schoolMatch = schoolFilter === "" || school.id === schoolFilter;
         const neighborhoodMatch = neighborhoodFilter === "" || school.neighborhood === neighborhoodFilter;
         
-        // If a grade is filtered, we need to check if the school has a submission with that grade
         if (gradeFilter) {
             const submission = submissions.find(s => s.schoolId === school.id);
             const gradeMatch = submission?.infrastructure?.classrooms?.some(c => 
@@ -150,6 +141,7 @@ export function DashboardClient() {
   };
   
   const handleExport = () => {
+    if (!formConfig.length) return;
     const csvHeader = [
       "Nome da Escola",
       "INEP",
@@ -225,7 +217,7 @@ export function DashboardClient() {
   };
 
 
-  if (loading || authLoading) {
+  if (loading || authLoading || appLoading) {
     return (
         <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
             <Skeleton className="h-10 w-48" />
@@ -249,7 +241,7 @@ export function DashboardClient() {
         <div className="flex items-center justify-between space-y-2">
             <h1 className="text-3xl font-bold tracking-tight font-headline">Dashboard</h1>
             <div className="flex items-center space-x-2">
-                <Button onClick={handleExport} >Exportar CSV</Button>
+                <Button onClick={handleExport} disabled={!formConfig.length}>Exportar CSV</Button>
             </div>
         </div>
 
@@ -323,5 +315,3 @@ export function DashboardClient() {
     </div>
   );
 }
-
-    

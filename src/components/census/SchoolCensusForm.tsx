@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useForm, useFieldArray, useFormContext, FormProvider } from "react-hook-form";
+import { useForm, useFieldArray, Controller, useWatch, useFormContext, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useState, useEffect, useCallback, useMemo } from "react";
@@ -40,7 +40,7 @@ import {
 } from "@/components/ui/popover"
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import type { School, FormSectionConfig, FormFieldConfig, SchoolCensusSubmission, Classroom, Professional, ClassroomAllocation } from "@/types";
+import type { School, FormSectionConfig, FormFieldConfig, SchoolCensusSubmission, Classroom, Professional, ClassroomAllocation, TeacherAllocation } from "@/types";
 import { professionalContractTypes, professionalObservationTypes } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from "@/components/ui/card";
 import { Loader2, Building, HardHat, Laptop, Palette, Wrench, PlusCircle, Trash2, UserCog, ChevronsUpDown, Check } from "lucide-react";
@@ -87,15 +87,19 @@ const classroomSchema = z.object({
   hasBathroom: z.boolean().optional(),
 });
 
+const teacherAllocationSchema = z.object({
+    professionalId: z.string().optional(),
+    contractType: z.string().optional(),
+    workload: z.number().optional(),
+    observations: z.string().optional(),
+});
+
 const classroomAllocationSchema = z.object({
     classroomId: z.string(),
     classroomName: z.string(),
     turn: z.enum(['morning', 'afternoon', 'night', 'integral']),
     grade: z.string(),
-    professionalId: z.string().optional(),
-    contractType: z.string().optional(),
-    workload: z.number().optional(),
-    observations: z.string().optional(),
+    teachers: z.array(teacherAllocationSchema),
 });
 
 const formSchema = z.object({
@@ -202,7 +206,7 @@ const DynamicField = ({ control, fieldConfig }: { control: any, fieldConfig: For
 
 
 const InfrastructureSection = () => {
-    const { control, watch } = useFormContext();
+    const { control } = useFormContext();
     const { fields, append, remove } = useFieldArray({
         control,
         name: "infrastructure.classrooms",
@@ -235,7 +239,7 @@ const InfrastructureSection = () => {
         });
     };
     
-    const watchedClassrooms = watch("infrastructure.classrooms");
+    const watchedClassrooms = useWatch({ control, name: "infrastructure.classrooms" });
 
     return (
         <Card>
@@ -378,8 +382,215 @@ const InfrastructureSection = () => {
     );
 };
 
+const TeacherAllocationForm = ({ allocationIndex, teacherIndex, removeTeacher, professionalsList }: { allocationIndex: number, teacherIndex: number, removeTeacher: (index: number) => void, professionalsList: Professional[] }) => {
+    const { control } = useFormContext();
+    
+    return (
+        <div className="p-4 border rounded-md bg-background relative space-y-4">
+            <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="absolute top-2 right-2"
+                onClick={() => removeTeacher(teacherIndex)}
+            >
+                <Trash2 className="h-4 w-4 text-destructive" />
+            </Button>
 
-const ProfessionalsAllocationSection = ({ professionals: professionalsList }: { professionals: Professional[] }) => {
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+                 <FormField
+                    control={control}
+                    name={`professionals.allocations.${allocationIndex}.teachers.${teacherIndex}.professionalId`}
+                    render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                            <FormLabel>Professor(a)</FormLabel>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <FormControl>
+                                        <Button
+                                            variant="outline"
+                                            role="combobox"
+                                            className={cn(
+                                                "w-full justify-between",
+                                                !field.value && "text-muted-foreground"
+                                            )}
+                                        >
+                                            {field.value
+                                                ? professionalsList.find(
+                                                    (prof) => prof.id === field.value
+                                                )?.name
+                                                : "Selecione um profissional"}
+                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                        </Button>
+                                    </FormControl>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-[--radix-popover-trigger-width] max-h-[--radix-popover-content-available-height] p-0">
+                                    <Command>
+                                        <CommandInput placeholder="Buscar profissional..." />
+                                        <CommandList>
+                                            <CommandEmpty>Nenhum profissional encontrado.</CommandEmpty>
+                                            <CommandGroup>
+                                                {professionalsList.map((prof) => (
+                                                    <CommandItem
+                                                        value={prof.name}
+                                                        key={prof.id}
+                                                        onSelect={() => {
+                                                            field.onChange(prof.id);
+                                                        }}
+                                                    >
+                                                        <Check
+                                                            className={cn(
+                                                                "mr-2 h-4 w-4",
+                                                                prof.id === field.value
+                                                                    ? "opacity-100"
+                                                                    : "opacity-0"
+                                                            )}
+                                                        />
+                                                        {prof.name}
+                                                    </CommandItem>
+                                                ))}
+                                            </CommandGroup>
+                                        </CommandList>
+                                    </Command>
+                                </PopoverContent>
+                            </Popover>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={control}
+                    name={`professionals.allocations.${allocationIndex}.teachers.${teacherIndex}.contractType`}
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Vínculo</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value ?? ''}>
+                                <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Selecione o vínculo" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    {professionalContractTypes.map(type => (
+                                        <SelectItem key={type} value={type}>{type}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+                <FormField
+                    control={control}
+                    name={`professionals.allocations.${allocationIndex}.teachers.${teacherIndex}.workload`}
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Carga Horária</FormLabel>
+                            <Select onValueChange={(value) => field.onChange(Number(value))} value={String(field.value ?? '')}>
+                                <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Selecione a carga" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    {workloadOptions.map(wh => (
+                                        <SelectItem key={wh} value={String(wh)}>{wh}h</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={control}
+                    name={`professionals.allocations.${allocationIndex}.teachers.${teacherIndex}.observations`}
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Observações</FormLabel>
+                             <Select onValueChange={field.onChange} value={field.value ?? ''}>
+                                <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Selecione uma observação" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    {professionalObservationTypes.map(type => (
+                                        <SelectItem key={type} value={type}>{type}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+            </div>
+        </div>
+    )
+};
+
+const ClassroomAllocationItem = ({ allocationIndex, professionalsList }: { allocationIndex: number; professionalsList: Professional[] }) => {
+    const { control, getValues, watch } = useFormContext();
+    const classrooms = watch("infrastructure.classrooms") as Classroom[] || [];
+    const allocation = getValues(`professionals.allocations.${allocationIndex}`) as ClassroomAllocation;
+    const room = classrooms.find(r => r.id === allocation.classroomId);
+
+    const { fields: teacherFields, append: appendTeacher, remove: removeTeacher } = useFieldArray({
+        control,
+        name: `professionals.allocations.${allocationIndex}.teachers`
+    });
+
+    let turnStudents, turnProjection;
+    if (allocation.turn === 'integral') {
+        turnStudents = room?.studentsIntegral;
+        turnProjection = room?.gradeProjection2026Integral;
+    } else {
+        turnStudents = allocation.turn === 'morning' ? room?.studentsMorning : allocation.turn === 'afternoon' ? room?.studentsAfternoon : room?.studentsNight;
+        turnProjection = allocation.turn === 'morning' ? room?.gradeProjection2026Morning : allocation.turn === 'afternoon' ? room?.gradeProjection2026Afternoon : room?.gradeProjection2026Night;
+    }
+
+    return (
+        <div className="p-4 border rounded-lg bg-muted/20 space-y-4">
+            <div>
+                <h4 className="font-bold">{allocation.classroomName}</h4>
+                <p className="text-sm text-muted-foreground">
+                    Turno: <span className="font-medium capitalize">{allocation.turn === 'morning' ? 'Manhã' : allocation.turn === 'afternoon' ? 'Tarde' : allocation.turn === 'night' ? 'Noite' : 'Integral'}</span> | 
+                    Série: <span className="font-medium">{allocation.grade}</span> {turnStudents ? `(${turnStudents} alunos)` : ''}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                    Projeção 2026: <span className="font-medium">
+                        {turnProjection || 'N/A'}
+                    </span>
+                </p>
+            </div>
+
+            <div className="space-y-4 pl-4 border-l-2">
+                {teacherFields.map((teacherField, teacherIndex) => (
+                    <TeacherAllocationForm 
+                        key={teacherField.id}
+                        allocationIndex={allocationIndex}
+                        teacherIndex={teacherIndex}
+                        removeTeacher={removeTeacher}
+                        professionalsList={professionalsList}
+                    />
+                ))}
+                <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => appendTeacher({})}
+                >
+                    <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Professor
+                </Button>
+            </div>
+        </div>
+    );
+};
+
+
+const ProfessionalsAllocationSection = ({ professionals }: { professionals: Professional[] }) => {
     const { control, getValues, watch, setValue } = useFormContext();
     const classrooms = watch("infrastructure.classrooms") as Classroom[] || [];
 
@@ -387,11 +598,11 @@ const ProfessionalsAllocationSection = ({ professionals: professionalsList }: { 
         control,
         name: "professionals.allocations",
     });
-
+    
     useEffect(() => {
         if (!classrooms) return;
 
-        const newAllocations: Omit<ClassroomAllocation, 'professionalId' | 'contractType' | 'workload' | 'observations'>[] = [];
+        const newAllocations: Omit<ClassroomAllocation, 'teachers'>[] = [];
         classrooms.forEach(room => {
             if (!room.id) return;
             if (room.occupationType === 'integral' && room.gradeIntegral) {
@@ -432,7 +643,7 @@ const ProfessionalsAllocationSection = ({ professionals: professionalsList }: { 
         const currentAllocations = getValues('professionals.allocations') || [];
         const mergedAllocations = newAllocations.map(newAlloc => {
             const existing = currentAllocations.find((a: ClassroomAllocation) => a.classroomId === newAlloc.classroomId && a.turn === newAlloc.turn);
-            return existing ? existing : { ...newAlloc };
+            return existing ? { ...newAlloc, teachers: existing.teachers || [] } : { ...newAlloc, teachers: [] };
         });
 
         replace(mergedAllocations);
@@ -442,7 +653,7 @@ const ProfessionalsAllocationSection = ({ professionals: professionalsList }: { 
         <Card>
             <CardHeader>
                 <CardTitle>Alocação de Profissionais</CardTitle>
-                <CardDescription>Atribua um professor para cada turma cadastrada na aba de infraestrutura.</CardDescription>
+                <CardDescription>Atribua um ou mais professores para cada turma cadastrada na aba de infraestrutura.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
                 {fields.length === 0 ? (
@@ -452,72 +663,9 @@ const ProfessionalsAllocationSection = ({ professionals: professionalsList }: { 
                     </div>
                 ) : (
                     <div className="space-y-6">
-                        {(fields as (ClassroomAllocation & { id: string })[]).map((field, index) => {
-                            const allocation = getValues(`professionals.allocations.${index}`) as ClassroomAllocation;
-                            const room = (classrooms || []).find(r => r.id === allocation.classroomId);
-                            
-                             let turnStudents;
-                            if (allocation.turn === 'integral') {
-                                turnStudents = room?.studentsIntegral;
-                            } else {
-                                turnStudents = allocation.turn === 'morning' ? room?.studentsMorning : allocation.turn === 'afternoon' ? room?.studentsAfternoon : room?.studentsNight;
-                            }
-
-                            return (
-                                <div key={field.id} className="p-4 border rounded-lg bg-muted/20 space-y-4">
-                                     <div>
-                                        <h4 className="font-bold">{allocation.classroomName}</h4>
-                                        <p className="text-sm text-muted-foreground">
-                                            Turno: <span className="font-medium capitalize">{allocation.turn === 'morning' ? 'Manhã' : allocation.turn === 'afternoon' ? 'Tarde' : allocation.turn === 'night' ? 'Noite' : 'Integral'}</span> | 
-                                            Série: <span className="font-medium">{allocation.grade}</span> {turnStudents ? `(${turnStudents} alunos)` : ''}
-                                        </p>
-                                    </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
-                                        <FormField
-                                            control={control}
-                                            name={`professionals.allocations.${index}.professionalId`}
-                                            render={({ field }) => (
-                                                <FormItem className="flex flex-col">
-                                                    <FormLabel>Professor(a)</FormLabel>
-                                                    <Popover>
-                                                        <PopoverTrigger asChild>
-                                                            <FormControl>
-                                                                <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
-                                                                    {field.value ? (professionalsList || []).find(prof => prof.id === field.value)?.name : "Selecione um profissional"}
-                                                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                                                </Button>
-                                                            </FormControl>
-                                                        </PopoverTrigger>
-                                                        <PopoverContent className="w-[--radix-popover-trigger-width] max-h-[--radix-popover-content-available-height] p-0">
-                                                            <Command>
-                                                                <CommandInput placeholder="Buscar profissional..." />
-                                                                <CommandList>
-                                                                    <CommandEmpty>Nenhum profissional encontrado.</CommandEmpty>
-                                                                    <CommandGroup>
-                                                                        {(professionalsList || []).map(prof => (
-                                                                            <CommandItem value={prof.name} key={prof.id} onSelect={() => field.onChange(prof.id)}>
-                                                                                <Check className={cn("mr-2 h-4 w-4", prof.id === field.value ? "opacity-100" : "opacity-0")} />
-                                                                                {prof.name}
-                                                                            </CommandItem>
-                                                                        ))}
-                                                                    </CommandGroup>
-                                                                </CommandList>
-                                                            </Command>
-                                                        </PopoverContent>
-                                                    </Popover>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                        <FormField control={control} name={`professionals.allocations.${index}.contractType`} render={({ field }) => (<FormItem><FormLabel>Vínculo</FormLabel><Select onValueChange={field.onChange} value={field.value ?? ''}><FormControl><SelectTrigger><SelectValue placeholder="Selecione o vínculo" /></SelectTrigger></FormControl><SelectContent>{professionalContractTypes.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
-                                    </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
-                                        <FormField control={control} name={`professionals.allocations.${index}.workload`} render={({ field }) => (<FormItem><FormLabel>Carga Horária</FormLabel><Select onValueChange={(value) => field.onChange(Number(value))} value={String(field.value ?? '')}><FormControl><SelectTrigger><SelectValue placeholder="Selecione a carga" /></SelectTrigger></FormControl><SelectContent>{workloadOptions.map(wh => <SelectItem key={wh} value={String(wh)}>{wh}h</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
-                                        <FormField control={control} name={`professionals.allocations.${index}.observations`} render={({ field }) => (<FormItem><FormLabel>Observações</FormLabel><Select onValueChange={field.onChange} value={field.value ?? ''}><FormControl><SelectTrigger><SelectValue placeholder="Selecione uma observação" /></SelectTrigger></FormControl><SelectContent>{professionalObservationTypes.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
-                                    </div>
-                                </div>
-                            )
-                        })}
+                        {(fields as (ClassroomAllocation & { id: string })[]).map((field, index) => (
+                            <ClassroomAllocationItem key={field.id} allocationIndex={index} professionalsList={professionals} />
+                        ))}
                     </div>
                 )}
             </CardContent>
@@ -532,21 +680,14 @@ export function SchoolCensusForm() {
   const { settings: appSettings, loading: appLoading } = useAppSettings();
   const { user, userProfile, loading: authLoading } = useAuth();
   const [schools, setSchools] = useState<School[]>([]);
-  const [professionals, setProfessionals] = useState<Professional[]>([]);
+  const [availableProfessionals, setAvailableProfessionals] = useState<Professional[]>([]);
   const [formConfig, setFormConfig] = useState<FormSectionConfig[]>([]);
   const [isConfigLoading, setIsConfigLoading] = useState(true);
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      schoolId: '',
-      dynamicData: {},
-      infrastructure: { classrooms: [] },
-      professionals: { allocations: [] },
-    }
   });
 
-  const { reset, watch } = form;
   const schoolIdFromUrl = searchParams.get('schoolId');
 
   const fetchInitialData = useCallback(async (schoolIdToLoad: string | null) => {
@@ -567,8 +708,8 @@ export function SchoolCensusForm() {
         setSchools(schoolsData);
 
         const professionalsData = professionalsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Professional[];
-        setProfessionals(professionalsData);
-        
+        setAvailableProfessionals(professionalsData);
+
         let configData: FormSectionConfig[] = formConfigDoc.exists() ? formConfigDoc.data().sections : [];
         if (!configData.some(s => s.id === 'professionals')) {
             const infraIndex = configData.findIndex(s => s.id.startsWith('infra'));
@@ -613,7 +754,7 @@ export function SchoolCensusForm() {
                 }
             }
         }
-        reset(initialValues);
+        form.reset(initialValues);
 
     } catch (error) {
         console.error("Failed to load config from Firestore", error);
@@ -621,8 +762,8 @@ export function SchoolCensusForm() {
     } finally {
         setIsConfigLoading(false);
     }
-  }, [user, reset, toast]);
-
+  }, [user, form.reset, toast]);
+  
   useEffect(() => {
     if(!appLoading && !authLoading) {
         fetchInitialData(schoolIdFromUrl);
@@ -672,39 +813,12 @@ export function SchoolCensusForm() {
     try {
         const submissionRef = doc(db, 'submissions', schoolId);
         
-        const statusUpdates: { [key: string]: { status: 'completed' } } = {};
-        
-        formConfig.forEach(sectionCfg => {
-            const sectionId = sectionCfg.id.split('_')[0] as FormSectionPermission;
-            const originalSectionId = sectionCfg.id;
-
-            let isCompleted = false;
-            if (sectionId === 'infra') {
-                if (infrastructure && infrastructure.classrooms.length > 0) {
-                     isCompleted = true;
-                }
-            } else if (sectionId === 'professionals') {
-                if (professionals && professionals.allocations.some((a: ClassroomAllocation) => a.professionalId)) {
-                    isCompleted = true;
-                }
-            } else {
-                const sectionData = dynamicData[originalSectionId];
-                if (sectionData && Object.values(sectionData).some(v => v !== '' && v !== false && v !== null && v !== undefined)) {
-                    isCompleted = true;
-                }
-            }
-             if (isCompleted) {
-                statusUpdates[sectionId] = { status: 'completed' };
-             }
-        });
-        
         const submissionPayload = {
           id: schoolId,
           schoolId: schoolId,
           dynamicData,
           infrastructure,
           professionals,
-          ...statusUpdates,
           submittedAt: serverTimestamp(),
           submittedBy: user?.uid || 'unknown'
         };
@@ -765,7 +879,7 @@ export function SchoolCensusForm() {
                         <FormLabel>Selecione a escola que está sendo recenseada</FormLabel>
                         <Select onValueChange={(value) => {
                             field.onChange(value);
-                            router.push(`/census?schoolId=${value}`);
+                            router.push(`/census?schoolId=${value}`, { scroll: false });
                         }} value={field.value}>
                           <FormControl>
                             <SelectTrigger>
@@ -786,14 +900,9 @@ export function SchoolCensusForm() {
                   />
           </CardHeader>
           <CardContent className="pt-6">
-            {!form.getValues('schoolId') && (
+            {(!form.getValues('schoolId') || !user) && (
                  <div className="text-center text-muted-foreground py-10">
-                    <p>Selecione uma escola para começar.</p>
-                </div>
-            )}
-            {form.getValues('schoolId') && !user && (
-                 <div className="text-center text-muted-foreground py-10">
-                    <p>Você precisa estar logado para preencher o formulário.</p>
+                    <p>{!form.getValues('schoolId') ? "Selecione uma escola para começar." : "Você precisa estar logado para preencher o formulário."}</p>
                 </div>
             )}
             {form.getValues('schoolId') && user && visibleSections.length > 0 && (
@@ -818,7 +927,7 @@ export function SchoolCensusForm() {
                       if (section.id === 'professionals') {
                         return (
                              <TabsContent key={section.id} value={section.id}>
-                                <ProfessionalsAllocationSection professionals={professionals}/>
+                                <ProfessionalsAllocationSection professionals={availableProfessionals} />
                             </TabsContent>
                         )
                      }

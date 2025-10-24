@@ -2,13 +2,13 @@
 "use client";
 
 import React, { createContext, useState, useEffect, ReactNode, useContext } from 'react';
-import type { HomeSettings } from '@/types';
+import type { HomeSettings, FormSectionConfig } from '@/types';
 import { db } from '@/lib/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 
 
 interface AppContextType {
-  settings: HomeSettings | null;
+  settings: (HomeSettings & { formConfig?: FormSectionConfig[] }) | null;
   loading: boolean;
   appName: string;
 }
@@ -28,13 +28,12 @@ const defaultSettings: HomeSettings = {
 export const AppContext = createContext<AppContextType>({ settings: null, loading: true, appName: "School Central" });
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
-  const [settings, setSettings] = useState<HomeSettings | null>(null);
+  const [settings, setSettings] = useState<AppContextType['settings']>(null);
   const [loading, setLoading] = useState(true);
   const [appName, setAppName] = useState(defaultSettings.appName);
 
   useEffect(() => {
     if (!db) {
-        // Handle case where Firestore is not initialized (e.g., test env)
         setSettings(defaultSettings);
         setAppName(defaultSettings.appName);
         document.title = defaultSettings.appName;
@@ -42,28 +41,59 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         return;
     }
 
-    const settingsRef = doc(db, 'settings', 'homePage');
-    const unsubscribe = onSnapshot(settingsRef, (doc) => {
-        let appSettings = defaultSettings;
-        if (doc.exists()) {
-            appSettings = { ...defaultSettings, ...doc.data() as HomeSettings };
-        }
-        
-        setSettings(appSettings);
-        const newAppName = appSettings.appName || defaultSettings.appName;
+    const homeSettingsRef = doc(db, 'settings', 'homePage');
+    const formConfigRef = doc(db, 'settings', 'formConfig');
+
+    const unsubHome = onSnapshot(homeSettingsRef, (doc) => {
+        const homeData = doc.exists() ? doc.data() as HomeSettings : {};
+        setSettings(prev => ({ ...prev, ...defaultSettings, ...homeData }));
+        const newAppName = homeData.appName || defaultSettings.appName;
         setAppName(newAppName);
         document.title = newAppName;
-        setLoading(false);
     }, (error) => {
-        console.error("Failed to fetch settings from Firestore:", error);
-        setSettings(defaultSettings);
-        setAppName(defaultSettings.appName);
-        document.title = defaultSettings.appName;
-        setLoading(false);
+        console.error("Failed to fetch home settings:", error);
+        setSettings(prev => ({ ...prev, ...defaultSettings }));
     });
 
-    return () => unsubscribe();
+    const unsubForm = onSnapshot(formConfigRef, (doc) => {
+        const formData = doc.exists() ? (doc.data()?.sections as FormSectionConfig[]) : [];
+        if (formData && !formData.some(s => s.id === 'professionals')) {
+             const infraIndex = formData.findIndex(s => s.id.startsWith('infra'));
+            const newSection = { id: 'professionals', name: 'Profissionais', description: 'Alocação de profissionais por turma.', fields: [] };
+            if (infraIndex !== -1) {
+                formData.splice(infraIndex + 1, 0, newSection);
+            } else {
+                formData.push(newSection);
+            }
+        }
+        setSettings(prev => ({ ...prev, formConfig: formData }));
+    }, (error) => {
+        console.error("Failed to fetch form config:", error);
+        setSettings(prev => ({...prev, formConfig: [] }));
+    });
+
+    const checkLoading = () => {
+       if (settings !== null) {
+         setLoading(false);
+       }
+    };
+    // A simple way to stop loading, you might want a more robust solution
+    const timer = setTimeout(checkLoading, 1500);
+
+
+    return () => {
+        unsubHome();
+        unsubForm();
+        clearTimeout(timer);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+   useEffect(() => {
+    if (settings?.appName && settings.formConfig) {
+      setLoading(false);
+    }
+  }, [settings]);
 
   return (
     <AppContext.Provider value={{ settings, loading, appName }}>
