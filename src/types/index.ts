@@ -29,6 +29,7 @@ export interface Classroom {
   gradeProjection2026Night?: string;
   
   // Integral
+  studentsIntegral?: number;
   gradeIntegral?: string;
   gradeProjection2026Integral?: string;
 
@@ -180,13 +181,4 @@ export interface FormSectionConfig {
     name: string;
     description?: string;
     fields: FormFieldConfig[];
-}
-
-
-// This is a temporary type to satisfy the old structure, it's not used in the reverted version.
-export interface TeacherAllocation {
-  professionalId?: string;
-  contractType?: string;
-  workload?: number;
-  observations?: string;
 }

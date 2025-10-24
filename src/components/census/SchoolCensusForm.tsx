@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useForm, useFieldArray, Controller, useWatch, useFormContext, FormProvider } from "react-hook-form";
+import { useForm, useFieldArray, useFormContext, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useState, useEffect, useCallback, useMemo } from "react";
@@ -43,7 +43,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { School, FormSectionConfig, FormFieldConfig, SchoolCensusSubmission, Classroom, Professional, ClassroomAllocation } from "@/types";
 import { professionalContractTypes, professionalObservationTypes } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from "@/components/ui/card";
-import { Loader2, Building, HardHat, Laptop, Palette, Wrench, PlusCircle, Trash2, UserCog, ChevronsUpDown, Check, RefreshCw } from "lucide-react";
+import { Loader2, Building, HardHat, Laptop, Palette, Wrench, PlusCircle, Trash2, UserCog, ChevronsUpDown, Check } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -76,6 +76,7 @@ const classroomSchema = z.object({
   gradeProjection2026Afternoon: z.string().optional(),
   gradeProjection2026Night: z.string().optional(),
   
+  studentsIntegral: z.number().min(0).optional(),
   gradeIntegral: z.string().optional(),
   gradeProjection2026Integral: z.string().optional(),
 
@@ -201,7 +202,7 @@ const DynamicField = ({ control, fieldConfig }: { control: any, fieldConfig: For
 
 
 const InfrastructureSection = () => {
-    const { control } = useFormContext();
+    const { control, watch } = useFormContext();
     const { fields, append, remove } = useFieldArray({
         control,
         name: "infrastructure.classrooms",
@@ -223,6 +224,7 @@ const InfrastructureSection = () => {
             gradeProjection2026Morning: "",
             gradeProjection2026Afternoon: "",
             gradeProjection2026Night: "",
+            studentsIntegral: 0,
             gradeIntegral: "",
             gradeProjection2026Integral: "",
             hasTv: false,
@@ -233,7 +235,7 @@ const InfrastructureSection = () => {
         });
     };
     
-    const watchedClassrooms = useWatch({ control, name: "infrastructure.classrooms" });
+    const watchedClassrooms = watch("infrastructure.classrooms");
 
     return (
         <Card>
@@ -315,10 +317,16 @@ const InfrastructureSection = () => {
                                         {occupationType === 'integral' ? (
                                             <>
                                                 <p className="font-medium text-sm">Ocupação Período Integral</p>
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-6">
                                                     <FormField control={control} name={`infrastructure.classrooms.${index}.gradeIntegral`} render={({ field }) => (<FormItem><FormLabel>Série - Integral</FormLabel><Select onValueChange={field.onChange} value={field.value ?? ''}><FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl><SelectContent>{gradeLevels.map(grade => <SelectItem key={grade} value={grade}>{grade}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
-                                                    <div></div>
-                                                    <FormField control={control} name={`infrastructure.classrooms.${index}.gradeProjection2026Integral`} render={({ field }) => (<FormItem><FormLabel>Projeção 2026 - Integral</FormLabel><Select onValueChange={field.onChange} value={field.value ?? ''}><FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl><SelectContent>{gradeLevels.map(grade => <SelectItem key={grade} value={grade}>{grade}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
+                                                    <FormField control={control} name={`infrastructure.classrooms.${index}.studentsIntegral`} render={({ field }) => (<FormItem><FormLabel>Alunos - Integral</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? 0 : e.target.valueAsNumber)} /></FormControl><FormMessage /></FormItem>)} />
+                                                </div>
+                                                
+                                                <Separator/>
+                                                
+                                                <p className="font-medium text-sm">Projeção 2026 Período Integral</p>
+                                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                    <FormField control={control} name={`infrastructure.classrooms.${index}.gradeProjection2026Integral`} render={({ field }) => (<FormItem><FormLabel>Projeção Série - Integral</FormLabel><Select onValueChange={field.onChange} value={field.value ?? ''}><FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl><SelectContent>{gradeLevels.map(grade => <SelectItem key={grade} value={grade}>{grade}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
                                                 </div>
                                             </>
                                         ) : (
@@ -371,16 +379,15 @@ const InfrastructureSection = () => {
 };
 
 
-const ProfessionalsAllocationSection = () => {
+const ProfessionalsAllocationSection = ({ professionals: professionalsList }: { professionals: Professional[] }) => {
     const { control, getValues, watch, setValue } = useFormContext();
     const classrooms = watch("infrastructure.classrooms") as Classroom[] || [];
-    const professionalsList = watch('professionalsList') as Professional[];
 
     const { fields, replace } = useFieldArray({
         control,
         name: "professionals.allocations",
     });
-    
+
     useEffect(() => {
         if (!classrooms) return;
 
@@ -449,9 +456,9 @@ const ProfessionalsAllocationSection = () => {
                             const allocation = getValues(`professionals.allocations.${index}`) as ClassroomAllocation;
                             const room = (classrooms || []).find(r => r.id === allocation.classroomId);
                             
-                            let turnStudents;
+                             let turnStudents;
                             if (allocation.turn === 'integral') {
-                                turnStudents = room?.studentCapacity;
+                                turnStudents = room?.studentsIntegral;
                             } else {
                                 turnStudents = allocation.turn === 'morning' ? room?.studentsMorning : allocation.turn === 'afternoon' ? room?.studentsAfternoon : room?.studentsNight;
                             }
@@ -575,12 +582,11 @@ export function SchoolCensusForm() {
         setFormConfig(configData);
         
         const defaultDynamicValues = generateDefaultValues(configData);
-        let initialValues: z.infer<typeof formSchema> & { professionalsList?: Professional[] } = {
+        let initialValues: z.infer<typeof formSchema> = {
             schoolId: schoolIdToLoad || "",
             dynamicData: defaultDynamicValues,
             infrastructure: { classrooms: [] },
             professionals: { allocations: [] },
-            professionalsList: professionalsData, // Pass professionals to the form
         };
 
         if (schoolIdToLoad) {
@@ -623,11 +629,6 @@ export function SchoolCensusForm() {
     }
   }, [appLoading, authLoading, schoolIdFromUrl, fetchInitialData]);
 
-  // This effect passes the fetched professionals into the form state for use in the combobox
-  useEffect(() => {
-    form.setValue('professionalsList', professionals);
-  }, [professionals, form]);
-
 
   const cleanData = (data: any): any => {
     if (Array.isArray(data)) {
@@ -661,9 +662,7 @@ export function SchoolCensusForm() {
         return;
     }
 
-    // Explicitly remove the helper field before submission
-    const { professionalsList, ...submissionValues } = values as any;
-    const { schoolId, dynamicData, infrastructure, professionals } = submissionValues;
+    const { schoolId, dynamicData, infrastructure, professionals } = values;
 
     if (!schoolId) {
         toast({ title: "Erro", description: "Selecione uma escola primeiro.", variant: "destructive" });
@@ -725,19 +724,6 @@ export function SchoolCensusForm() {
     }
   }
   
-  const handleLoadSchoolData = () => {
-    const selectedSchoolId = form.getValues('schoolId');
-    if (selectedSchoolId) {
-        router.push(`/census?schoolId=${selectedSchoolId}`);
-    } else {
-        toast({
-            title: "Nenhuma escola selecionada",
-            description: "Por favor, selecione uma escola no menu para carregar os dados.",
-            variant: "destructive",
-        });
-    }
-  };
-
   const isAdmin = useMemo(() => userProfile?.role?.permissions.includes('users') ?? false, [userProfile]);
 
   const visibleSections = useMemo(() => {
@@ -771,41 +757,38 @@ export function SchoolCensusForm() {
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <CardHeader>
              <CardTitle>Identificação da Escola</CardTitle>
-              <div className="flex flex-col sm:flex-row sm:items-end sm:gap-2 space-y-2 sm:space-y-0">
-                  <FormField
-                        control={form.control}
-                        name="schoolId"
-                        render={({ field }) => (
-                          <FormItem className="flex-grow">
-                            <FormLabel>Selecione a escola para preencher/editar o censo</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Selecione uma escola" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {schools.map((school) => (
-                                  <SelectItem key={school.id} value={school.id}>
-                                    {school.name} (INEP: {school.inep})
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    <Button type="button" onClick={handleLoadSchoolData}>
-                        <RefreshCw className="mr-2 h-4 w-4" />
-                        Carregar Dados
-                    </Button>
-              </div>
+              <FormField
+                    control={form.control}
+                    name="schoolId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Selecione a escola que está sendo recenseada</FormLabel>
+                        <Select onValueChange={(value) => {
+                            field.onChange(value);
+                            router.push(`/census?schoolId=${value}`);
+                        }} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione uma escola" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {schools.map((school) => (
+                              <SelectItem key={school.id} value={school.id}>
+                                {school.name} (INEP: {school.inep})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
           </CardHeader>
           <CardContent className="pt-6">
             {!form.getValues('schoolId') && (
                  <div className="text-center text-muted-foreground py-10">
-                    <p>Selecione uma escola e clique em "Carregar Dados" para começar.</p>
+                    <p>Selecione uma escola para começar.</p>
                 </div>
             )}
             {form.getValues('schoolId') && !user && (
@@ -835,7 +818,7 @@ export function SchoolCensusForm() {
                       if (section.id === 'professionals') {
                         return (
                              <TabsContent key={section.id} value={section.id}>
-                                <ProfessionalsAllocationSection />
+                                <ProfessionalsAllocationSection professionals={professionals}/>
                             </TabsContent>
                         )
                      }

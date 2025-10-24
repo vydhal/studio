@@ -3,7 +3,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import type { SchoolCensusSubmission, School, Classroom, FormSectionConfig, Professional, TeacherAllocation, ClassroomAllocation } from "@/types";
+import type { SchoolCensusSubmission, School, Classroom, FormSectionConfig, Professional, ClassroomAllocation } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -25,7 +25,7 @@ interface SubmissionDetailProps {
 }
 
 const InfoItem = ({ icon: Icon, label, value, show = true }: { icon: React.ElementType, label: string, value: string | number | React.ReactNode, show?: boolean }) => {
-    if (!show || value === null || value === undefined || value === '') return null;
+    if (!show || value === null || value === undefined || value === '' || value === 0) return null;
     return (
         <div className="flex items-center gap-3 bg-muted/50 p-2 rounded-md">
             <Icon className="h-5 w-5 text-muted-foreground" />
@@ -55,6 +55,7 @@ const ClassroomDetails = ({ classroom }: { classroom: Classroom }) => (
             <h4 className="font-semibold text-md mb-2">Ocupação (Período Integral)</h4>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                 <InfoItem icon={Sun} label="Série Integral" value={classroom.gradeIntegral} show={!!classroom.gradeIntegral} />
+                <InfoItem icon={Users} label="Alunos Integral" value={classroom.studentsIntegral} show={!!classroom.studentsIntegral} />
                  <InfoItem icon={Clock} label="Projeção 2026" value={classroom.gradeProjection2026Integral} show={!!classroom.gradeProjection2026Integral} />
             </div>
         </div>
