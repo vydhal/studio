@@ -139,6 +139,7 @@ export const gradeLevels = [
     "7º Ano",
     "8º Ano",
     "9º Ano",
+    "AEE - Atendimento Educacional Especializado",
     "Não se aplica",
 ];
 
