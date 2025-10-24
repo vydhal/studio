@@ -70,19 +70,16 @@ export const professionalObservationTypes = [
     'AFASTADO PARA APOSENTADORIA',
 ];
 
-export interface TeacherAllocation {
-    professionalId?: string;
-    contractType?: string;
-    workload?: number;
-    observations?: string;
-}
 
 export interface ClassroomAllocation {
     classroomId: string;
     classroomName: string;
     turn: 'morning' | 'afternoon' | 'night' | 'integral';
     grade: string;
-    teachers: TeacherAllocation[];
+    professionalId?: string;
+    contractType?: string;
+    workload?: number;
+    observations?: string;
 }
 
 
@@ -183,4 +180,13 @@ export interface FormSectionConfig {
     name: string;
     description?: string;
     fields: FormFieldConfig[];
+}
+
+
+// This is a temporary type to satisfy the old structure, it's not used in the reverted version.
+export interface TeacherAllocation {
+  professionalId?: string;
+  contractType?: string;
+  workload?: number;
+  observations?: string;
 }
