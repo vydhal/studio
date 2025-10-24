@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useForm, useFieldArray, Controller, useWatch, useFormContext } from "react-hook-form";
+import { useForm, useFieldArray, Controller, useWatch, useFormContext, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useState, useEffect, useCallback, useMemo } from "react";
@@ -359,9 +359,15 @@ const InfrastructureSection = () => {
     );
 };
 
-const TeacherAllocationForm = ({ allocationIndex, teacherIndex, removeTeacher, availableProfessionals }: { allocationIndex: number, teacherIndex: number, removeTeacher: (index: number) => void, availableProfessionals: Professional[] }) => {
-    const { control } = useFormContext();
+const TeacherAllocationForm = ({ allocationIndex, teacherIndex, removeTeacher }: { allocationIndex: number, teacherIndex: number, removeTeacher: (index: number) => void }) => {
+    const { control, watch } = useFormContext();
+    const professionalsList = watch('professionalsList') as Professional[];
     
+    const availableProfessionals = useMemo(() => {
+        return professionalsList || [];
+    }, [professionalsList]);
+
+
     return (
         <div className="p-4 border rounded-md bg-background relative space-y-4">
             <Button
@@ -516,6 +522,7 @@ const ProfessionalsAllocationSection = ({ professionalsList }: { professionalsLi
         name: "professionals.allocations",
     });
 
+    // Pass the full professionals list down to the context for the sub-form
     useEffect(() => {
         setValue('professionalsList', professionalsList);
     }, [professionalsList, setValue]);
@@ -569,25 +576,6 @@ const ProfessionalsAllocationSection = ({ professionalsList }: { professionalsLi
 
         replace(mergedAllocations);
     }, [classrooms, getValues, replace]);
-
-    const schoolId = watch('schoolId');
-    const allProfessionals = watch('professionalsList') as Professional[];
-    const schoolData = watch('schoolsList')?.find((s: School) => s.id === schoolId);
-
-    const availableProfessionals = useMemo(() => {
-        if (!schoolData || !allProfessionals) {
-            return allProfessionals || [];
-        }
-        
-        const filtered = allProfessionals.filter(p => {
-             if (!p.unidade) return true; // Always include professors without a specific unit
-             return p.unidade.toLowerCase().includes(schoolData.name.toLowerCase());
-        });
-       
-        return filtered.length > 0 ? filtered : allProfessionals;
-
-    }, [schoolId, schoolData, allProfessionals]);
-
 
     return (
         <Card>
@@ -643,7 +631,6 @@ const ProfessionalsAllocationSection = ({ professionalsList }: { professionalsLi
                                                 allocationIndex={index}
                                                 teacherIndex={teacherIndex}
                                                 removeTeacher={removeTeacher}
-                                                availableProfessionals={availableProfessionals}
                                             />
                                         ))}
                                         <Button 
