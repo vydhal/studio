@@ -172,14 +172,22 @@ export function DashboardClient() {
       const totalClassrooms = sub.infrastructure?.classrooms?.length || 0;
       const totalStudentCapacity = sub.infrastructure?.classrooms?.reduce((acc, c) => acc + (c.studentCapacity || 0), 0) || 0;
       
-      const resources = sub.technology?.resources
-        ?.map(r => `${r.name}: ${r.quantity}`)
-        .join('; ') || '';
+      const resources = sub.dynamicData?.tech
+        ? Object.entries(sub.dynamicData.tech).map(([key, value]) => {
+            const field = formConfig.find(s => s.id === 'tech')?.fields.find(f => f.id === key);
+            return field ? `${field.name}: ${value}` : '';
+          }).filter(Boolean).join('; ')
+        : '';
       
-      const modalidades = sub.teachingModalities
-        ?.filter(m => m.offered)
-        .map(m => m.name)
-        .join('; ') || '';
+      const modalidades = sub.dynamicData?.general
+        ? Object.entries(sub.dynamicData.general).map(([key, value]) => {
+            if (key.startsWith('f_mod_') && value === true) {
+              const field = formConfig.find(s => s.id === 'general')?.fields.find(f => f.id === key);
+              return field ? field.name : '';
+            }
+            return '';
+          }).filter(Boolean).join('; ')
+        : '';
 
       const submittedAtDate = sub.submittedAt && 'toDate' in sub.submittedAt 
         ? (sub.submittedAt as Timestamp).toDate() 
@@ -189,14 +197,14 @@ export function DashboardClient() {
         `"${school.name}"`,
         `"${school.inep}"`,
         `"${submittedAtDate ? new Date(submittedAtDate).toLocaleString('pt-BR') : 'N/A'}"`,
-        `"${sub.general?.status || 'pendente'}"`,
-        `"${sub.infrastructure?.status || 'pendente'}"`,
-        `"${sub.technology?.status || 'pendente'}"`,
+        `"${(sub.general && Object.keys(sub.general).length > 0) ? 'completed' : 'pending'}"`,
+        `"${(sub.infrastructure && sub.infrastructure.classrooms.length > 0) ? 'completed' : 'pending'}"`,
+        `"${(sub.technology && Object.keys(sub.technology).length > 0) ? 'completed' : 'pending'}"`,
         totalClassrooms,
         totalStudentCapacity,
         'N/A', // Total Outlets removed
         'N/A', // Total TVs removed
-        `"${sub.technology?.hasInternetAccess ? 'Sim' : 'Não'}"`,
+        `"${sub.dynamicData?.tech?.f_tech_1 ? 'Sim' : 'Não'}"`,
         `"${modalidades}"`,
         `"${resources}"`
       ].join(',');

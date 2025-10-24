@@ -45,9 +45,42 @@ const StatusIcon = ({ status }: { status?: 'completed' | 'pending' }) => {
     return <Circle className="h-5 w-5 text-yellow-500" />;
 }
 
+const getSectionStatus = (submission: SchoolCensusSubmission, sectionId: keyof SchoolCensusSubmission) => {
+    const sectionData = submission[sectionId];
+
+    if (!sectionData) {
+        return 'pending';
+    }
+
+    if (sectionId === 'infrastructure') {
+        return (sectionData as any)?.classrooms?.length > 0 ? 'completed' : 'pending';
+    }
+    if (sectionId === 'professionals') {
+        return (sectionData as any)?.allocations?.some((a: any) => a.professionalId) ? 'completed' : 'pending';
+    }
+    
+    if (submission.dynamicData?.[sectionId as string] && Object.values(submission.dynamicData[sectionId as string]).some(v => v !== '' && v !== false && v !== null && v !== undefined)) {
+        return 'completed';
+    }
+
+    // Fallback for general section which is directly on the object in some cases.
+    if(sectionId === 'general' && (sectionData as any).status) {
+        return (sectionData as any).status;
+    }
+
+    return 'pending';
+};
+
+
 const getOverallStatus = (submission: SchoolCensusSubmission, totalSections: number): { label: string; variant: "default" | "secondary" | "destructive" | "outline" | null | undefined; completedCount: number } => {
-    const sections = [submission.general, submission.infrastructure, submission.professionals, submission.technology, submission.cultural, submission.maintenance];
-    const completedCount = sections.filter(s => s?.status === 'completed').length;
+    const sectionKeys: (keyof SchoolCensusSubmission)[] = ['general', 'infrastructure', 'professionals', 'technology', 'cultural', 'maintenance'];
+    
+    let completedCount = 0;
+    sectionKeys.forEach(key => {
+        if(getSectionStatus(submission, key) === 'completed') {
+            completedCount++;
+        }
+    })
     
     if (completedCount >= totalSections) { // Use >= in case totalSections is miscalculated
         return { label: 'Completo', variant: 'default', completedCount };
@@ -58,14 +91,15 @@ const getOverallStatus = (submission: SchoolCensusSubmission, totalSections: num
     return { label: 'Em Andamento', variant: 'secondary', completedCount };
 }
 
+
 const SubmissionStatusModal = ({ submission, school, overallStatus, totalSections }: { submission: SchoolCensusSubmission, school: School | undefined, overallStatus: ReturnType<typeof getOverallStatus>, totalSections: number }) => {
     const sections = [
-        { name: 'Dados Gerais', status: submission.general?.status },
-        { name: 'Infraestrutura', status: submission.infrastructure?.status },
-        { name: 'Profissionais', status: submission.professionals?.status },
-        { name: 'Tecnologia', status: submission.technology?.status },
-        { name: 'Cultural', status: submission.cultural?.status },
-        { name: 'Manutenção', status: submission.maintenance?.status },
+        { name: 'Dados Gerais', status: getSectionStatus(submission, 'general') },
+        { name: 'Infraestrutura', status: getSectionStatus(submission, 'infrastructure') },
+        { name: 'Profissionais', status: getSectionStatus(submission, 'professionals') },
+        { name: 'Tecnologia', status: getSectionStatus(submission, 'technology') },
+        { name: 'Cultural', status: getSectionStatus(submission, 'cultural') },
+        { name: 'Manutenção', status: getSectionStatus(submission, 'maintenance') },
     ];
 
     return (
@@ -91,7 +125,7 @@ const SubmissionStatusModal = ({ submission, school, overallStatus, totalSection
                         <div key={section.name} className="flex items-center justify-between">
                             <span className="text-sm font-medium">{section.name}</span>
                             <div className="flex items-center gap-2">
-                                <StatusIcon status={section.status} />
+                                <StatusIcon status={section.status as 'completed' | 'pending'} />
                                 <span className={`text-sm ${section.status === 'completed' ? 'text-green-600' : 'text-yellow-600'}`}>
                                     {section.status === 'completed' ? 'Preenchido' : 'Pendente'}
                                 </span>
