@@ -40,7 +40,7 @@ import {
 } from "@/components/ui/popover"
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import type { School, FormSectionConfig, FormFieldConfig, SchoolCensusSubmission, Classroom, Professional, ClassroomAllocation, TeacherAllocation } from "@/types";
+import type { School, FormSectionConfig, FormFieldConfig, SchoolCensusSubmission, Classroom, Professional, TeacherAllocation, ClassroomAllocation } from "@/types";
 import { professionalContractTypes, professionalObservationTypes } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from "@/components/ui/card";
 import { Loader2, Building, HardHat, Laptop, Palette, Wrench, PlusCircle, Trash2, UserCog, ChevronsUpDown, Check } from "lucide-react";
@@ -50,7 +50,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { produce } from "immer";
 import { useAppSettings } from "@/context/AppContext";
 import { db } from "@/lib/firebase";
-import { doc, getDoc, setDoc, collection, getDocs, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc, collection, getDocs, serverTimestamp, updateDoc } from "firebase/firestore";
 import { useAuth } from "@/hooks/useAuth";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Separator } from "@/components/ui/separator";
@@ -542,13 +542,11 @@ const ClassroomAllocationItem = ({ allocationIndex, professionalsList }: { alloc
         name: `professionals.allocations.${allocationIndex}.teachers`
     });
 
-    let turnStudents, turnProjection;
+    let turnStudents;
     if (allocation.turn === 'integral') {
         turnStudents = room?.studentsIntegral;
-        turnProjection = room?.gradeProjection2026Integral;
     } else {
         turnStudents = allocation.turn === 'morning' ? room?.studentsMorning : allocation.turn === 'afternoon' ? room?.studentsAfternoon : room?.studentsNight;
-        turnProjection = allocation.turn === 'morning' ? room?.gradeProjection2026Morning : allocation.turn === 'afternoon' ? room?.gradeProjection2026Afternoon : room?.gradeProjection2026Night;
     }
 
     return (
@@ -558,11 +556,6 @@ const ClassroomAllocationItem = ({ allocationIndex, professionalsList }: { alloc
                 <p className="text-sm text-muted-foreground">
                     Turno: <span className="font-medium capitalize">{allocation.turn === 'morning' ? 'Manhã' : allocation.turn === 'afternoon' ? 'Tarde' : allocation.turn === 'night' ? 'Noite' : 'Integral'}</span> | 
                     Série: <span className="font-medium">{allocation.grade}</span> {turnStudents ? `(${turnStudents} alunos)` : ''}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                    Projeção 2026: <span className="font-medium">
-                        {turnProjection || 'N/A'}
-                    </span>
                 </p>
             </div>
 
@@ -580,7 +573,7 @@ const ClassroomAllocationItem = ({ allocationIndex, professionalsList }: { alloc
                     type="button" 
                     variant="outline" 
                     size="sm"
-                    onClick={() => appendTeacher({})}
+                    onClick={() => appendTeacher({ professionalId: '', contractType: '', workload: undefined, observations: '' })}
                 >
                     <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Professor
                 </Button>
@@ -803,29 +796,24 @@ export function SchoolCensusForm() {
         return;
     }
 
-    const { schoolId, dynamicData, infrastructure, professionals } = values;
+    const { schoolId } = values;
 
     if (!schoolId) {
         toast({ title: "Erro", description: "Selecione uma escola primeiro.", variant: "destructive" });
         return;
     }
 
+    const submissionRef = doc(db, 'submissions', schoolId);
+    
     try {
-        const submissionRef = doc(db, 'submissions', schoolId);
-        
-        const submissionPayload = {
-          id: schoolId,
-          schoolId: schoolId,
-          dynamicData,
-          infrastructure,
-          professionals,
-          submittedAt: serverTimestamp(),
-          submittedBy: user?.uid || 'unknown'
-        };
+        const cleanedPayload = cleanData(values);
 
-        const cleanedPayload = cleanData(submissionPayload);
-
-        await setDoc(submissionRef, cleanedPayload, { merge: true });
+        // We use setDoc with merge:true which acts like an upsert.
+        await setDoc(submissionRef, { 
+            ...cleanedPayload,
+            submittedAt: serverTimestamp(),
+            submittedBy: user.uid,
+         }, { merge: true });
 
         toast({
             title: "Sucesso!",
@@ -1003,3 +991,5 @@ export function SchoolCensusForm() {
     </Card>
   );
 }
+
+  
