@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useForm, useFieldArray, Controller, useWatch, useFormContext } from "react-hook-form";
@@ -358,15 +359,9 @@ const InfrastructureSection = () => {
     );
 };
 
-const TeacherAllocationForm = ({ allocationIndex, teacherIndex, removeTeacher }: { allocationIndex: number, teacherIndex: number, removeTeacher: (index: number) => void }) => {
-    const { control, watch } = useFormContext();
-    const availableProfessionals = watch('professionalsList') as Professional[] | undefined;
+const TeacherAllocationForm = ({ allocationIndex, teacherIndex, removeTeacher, availableProfessionals }: { allocationIndex: number, teacherIndex: number, removeTeacher: (index: number) => void, availableProfessionals: Professional[] }) => {
+    const { control } = useFormContext();
     
-    const professionalsList = useMemo(() => {
-        return availableProfessionals || [];
-    }, [availableProfessionals]);
-
-
     return (
         <div className="p-4 border rounded-md bg-background relative space-y-4">
             <Button
@@ -398,7 +393,7 @@ const TeacherAllocationForm = ({ allocationIndex, teacherIndex, removeTeacher }:
                                             )}
                                         >
                                             {field.value
-                                                ? professionalsList.find(
+                                                ? availableProfessionals.find(
                                                     (prof) => prof.id === field.value
                                                 )?.name
                                                 : "Selecione um profissional"}
@@ -412,7 +407,7 @@ const TeacherAllocationForm = ({ allocationIndex, teacherIndex, removeTeacher }:
                                         <CommandList>
                                             <CommandEmpty>Nenhum profissional encontrado.</CommandEmpty>
                                             <CommandGroup>
-                                                {professionalsList.map((prof) => (
+                                                {availableProfessionals.map((prof) => (
                                                     <CommandItem
                                                         value={prof.name}
                                                         key={prof.id}
@@ -514,17 +509,16 @@ const TeacherAllocationForm = ({ allocationIndex, teacherIndex, removeTeacher }:
 }
 
 const ProfessionalsAllocationSection = ({ professionalsList }: { professionalsList: Professional[] }) => {
-    const { control, getValues, watch } = useFormContext();
+    const { control, getValues, watch, setValue } = useFormContext();
     const classrooms = watch("infrastructure.classrooms") as Classroom[] || [];
     const { fields, replace } = useFieldArray({
         control,
         name: "professionals.allocations",
     });
 
-    // Pass the full professionals list down to the context for the sub-form
     useEffect(() => {
-        control.setValue('professionalsList', professionalsList);
-    }, [professionalsList, control]);
+        setValue('professionalsList', professionalsList);
+    }, [professionalsList, setValue]);
     
     useEffect(() => {
         if (!classrooms) return;
@@ -575,6 +569,25 @@ const ProfessionalsAllocationSection = ({ professionalsList }: { professionalsLi
 
         replace(mergedAllocations);
     }, [classrooms, getValues, replace]);
+
+    const schoolId = watch('schoolId');
+    const allProfessionals = watch('professionalsList') as Professional[];
+    const schoolData = watch('schoolsList')?.find((s: School) => s.id === schoolId);
+
+    const availableProfessionals = useMemo(() => {
+        if (!schoolData || !allProfessionals) {
+            return allProfessionals || [];
+        }
+        
+        const filtered = allProfessionals.filter(p => {
+             if (!p.unidade) return true; // Always include professors without a specific unit
+             return p.unidade.toLowerCase().includes(schoolData.name.toLowerCase());
+        });
+       
+        return filtered.length > 0 ? filtered : allProfessionals;
+
+    }, [schoolId, schoolData, allProfessionals]);
+
 
     return (
         <Card>
@@ -630,6 +643,7 @@ const ProfessionalsAllocationSection = ({ professionalsList }: { professionalsLi
                                                 allocationIndex={index}
                                                 teacherIndex={teacherIndex}
                                                 removeTeacher={removeTeacher}
+                                                availableProfessionals={availableProfessionals}
                                             />
                                         ))}
                                         <Button 
@@ -821,23 +835,23 @@ export function SchoolCensusForm() {
   };
 
   const cleanData = (data: any): any => {
-    if (data === undefined) {
-      return null;
-    }
     if (Array.isArray(data)) {
       return data.map(v => cleanData(v));
     }
-    if (data !== null && typeof data === 'object' && !data._isFieldValue) {
+    if (data !== null && typeof data === 'object' && !data._isFieldValue && !(data instanceof Date)) {
         if (data.toDate && typeof data.toDate === 'function') { // It's a Firestore Timestamp
             return data;
         }
-        return Object.fromEntries(
-            Object.entries(data)
-                .map(([key, value]) => [key, cleanData(value)])
-                .filter(([, value]) => value !== null)
-        );
+        const cleaned: { [key: string]: any } = {};
+        for (const key in data) {
+            const value = data[key];
+            if (value !== undefined) {
+                 cleaned[key] = cleanData(value);
+            }
+        }
+        return cleaned;
     }
-    return data;
+    return data === undefined ? null : data;
   };
 
 
@@ -945,7 +959,7 @@ export function SchoolCensusForm() {
 
   return (
     <Card>
-      <Form {...form}>
+      <FormProvider {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <CardHeader>
              <CardTitle>Identificação da Escola</CardTitle>
@@ -1077,7 +1091,7 @@ export function SchoolCensusForm() {
             </Button>
           </CardFooter>
         </form>
-      </Form>
+      </FormProvider>
     </Card>
   );
 }
