@@ -364,7 +364,6 @@ const TeacherAllocationForm = ({ allocationIndex, teacherIndex, removeTeacher }:
     const professionalsList = watch('professionalsList') as Professional[];
     
     const availableProfessionals = useMemo(() => {
-        // This component doesn't filter, just uses the provided list.
         return professionalsList || [];
     }, [professionalsList]);
 
@@ -661,21 +660,20 @@ const ProfessionalsAllocationSection = () => {
     );
 };
 
-
 const generateDefaultValues = (config: FormSectionConfig[]) => {
-      const defaultDynamicValues: { [key: string]: any } = {};
-      
-      config.forEach((section: FormSectionConfig) => {
-          if (!section.id.startsWith('infra')) {
-            defaultDynamicValues[section.id] = {};
-            section.fields.forEach((field: FormFieldConfig) => {
-                defaultDynamicValues[section.id][field.id] = 
-                    field.type === 'boolean' ? false :
-                    '';
-            });
-          }
-      });
-      return defaultDynamicValues;
+    const defaultDynamicValues: { [key: string]: any } = {};
+    
+    config.forEach((section: FormSectionConfig) => {
+        if (!section.id.startsWith('infra')) {
+          defaultDynamicValues[section.id] = {};
+          section.fields.forEach((field: FormFieldConfig) => {
+              defaultDynamicValues[section.id][field.id] = 
+                  field.type === 'boolean' ? false :
+                  '';
+          });
+        }
+    });
+    return defaultDynamicValues;
 };
 
 
@@ -701,10 +699,25 @@ export function SchoolCensusForm() {
     },
   });
   
+  const { reset } = form;
+
+  const memoizedGenerateDefaultValues = useCallback((config: FormSectionConfig[]) => {
+      const defaultDynamicValues: { [key: string]: any } = {};
+      config.forEach(section => {
+        if (!section.id.startsWith('infra')) {
+          defaultDynamicValues[section.id] = {};
+          section.fields.forEach(field => {
+            defaultDynamicValues[section.id][field.id] = field.type === 'boolean' ? false : '';
+          });
+        }
+      });
+      return defaultDynamicValues;
+  }, []);
+
 
   // Fetch schools and form config from Firestore
   useEffect(() => {
-    if (appLoading || !db) return; // Wait for app settings and db to be ready
+    if (appLoading || !db || !user) return;
     
     const schoolIdFromUrl = searchParams.get('schoolId');
 
@@ -728,15 +741,9 @@ export function SchoolCensusForm() {
             setAvailableProfessionals(professionalsData);
 
             let configData: FormSectionConfig[] = formConfigDoc.exists() ? formConfigDoc.data().sections : [];
-            // Manually ensure the professionals section exists for older configs
-             if (!configData.some(s => s.id === 'professionals')) {
+            if (!configData.some(s => s.id === 'professionals')) {
                 const infraIndex = configData.findIndex(s => s.id.startsWith('infra'));
-                const newSection = {
-                    id: 'professionals',
-                    name: 'Profissionais',
-                    description: 'Alocação de profissionais por turma.',
-                    fields: []
-                };
+                const newSection = { id: 'professionals', name: 'Profissionais', description: 'Alocação de profissionais por turma.', fields: [] };
                 if (infraIndex !== -1) {
                     configData.splice(infraIndex + 1, 0, newSection);
                 } else {
@@ -745,8 +752,7 @@ export function SchoolCensusForm() {
             }
             setFormConfig(configData);
             
-            // Now that config is loaded, handle initial form state
-            const defaultDynamicValues = generateDefaultValues(configData);
+            const defaultDynamicValues = memoizedGenerateDefaultValues(configData);
             let initialValues: z.infer<typeof formSchema> = {
                 schoolId: schoolIdFromUrl || "",
                 dynamicData: defaultDynamicValues,
@@ -755,12 +761,11 @@ export function SchoolCensusForm() {
                 professionalsList: professionalsData,
             };
 
-            // Only attempt to load submission data if a school is selected and user is logged in
-            if (schoolIdFromUrl && user) {
+            if (schoolIdFromUrl) {
                 const submissionDoc = await getDoc(doc(db, 'submissions', schoolIdFromUrl));
                 if (submissionDoc.exists()) {
                     const existingSubmission = submissionDoc.data() as SchoolCensusSubmission;
-                     const mergedDynamicData = produce(defaultDynamicValues, draft => {
+                    const mergedDynamicData = produce(defaultDynamicValues, draft => {
                         if (existingSubmission.dynamicData) {
                             for (const sectionId in existingSubmission.dynamicData) {
                                 if (draft[sectionId]) {
@@ -775,12 +780,12 @@ export function SchoolCensusForm() {
                     if (existingSubmission.infrastructure?.classrooms) {
                         initialValues.infrastructure = existingSubmission.infrastructure;
                     }
-                     if (existingSubmission.professionals?.allocations) {
+                    if (existingSubmission.professionals?.allocations) {
                         initialValues.professionals = existingSubmission.professionals;
                     }
                 }
             }
-            form.reset(initialValues);
+            reset(initialValues);
 
         } catch (error) {
             console.error("Failed to load config from Firestore", error);
@@ -790,13 +795,13 @@ export function SchoolCensusForm() {
         }
     }
     fetchInitialData();
-  }, [form, appLoading, toast, user, searchParams]);
+  }, [reset, memoizedGenerateDefaultValues, appLoading, toast, user, searchParams]);
 
 
   const handleSchoolChange = async (schoolId: string) => {
       if (!db || !user) return;
       
-      const defaultValues = generateDefaultValues(formConfig);
+      const defaultValues = memoizedGenerateDefaultValues(formConfig);
       let resetValues: z.infer<typeof formSchema> = {
           schoolId,
           dynamicData: defaultValues,
@@ -828,7 +833,7 @@ export function SchoolCensusForm() {
               resetValues.professionals = existingSubmission.professionals;
           }
       } 
-      form.reset(resetValues);
+      reset(resetValues);
   };
 
   const cleanData = (data: any): any => {
