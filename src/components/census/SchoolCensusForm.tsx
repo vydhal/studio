@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useForm, useFieldArray, Controller, useWatch, useFormContext, FormProvider } from "react-hook-form";
@@ -912,7 +913,7 @@ export function SchoolCensusForm() {
                         <Select onValueChange={(value) => {
                             field.onChange(value);
                             router.push(`/census?schoolId=${value}`, { scroll: false });
-                        }} value={field.value}>
+                        }} value={field.value ?? ""}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Selecione uma escola" />
