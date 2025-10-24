@@ -61,26 +61,57 @@ export interface Professional {
 export const professionalContractTypes = ['EFETIVO ATIVO', 'CONTRATO ATIVO', 'MOMENTO DO DESCANSO', 'JORNADA AMPLIADA'];
 export const professionalObservationTypes = [
     'Nenhuma',
-    'PERMUTA',
-    'PERMUTA OUTRO MUNICÍPIO',
-    'LICENÇA MÉDICA',
-    'LICENÇA PRÊMIO',
-    'LICENÇA COM VENCIMENTOS',
-    'LICENÇA SEM VENCIMENTOS',
-    'VAGA DO GESTOR',
-    'AFASTADO PARA APOSENTADORIA',
+    'ATIVO',
+    'HORA AULA - AFASTAMENTO PARA APOSENTADORIA',
+    'HORA AULA - FALTA DE PROFESSOR',
+    'HORA AULA - FÉRIAS',
+    'HORA AULA - LICENÇA COM VENCIMENTOS',
+    'HORA AULA - LICENÇA MATERNIDADE',
+    'HORA AULA - LICENÇA MÉDICA',
+    'HORA AULA - LICENÇA PRÊMIO',
+    'HORA AULA - LICENÇA SEM VENCIMENTOS',
+    'HORA AULA - PERMUTA CAMPINA GRANDE',
+    'HORA AULA - PERMUTA OUTRO MUNICÍPIO',
+    'HORA AULA - READAPTAÇÃO',
+    'HORA AULA - REDUÇÃO DE CARGA HORÁRIA',
+    'HORA AULA - VAGA DO GESTOR',
+    'JORNADA AMPLIADA - AFASTAMENTO PARA APOSENTADORIA',
+    'JORNADA AMPLIADA - FALTA DE PROFESSOR',
+    'JORNADA AMPLIADA - FÉRIAS',
+    'JORNADA AMPLIADA - LICENÇA COM VENCIMENTOS',
+    'JORNADA AMPLIADA - LICENÇA MATERNIDADE',
+    'JORNADA AMPLIADA - LICENÇA MÉDICA',
+    'JORNADA AMPLIADA - LICENÇA PRÊMIO',
+    'JORNADA AMPLIADA - LICENÇA SEM VENCIMENTOS',
+    'JORNADA AMPLIADA - PERMUTA CAMPINA GRANDE',
+    'JORNADA AMPLIADA - PERMUTA OUTRO MUNICÍPIO',
+    'JORNADA AMPLIADA - READAPTAÇÃO',
+    'JORNADA AMPLIADA - REDUÇÃO DE CARGA HORÁRIA',
+    'JORNADA AMPLIADA - VAGA DO GESTOR',
+    'MOMENTO DO DESCANSO - FALTA DE PROFESSOR',
+    'MOMENTO DO DESCANSO - LICENÇA MATERNIDADE',
+    'MOMENTO DO DESCANSO - LICENÇA MÉDICA',
+    'MOMENTO DO DESCANSO - LICENÇA PRÊMIO',
+    'MOMENTO DO DESCANSO - PERMUTA CAMPINA GRANDE',
+    'MOMENTO DO DESCANSO - PERMUTA OUTRO MUNICÍPIO',
+    'PROFESSOR AEE',
+    'PROFESSOR MÚSICA',
+    'PROFESSOR CAPOEIRA'
 ];
 
+export interface TeacherAllocation {
+    professionalId?: string;
+    contractType?: string;
+    workload?: number;
+    observations?: string;
+}
 
 export interface ClassroomAllocation {
     classroomId: string;
     classroomName: string;
     turn: 'morning' | 'afternoon' | 'night' | 'integral';
     grade: string;
-    professionalId?: string;
-    contractType?: string;
-    workload?: number;
-    observations?: string;
+    teachers: TeacherAllocation[];
 }
 
 
