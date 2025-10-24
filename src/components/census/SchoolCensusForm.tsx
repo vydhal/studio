@@ -512,7 +512,7 @@ const TeacherAllocationForm = ({ allocationIndex, teacherIndex, removeTeacher }:
             </div>
         </div>
     )
-}
+};
 
 const ClassroomAllocationItem = ({ allocationIndex }: { allocationIndex: number; }) => {
     const { control, getValues, watch } = useFormContext();
