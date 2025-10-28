@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -140,8 +139,9 @@ export function UserManagementClient() {
             const userRef = doc(db, 'users', editingUser.id);
             await setDoc(userRef, { 
               name: profileData.name, 
+              email: profileData.email,
               roleId: profileData.roleId,
-              schoolId: profileData.schoolId || null, // Store null if empty
+              schoolId: profileData.schoolId || null,
             }, { merge: true });
         } else {
             // Creating new user
