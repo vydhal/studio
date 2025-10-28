@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { Button } from '@/components/ui/button';
@@ -8,17 +9,28 @@ import { useAppSettings } from '@/context/AppContext';
 import { Facebook, Instagram, Twitter, ArrowRight, BookOpenCheck } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useAuth } from '@/hooks/useAuth';
+import { useRouter } from 'next/navigation';
 
 
 export function HomeContent() {
     const { settings, loading } = useAppSettings();
+    const { user, loading: authLoading } = useAuth();
+    const router = useRouter();
+
+    const handleCensusClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+        if (!authLoading && !user) {
+            e.preventDefault();
+            router.push('/login');
+        }
+    };
 
     if (loading || !settings) {
         return <HomeSkeleton />;
     }
 
     return (
-        <div className="container py-12 md:py-24">
+        <div className="container py-12 md:py-24 px-6 md:px-8 flex-col justify-center items-center">
             <div className="grid gap-6 lg:grid-cols-2 lg:gap-12 xl:grid-cols-[1fr_550px]">
                 <div className="flex flex-col justify-center space-y-4">
                     <div className="space-y-2">
@@ -44,7 +56,7 @@ export function HomeContent() {
                     </p>
                     <div className="flex flex-col gap-2 min-[400px]:flex-row">
                         <Button size="lg" asChild>
-                           <Link href="/census">
+                           <Link href="/census" onClick={handleCensusClick}>
                                 Preencher Censo
                                 <ArrowRight className="ml-2 h-4 w-4" />
                             </Link>
@@ -175,3 +187,5 @@ function HomeSkeleton() {
         </div>
     );
 }
+
+  

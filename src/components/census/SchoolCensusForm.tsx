@@ -50,7 +50,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { produce } from "immer";
 import { useAppSettings } from "@/context/AppContext";
 import { db } from "@/lib/firebase";
-import { doc, getDoc, setDoc, collection, getDocs, serverTimestamp, updateDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, collection, getDocs, serverTimestamp, updateDoc, addDoc } from "firebase/firestore";
 import { useAuth } from "@/hooks/useAuth";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Separator } from "@/components/ui/separator";
@@ -326,13 +326,6 @@ const InfrastructureSection = () => {
                                                     <FormField control={control} name={`infrastructure.classrooms.${index}.gradeIntegral`} render={({ field }) => (<FormItem><FormLabel>Série - Integral</FormLabel><Select onValueChange={field.onChange} value={field.value ?? ''}><FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl><SelectContent>{gradeLevels.map(grade => <SelectItem key={grade} value={grade}>{grade}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
                                                     <FormField control={control} name={`infrastructure.classrooms.${index}.studentsIntegral`} render={({ field }) => (<FormItem><FormLabel>Alunos - Integral</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? 0 : e.target.valueAsNumber)} /></FormControl><FormMessage /></FormItem>)} />
                                                 </div>
-                                                
-                                                <Separator/>
-                                                
-                                                <p className="font-medium text-sm">Projeção 2026 Período Integral</p>
-                                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                                    <FormField control={control} name={`infrastructure.classrooms.${index}.gradeProjection2026Integral`} render={({ field }) => (<FormItem><FormLabel>Projeção Série - Integral</FormLabel><Select onValueChange={field.onChange} value={field.value ?? ''}><FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl><SelectContent>{gradeLevels.map(grade => <SelectItem key={grade} value={grade}>{grade}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
-                                                </div>
                                             </>
                                         ) : (
                                             <>
@@ -346,15 +339,6 @@ const InfrastructureSection = () => {
                                                     <div></div>
                                                     <FormField control={control} name={`infrastructure.classrooms.${index}.gradeNight`} render={({ field }) => (<FormItem><FormLabel>Série - Noite</FormLabel><Select onValueChange={field.onChange} value={field.value ?? ''}><FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl><SelectContent>{gradeLevels.map(grade => <SelectItem key={grade} value={grade}>{grade}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
                                                     <FormField control={control} name={`infrastructure.classrooms.${index}.studentsNight`} render={({ field }) => (<FormItem><FormLabel>Alunos - Noite</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? 0 : e.target.valueAsNumber)} /></FormControl><FormMessage /></FormItem>)} />
-                                                </div>
-
-                                                <Separator/>
-                                                
-                                                <p className="font-medium text-sm">Projeção 2026 por Turno</p>
-                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                                    <FormField control={control} name={`infrastructure.classrooms.${index}.gradeProjection2026Morning`} render={({ field }) => (<FormItem><FormLabel>Projeção Manhã</FormLabel><Select onValueChange={field.onChange} value={field.value ?? ''}><FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl><SelectContent>{gradeLevels.map(grade => <SelectItem key={grade} value={grade}>{grade}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
-                                                    <FormField control={control} name={`infrastructure.classrooms.${index}.gradeProjection2026Afternoon`} render={({ field }) => (<FormItem><FormLabel>Projeção Tarde</FormLabel><Select onValueChange={field.onChange} value={field.value ?? ''}><FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl><SelectContent>{gradeLevels.map(grade => <SelectItem key={grade} value={grade}>{grade}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
-                                                    <FormField control={control} name={`infrastructure.classrooms.${index}.gradeProjection2026Night`} render={({ field }) => (<FormItem><FormLabel>Projeção Noite</FormLabel><Select onValueChange={field.onChange} value={field.value ?? ''}><FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl><SelectContent>{gradeLevels.map(grade => <SelectItem key={grade} value={grade}>{grade}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
                                                 </div>
                                             </>
                                         )}
@@ -383,8 +367,30 @@ const InfrastructureSection = () => {
     );
 };
 
-const TeacherAllocationForm = ({ allocationIndex, teacherIndex, removeTeacher, professionalsList }: { allocationIndex: number, teacherIndex: number, removeTeacher: (index: number) => void, professionalsList: Professional[] }) => {
+const TeacherAllocationForm = ({ allocationIndex, teacherIndex, removeTeacher, professionalsList, onProfessionalCreated }: { allocationIndex: number, teacherIndex: number, removeTeacher: (index: number) => void, professionalsList: Professional[], onProfessionalCreated: (newProfessional: Professional) => void }) => {
     const { control } = useFormContext();
+    const { toast } = useToast();
+    const [popoverOpen, setPopoverOpen] = useState(false);
+    const [search, setSearch] = useState('');
+    
+    const handleCreateProfessional = async (name: string) => {
+        if (!name.trim()) return;
+
+        try {
+            const docRef = await addDoc(collection(db, "professionals"), { name: name.trim() });
+            const newProfessional = { id: docRef.id, name: name.trim() };
+            onProfessionalCreated(newProfessional);
+            
+            const fieldName = `professionals.allocations.${allocationIndex}.teachers.${teacherIndex}.professionalId`;
+            control.setValue(fieldName, newProfessional.id);
+
+            setPopoverOpen(false);
+            toast({ title: "Sucesso", description: `Profissional "${name.trim()}" criado e selecionado.` });
+        } catch (error) {
+            console.error("Error creating professional:", error);
+            toast({ title: "Erro", description: "Não foi possível criar o novo profissional.", variant: "destructive" });
+        }
+    };
     
     return (
         <div className="p-4 border rounded-md bg-background relative space-y-4">
@@ -405,7 +411,7 @@ const TeacherAllocationForm = ({ allocationIndex, teacherIndex, removeTeacher, p
                     render={({ field }) => (
                         <FormItem className="flex flex-col">
                             <FormLabel>Professor(a)</FormLabel>
-                            <Popover>
+                            <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
                                 <PopoverTrigger asChild>
                                     <FormControl>
                                         <Button
@@ -420,16 +426,26 @@ const TeacherAllocationForm = ({ allocationIndex, teacherIndex, removeTeacher, p
                                                 ? professionalsList.find(
                                                     (prof) => prof.id === field.value
                                                 )?.name
-                                                : "Selecione um profissional"}
+                                                : "Selecione ou crie um profissional"}
                                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                         </Button>
                                     </FormControl>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-[--radix-popover-trigger-width] max-h-[--radix-popover-content-available-height] p-0">
                                     <Command>
-                                        <CommandInput placeholder="Buscar profissional..." />
+                                        <CommandInput 
+                                            placeholder="Buscar ou digitar novo..."
+                                            value={search}
+                                            onValueChange={setSearch}
+                                        />
                                         <CommandList>
-                                            <CommandEmpty>Nenhum profissional encontrado.</CommandEmpty>
+                                            <CommandEmpty onSelect={() => handleCreateProfessional(search)}>
+                                                <div
+                                                    className="cursor-pointer p-2"
+                                                >
+                                                    Adicionar novo: "{search}"
+                                                </div>
+                                            </CommandEmpty>
                                             <CommandGroup>
                                                 {professionalsList.map((prof) => (
                                                     <CommandItem
@@ -437,6 +453,7 @@ const TeacherAllocationForm = ({ allocationIndex, teacherIndex, removeTeacher, p
                                                         key={prof.id}
                                                         onSelect={() => {
                                                             field.onChange(prof.id);
+                                                            setPopoverOpen(false);
                                                         }}
                                                     >
                                                         <Check
@@ -532,7 +549,7 @@ const TeacherAllocationForm = ({ allocationIndex, teacherIndex, removeTeacher, p
     )
 };
 
-const ClassroomAllocationItem = ({ allocationIndex, professionalsList }: { allocationIndex: number; professionalsList: Professional[] }) => {
+const ClassroomAllocationItem = ({ allocationIndex, professionalsList, onProfessionalCreated }: { allocationIndex: number; professionalsList: Professional[], onProfessionalCreated: (newProfessional: Professional) => void }) => {
     const { control, getValues, watch } = useFormContext();
     const classrooms = watch("infrastructure.classrooms") as Classroom[] || [];
     const allocation = getValues(`professionals.allocations.${allocationIndex}`) as ClassroomAllocation;
@@ -568,6 +585,7 @@ const ClassroomAllocationItem = ({ allocationIndex, professionalsList }: { alloc
                         teacherIndex={teacherIndex}
                         removeTeacher={removeTeacher}
                         professionalsList={professionalsList}
+                        onProfessionalCreated={onProfessionalCreated}
                     />
                 ))}
                 <Button 
@@ -584,7 +602,7 @@ const ClassroomAllocationItem = ({ allocationIndex, professionalsList }: { alloc
 };
 
 
-const ProfessionalsAllocationSection = ({ professionals }: { professionals: Professional[] }) => {
+const ProfessionalsAllocationSection = ({ professionals, onProfessionalCreated }: { professionals: Professional[], onProfessionalCreated: (newProfessional: Professional) => void }) => {
     const { control, getValues, watch, setValue } = useFormContext();
     const classrooms = watch("infrastructure.classrooms") as Classroom[] || [];
 
@@ -658,7 +676,7 @@ const ProfessionalsAllocationSection = ({ professionals }: { professionals: Prof
                 ) : (
                     <div className="space-y-6">
                         {(fields as (ClassroomAllocation & { id: string })[]).map((field, index) => (
-                            <ClassroomAllocationItem key={field.id} allocationIndex={index} professionalsList={professionals} />
+                            <ClassroomAllocationItem key={field.id} allocationIndex={index} professionalsList={professionals} onProfessionalCreated={onProfessionalCreated} />
                         ))}
                     </div>
                 )}
@@ -685,7 +703,7 @@ export function SchoolCensusForm() {
   const schoolIdFromUrl = searchParams.get('schoolId');
 
   const fetchInitialData = useCallback(async (schoolIdToLoad: string | null) => {
-    if (!db || !user) return;
+    if (!db) return;
     setIsConfigLoading(true);
     try {
         const schoolsQuery = collection(db, 'schools');
@@ -756,14 +774,21 @@ export function SchoolCensusForm() {
     } finally {
         setIsConfigLoading(false);
     }
-  }, [user, form.reset, toast]);
+  }, [form.reset, toast]);
   
   useEffect(() => {
-    if(!appLoading && !authLoading) {
-        fetchInitialData(schoolIdFromUrl);
+    // Only fetch if user is loaded and db is available.
+    // If not logged in, we still need the school list for the dropdown.
+    if(!appLoading) {
+      if (user || !schoolIdFromUrl) {
+          fetchInitialData(schoolIdFromUrl);
+      }
     }
-  }, [appLoading, authLoading, schoolIdFromUrl, fetchInitialData]);
+  }, [appLoading, user, authLoading, schoolIdFromUrl, fetchInitialData]);
 
+  const handleProfessionalCreated = (newProfessional: Professional) => {
+    setAvailableProfessionals(prev => [...prev, newProfessional]);
+  };
 
   const cleanData = (data: any): any => {
     if (Array.isArray(data)) {
@@ -794,6 +819,7 @@ export function SchoolCensusForm() {
     
     if (!user) {
         toast({ title: "Acesso Negado", description: "Você precisa estar logado para salvar os dados.", variant: "destructive"});
+        router.push('/login');
         return;
     }
 
@@ -844,6 +870,14 @@ export function SchoolCensusForm() {
     );
   }, [formConfig, userProfile, isAdmin]);
   
+  useEffect(() => {
+    // Redirect if trying to access a school form without being logged in
+    if (!authLoading && !user && schoolIdFromUrl) {
+      router.push('/login');
+    }
+  }, [authLoading, user, schoolIdFromUrl, router]);
+  
+  
   if (isConfigLoading || appLoading || authLoading) {
       return (
           <Card>
@@ -868,7 +902,11 @@ export function SchoolCensusForm() {
                         <FormLabel>Selecione a escola que está sendo recenseada</FormLabel>
                         <Select onValueChange={(value) => {
                             field.onChange(value);
-                            router.push(`/census?schoolId=${value}`, { scroll: false });
+                            if (user) {
+                              router.push(`/census?schoolId=${value}`, { scroll: false });
+                            } else {
+                              router.push('/login');
+                            }
                         }} value={field.value}>
                           <FormControl>
                             <SelectTrigger>
@@ -916,7 +954,7 @@ export function SchoolCensusForm() {
                       if (section.id === 'professionals') {
                         return (
                              <TabsContent key={section.id} value={section.id}>
-                                <ProfessionalsAllocationSection professionals={availableProfessionals} />
+                                <ProfessionalsAllocationSection professionals={availableProfessionals} onProfessionalCreated={handleProfessionalCreated}/>
                             </TabsContent>
                         )
                      }
