@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import type { UserProfile, Role, FormSectionPermission } from "@/types";
+import type { UserProfile, Role, FormSectionPermission, School } from "@/types";
 import { PlusCircle, MoreHorizontal } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -36,6 +36,7 @@ const userSchema = z.object({
   email: z.string().email("Email inválido."),
   password: z.string().min(6, "A senha deve ter no mínimo 6 caracteres.").optional(),
   roleId: z.string().min(1, "Selecione um perfil."),
+  schoolId: z.string().optional(),
 }).refine(data => data.id || data.password, {
     message: "A senha é obrigatória para novos usuários.",
     path: ["password"],
@@ -56,6 +57,7 @@ export function UserManagementClient() {
   const { toast } = useToast();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
+  const [schools, setSchools] = useState<School[]>([]);
   const [isUserModalOpen, setUserModalOpen] = useState(false);
   const [isRoleModalOpen, setRoleModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
@@ -65,7 +67,6 @@ export function UserManagementClient() {
 
 
   useEffect(() => {
-    // Only admins can view user/role data. Wait for auth to resolve.
     if (authLoading || !hasUsersPermission || !db) {
         return;
     }
@@ -77,10 +78,15 @@ export function UserManagementClient() {
     const rolesUnsub = onSnapshot(collection(db, 'roles'), snapshot => {
         setRoles(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Role)));
     }, (error) => console.error("Error listening to roles:", error));
+    
+    const schoolsUnsub = onSnapshot(collection(db, 'schools'), snapshot => {
+        setSchools(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as School)));
+    }, (error) => console.error("Error listening to schools:", error));
 
     return () => {
         usersUnsub();
         rolesUnsub();
+        schoolsUnsub();
     };
   }, [authLoading, hasUsersPermission]);
 
@@ -91,12 +97,12 @@ export function UserManagementClient() {
 
   const userForm = useForm<z.infer<typeof userSchema>>({
     resolver: zodResolver(userSchema),
-    defaultValues: { name: "", email: "", roleId: "" },
+    defaultValues: { name: "", email: "", roleId: "", schoolId: "" },
   });
 
   const handleEditUser = (user: UserProfile) => {
     setEditingUser(user);
-    userForm.reset({...user, password: ''}); // Don't show password
+    userForm.reset({...user, password: '', schoolId: user.schoolId || ""}); // Don't show password
     setUserModalOpen(true);
   };
 
@@ -125,32 +131,39 @@ export function UserManagementClient() {
     if(!db) return;
     toast({ title: `Salvando usuário...` });
 
+    const { password, ...profileData } = values;
+
     try {
         if (editingUser) {
             // Updating existing user
             const userRef = doc(db, 'users', editingUser.id);
-            const { name, roleId } = values;
-            await setDoc(userRef, { name, roleId }, { merge: true });
+            await setDoc(userRef, { 
+              name: profileData.name, 
+              roleId: profileData.roleId,
+              schoolId: profileData.schoolId || null, // Store null if empty
+            }, { merge: true });
         } else {
             // Creating new user
-            if (!values.password) {
+            if (!password) {
                 toast({ title: "Erro", description: "Senha é obrigatória para novos usuários.", variant: "destructive"});
                 return;
             }
-             // This is a simplified user creation flow.
-             // In a real app, you might send an invitation email instead.
-            const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+            const userCredential = await createUserWithEmailAndPassword(auth, values.email, password);
             const user = userCredential.user;
             await updateProfile(user, { displayName: values.name });
 
             // Now create the user profile document in Firestore
             const userRef = doc(db, 'users', user.uid);
-            const { name, email, roleId } = values;
-            await setDoc(userRef, { name, email, roleId });
+            await setDoc(userRef, { 
+              name: profileData.name, 
+              email: profileData.email, 
+              roleId: profileData.roleId,
+              schoolId: profileData.schoolId || null,
+            });
         }
         setUserModalOpen(false);
         setEditingUser(null);
-        userForm.reset({ name: "", email: "", roleId: "", password: "" });
+        userForm.reset({ name: "", email: "", roleId: "", password: "", schoolId: "" });
         toast({ title: `Usuário ${editingUser ? 'atualizado' : 'criado'} com sucesso!` });
     } catch (e: any) {
         let message = "Erro ao salvar usuário";
@@ -180,6 +193,8 @@ export function UserManagementClient() {
          toast({ title: "Erro ao salvar perfil", variant: "destructive"});
     }
   };
+  
+  const roleName = userForm.watch('roleId') ? roles.find(r => r.id === userForm.watch('roleId'))?.name : '';
 
   return (
     <Tabs defaultValue="users">
@@ -196,13 +211,13 @@ export function UserManagementClient() {
                             <CardTitle>Usuários</CardTitle>
                             <CardDescription>Adicione, edite e remova usuários do sistema.</CardDescription>
                         </div>
-                         <Button onClick={() => { setEditingUser(null); userForm.reset({ name: "", email: "", roleId: "" }); setUserModalOpen(true); }}>
+                         <Button onClick={() => { setEditingUser(null); userForm.reset({ name: "", email: "", roleId: "", password: "", schoolId: "" }); setUserModalOpen(true); }}>
                             <PlusCircle className="mr-2 h-4 w-4" /> Novo Usuário
                         </Button>
                     </div>
                 </CardHeader>
                 <CardContent>
-                    <UsersTable users={users} roles={roles} onEdit={handleEditUser} onDelete={handleDeleteUser} />
+                    <UsersTable users={users} roles={roles} schools={schools} onEdit={handleEditUser} onDelete={handleDeleteUser} />
                 </CardContent>
             </Card>
         </TabsContent>
@@ -244,13 +259,13 @@ export function UserManagementClient() {
                         )} />
                         {!editingUser && (
                             <FormField control={userForm.control} name="password" render={({ field }) => (
-                                <FormItem><FormLabel>Senha</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem>
+                                <FormItem><FormLabel>Senha</FormLabel><FormControl><Input type="password" {...field} value={field.value ?? ""} /></FormControl><FormMessage /></FormItem>
                             )} />
                         )}
                         <FormField control={userForm.control} name="roleId" render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Perfil</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <Select onValueChange={field.onChange} value={field.value}>
                                     <FormControl><SelectTrigger><SelectValue placeholder="Selecione um perfil" /></SelectTrigger></FormControl>
                                     <SelectContent>
                                         {roles.map(role => <SelectItem key={role.id} value={role.id}>{role.name}</SelectItem>)}
@@ -259,6 +274,22 @@ export function UserManagementClient() {
                                 <FormMessage />
                             </FormItem>
                         )} />
+                        {roleName === 'Unidade Educacional' && (
+                           <FormField control={userForm.control} name="schoolId" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Unidade Educacional</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value}>
+                                        <FormControl><SelectTrigger><SelectValue placeholder="Selecione uma escola" /></SelectTrigger></FormControl>
+                                        <SelectContent>
+                                            <SelectItem value="">Nenhuma</SelectItem>
+                                            {schools.map(school => <SelectItem key={school.id} value={school.id}>{school.name}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormDescription>Associe este usuário a uma escola específica.</FormDescription>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                        )}
                         <DialogFooter>
                             <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
                             <Button type="submit">Salvar</Button>
@@ -327,8 +358,10 @@ export function UserManagementClient() {
   );
 }
 
-function UsersTable({ users, roles, onEdit, onDelete }: { users: UserProfile[], roles: Role[], onEdit: (user: UserProfile) => void, onDelete: (id: string) => void }) {
+function UsersTable({ users, roles, schools, onEdit, onDelete }: { users: UserProfile[], roles: Role[], schools: School[], onEdit: (user: UserProfile) => void, onDelete: (id: string) => void }) {
     const roleMap = new Map(roles.map(r => [r.id, r.name]));
+    const schoolMap = new Map(schools.map(s => [s.id, s.name]));
+
     return (
         <Table>
             <TableHeader>
@@ -336,6 +369,7 @@ function UsersTable({ users, roles, onEdit, onDelete }: { users: UserProfile[], 
                     <TableHead>Nome</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Perfil</TableHead>
+                    <TableHead>Unidade</TableHead>
                     <TableHead><span className="sr-only">Ações</span></TableHead>
                 </TableRow>
             </TableHeader>
@@ -345,6 +379,7 @@ function UsersTable({ users, roles, onEdit, onDelete }: { users: UserProfile[], 
                         <TableCell className="font-medium">{user.name}</TableCell>
                         <TableCell>{user.email}</TableCell>
                         <TableCell>{roleMap.get(user.roleId) || 'N/A'}</TableCell>
+                        <TableCell>{(user.schoolId && schoolMap.get(user.schoolId)) || 'N/A'}</TableCell>
                         <TableCell className="text-right">
                            <DropdownMenu>
                                 <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>

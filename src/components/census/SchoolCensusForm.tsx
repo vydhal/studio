@@ -702,6 +702,8 @@ export function SchoolCensusForm() {
   });
 
   const schoolIdFromUrl = searchParams.get('schoolId');
+  
+  const selectedSchoolId = userProfile?.schoolId || schoolIdFromUrl;
 
   const fetchInitialData = useCallback(async (schoolIdToLoad: string | null) => {
     if (!db) return;
@@ -778,14 +780,24 @@ export function SchoolCensusForm() {
   }, [form.reset, toast]);
   
   useEffect(() => {
-    // Only fetch if user is loaded and db is available.
-    // If not logged in, we still need the school list for the dropdown.
-    if(!appLoading) {
-      if (user || !schoolIdFromUrl) {
-          fetchInitialData(schoolIdFromUrl);
-      }
+    if (authLoading) return;
+    
+    const idToLoad = userProfile?.schoolId || schoolIdFromUrl;
+
+    if (userProfile?.schoolId) {
+        form.setValue('schoolId', userProfile.schoolId);
+        if (schoolIdFromUrl !== userProfile.schoolId) {
+            router.replace(`/census?schoolId=${userProfile.schoolId}`, { scroll: false });
+        }
     }
-  }, [appLoading, user, authLoading, schoolIdFromUrl, fetchInitialData]);
+
+    if (idToLoad) {
+        fetchInitialData(idToLoad);
+    } else {
+        setIsConfigLoading(false);
+    }
+  }, [appLoading, user, authLoading, schoolIdFromUrl, userProfile, fetchInitialData, form, router]);
+
 
   const handleProfessionalCreated = (newProfessional: Professional) => {
     setAvailableProfessionals(prev => [...prev, newProfessional]);
@@ -905,14 +917,14 @@ export function SchoolCensusForm() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Selecione a escola que está sendo recenseada</FormLabel>
-                        <Select onValueChange={(value) => {
-                            field.onChange(value);
-                            if (user) {
-                              router.push(`/census?schoolId=${value}`, { scroll: false });
-                            } else {
-                              router.push('/login');
-                            }
-                        }} value={field.value}>
+                        <Select 
+                            onValueChange={(value) => {
+                                field.onChange(value);
+                                router.push(`/census?schoolId=${value}`, { scroll: false });
+                            }} 
+                            value={field.value}
+                            disabled={!!userProfile?.schoolId}
+                        >
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Selecione uma escola" />
@@ -932,12 +944,12 @@ export function SchoolCensusForm() {
                   />
           </CardHeader>
           <CardContent className="pt-6">
-            {(!form.getValues('schoolId') || !user) && (
+            {(!selectedSchoolId) && (
                  <div className="text-center text-muted-foreground py-10">
-                    <p>{!form.getValues('schoolId') ? "Selecione uma escola para começar." : "Você precisa estar logado para preencher o formulário."}</p>
+                    <p>Selecione uma escola para começar.</p>
                 </div>
             )}
-            {form.getValues('schoolId') && user && visibleSections.length > 0 && (
+            {selectedSchoolId && visibleSections.length > 0 && (
                  <Tabs defaultValue={visibleSections[0].id} className="w-full">
                   <TabsList className="mb-4 flex h-auto flex-wrap justify-start">
                       {visibleSections.map(section => {
@@ -1017,7 +1029,7 @@ export function SchoolCensusForm() {
                  
                 </Tabs>
             )}
-             {form.getValues('schoolId') && user && visibleSections.length === 0 && !isConfigLoading && (
+             {selectedSchoolId && visibleSections.length === 0 && !isConfigLoading && (
                 <div className="text-center text-muted-foreground py-10">
                     <p>Seu perfil não tem permissão para editar nenhuma seção do formulário.</p>
                     <p>Por favor, entre em contato com um administrador.</p>
@@ -1025,9 +1037,9 @@ export function SchoolCensusForm() {
             )}
           </CardContent>
           <CardFooter>
-            <Button type="submit" className="w-full" disabled={!form.getValues('schoolId') || form.formState.isSubmitting || !user}>
+            <Button type="submit" className="w-full" disabled={!selectedSchoolId || form.formState.isSubmitting}>
               {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {user ? 'Salvar Informações' : 'Faça login para salvar'}
+              Salvar Informações
             </Button>
           </CardFooter>
         </form>
@@ -1035,5 +1047,3 @@ export function SchoolCensusForm() {
     </Card>
   );
 }
-
-  

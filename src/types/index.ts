@@ -162,6 +162,7 @@ export interface UserProfile {
     roleId: string; // Foreign key to Role
     role: Role | null; // Populated role object
     password?: string;
+    schoolId?: string; // Foreign key to School
 }
 
 
