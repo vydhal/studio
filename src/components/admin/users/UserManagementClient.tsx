@@ -20,7 +20,7 @@ import { PlusCircle, MoreHorizontal } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { db, auth } from '@/lib/firebase';
-import { collection, onSnapshot, addDoc, doc, setDoc, deleteDoc, writeBatch } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, doc, setDoc, deleteDoc, writeBatch, updateDoc } from 'firebase/firestore';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -131,20 +131,19 @@ export function UserManagementClient() {
   const onUserSubmit = async (values: z.infer<typeof userSchema>) => {
     if(!db) return;
     toast({ title: `Salvando usuário...` });
-
-    const { password, ...profileData } = values;
-
+    
     try {
         if (editingUser) {
             // Updating existing user
             const userRef = doc(db, 'users', editingUser.id);
-            await setDoc(userRef, { 
-              name: profileData.name,
-              roleId: profileData.roleId,
-              schoolId: profileData.schoolId || null
-            }, { merge: true });
+            await updateDoc(userRef, { 
+              name: values.name, 
+              roleId: values.roleId,
+              schoolId: values.schoolId || null,
+            });
         } else {
             // Creating new user
+            const { password } = values;
             if (!password) {
                 toast({ title: "Erro", description: "Senha é obrigatória para novos usuários.", variant: "destructive"});
                 return;
@@ -156,10 +155,10 @@ export function UserManagementClient() {
             // Now create the user profile document in Firestore
             const userRef = doc(db, 'users', user.uid);
             await setDoc(userRef, { 
-              name: profileData.name, 
-              email: profileData.email, 
-              roleId: profileData.roleId,
-              schoolId: profileData.schoolId || null,
+              name: values.name, 
+              email: values.email, 
+              roleId: values.roleId,
+              schoolId: values.schoolId || null,
             });
         }
         setUserModalOpen(false);
@@ -171,7 +170,8 @@ export function UserManagementClient() {
         if (e.code === 'auth/email-already-in-use') {
             message = "Este email já está sendo utilizado por outro usuário.";
         }
-        toast({ title: message, variant: "destructive"});
+        console.error("User submit error:", e);
+        toast({ title: message, description: e.message, variant: "destructive"});
     }
   };
 

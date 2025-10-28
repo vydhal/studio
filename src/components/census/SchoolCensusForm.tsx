@@ -777,10 +777,10 @@ export function SchoolCensusForm() {
     } finally {
         setIsConfigLoading(false);
     }
-  }, [form.reset, toast]);
+  }, [form, toast]);
   
   useEffect(() => {
-    if (authLoading) return;
+    if (authLoading || appLoading) return;
     
     const idToLoad = userProfile?.schoolId || schoolIdFromUrl;
 
@@ -791,11 +791,8 @@ export function SchoolCensusForm() {
         }
     }
 
-    if (idToLoad) {
-        fetchInitialData(idToLoad);
-    } else {
-        setIsConfigLoading(false);
-    }
+    fetchInitialData(idToLoad);
+
   }, [appLoading, user, authLoading, schoolIdFromUrl, userProfile, fetchInitialData, form, router]);
 
 
