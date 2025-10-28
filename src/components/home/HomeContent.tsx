@@ -54,7 +54,7 @@ export function HomeContent() {
                     <p className="max-w-[600px] text-muted-foreground">
                         {settings.description}
                     </p>
-                    <div className="flex flex-col gap-2 min-[400px]:flex-row">
+                    <div className="flex flex-col gap-2 min-[400px]:flex-row items-center justify-center">
                         <Button size="lg" asChild>
                            <Link href="/census" onClick={handleCensusClick}>
                                 Preencher Censo
