@@ -151,14 +151,16 @@ export function UserManagementClient() {
     toast({ title: `Salvando usuário...` });
     
     try {
-        if (editingUser && editingUser.id) {
+        if (values.id) {
             // Updating existing user
-            const userRef = doc(db, 'users', editingUser.id);
-            await updateDoc(userRef, { 
+            const userRef = doc(db, 'users', values.id);
+            const dataToUpdate = { 
               name: values.name, 
               roleId: values.roleId,
               schoolId: values.schoolId || null,
-            });
+            };
+            console.log("Atualizando usuário:", values.id, dataToUpdate);
+            await updateDoc(userRef, dataToUpdate);
         } else {
             // Creating new user
             const { password } = values;
@@ -182,13 +184,13 @@ export function UserManagementClient() {
         setUserModalOpen(false);
         setEditingUser(null);
         userForm.reset();
-        toast({ title: `Usuário ${editingUser ? 'atualizado' : 'criado'} com sucesso!` });
+        toast({ title: `Usuário ${values.id ? 'atualizado' : 'criado'} com sucesso!` });
     } catch (e: any) {
+        console.error("Erro ao salvar usuário:", e);
         let message = "Erro ao salvar usuário";
         if (e.code === 'auth/email-already-in-use') {
             message = "Este email já está sendo utilizado por outro usuário.";
         }
-        console.error("User submit error:", e);
         toast({ title: message, description: e.message, variant: "destructive"});
     }
   };
