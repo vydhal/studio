@@ -101,9 +101,27 @@ export function UserManagementClient() {
     defaultValues: { name: "", email: "", roleId: "", schoolId: "" },
   });
 
-  const handleEditUser = (user: UserProfile) => {
+  const handleOpenUserModal = (user: UserProfile | null) => {
     setEditingUser(user);
-    userForm.reset({...user, password: '', schoolId: user.schoolId || ""}); // Don't show password
+    if (user) {
+        userForm.reset({
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            roleId: user.roleId,
+            schoolId: user.schoolId || "",
+            password: "",
+        });
+    } else {
+        userForm.reset({
+            id: undefined,
+            name: "",
+            email: "",
+            roleId: "",
+            schoolId: "",
+            password: "",
+        });
+    }
     setUserModalOpen(true);
   };
 
@@ -133,7 +151,7 @@ export function UserManagementClient() {
     toast({ title: `Salvando usuário...` });
     
     try {
-        if (editingUser) {
+        if (editingUser && editingUser.id) {
             // Updating existing user
             const userRef = doc(db, 'users', editingUser.id);
             await updateDoc(userRef, { 
@@ -163,7 +181,7 @@ export function UserManagementClient() {
         }
         setUserModalOpen(false);
         setEditingUser(null);
-        userForm.reset({ name: "", email: "", roleId: "", password: "", schoolId: "" });
+        userForm.reset();
         toast({ title: `Usuário ${editingUser ? 'atualizado' : 'criado'} com sucesso!` });
     } catch (e: any) {
         let message = "Erro ao salvar usuário";
@@ -212,13 +230,13 @@ export function UserManagementClient() {
                             <CardTitle>Usuários</CardTitle>
                             <CardDescription>Adicione, edite e remova usuários do sistema.</CardDescription>
                         </div>
-                         <Button onClick={() => { setEditingUser(null); userForm.reset({ name: "", email: "", roleId: "", password: "", schoolId: "" }); setUserModalOpen(true); }}>
+                         <Button onClick={() => handleOpenUserModal(null)}>
                             <PlusCircle className="mr-2 h-4 w-4" /> Novo Usuário
                         </Button>
                     </div>
                 </CardHeader>
                 <CardContent>
-                    <UsersTable users={users} roles={roles} schools={schools} onEdit={handleEditUser} onDelete={handleDeleteUser} />
+                    <UsersTable users={users} roles={roles} schools={schools} onEdit={(user) => handleOpenUserModal(user)} onDelete={handleDeleteUser} />
                 </CardContent>
             </Card>
         </TabsContent>
@@ -247,7 +265,7 @@ export function UserManagementClient() {
                 <DialogHeader>
                     <DialogTitle>{editingUser ? 'Editar' : 'Novo'} Usuário</DialogTitle>
                      <DialogDescription>
-                        A criação de um novo usuário o adicionará ao Firebase Authentication e criará um perfil no Firestore.
+                        Preencha os detalhes do usuário abaixo. A senha só é necessária ao criar um novo usuário.
                     </DialogDescription>
                 </DialogHeader>
                 <Form {...userForm}>
