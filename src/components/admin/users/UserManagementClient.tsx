@@ -282,7 +282,6 @@ export function UserManagementClient() {
                                     <Select onValueChange={field.onChange} value={field.value}>
                                         <FormControl><SelectTrigger><SelectValue placeholder="Selecione uma escola" /></SelectTrigger></FormControl>
                                         <SelectContent>
-                                            <SelectItem value="">Nenhuma</SelectItem>
                                             {schools.map(school => <SelectItem key={school.id} value={school.id}>{school.name}</SelectItem>)}
                                         </SelectContent>
                                     </Select>
