@@ -116,7 +116,7 @@ const formSchema = z.object({
 
 const sectionIcons: { [key: string]: React.ElementType } = {
   general: Building,
-  infra: HardHat,
+  infrastructure: HardHat,
   professionals: UserCog,
   tech: Laptop,
   cultural: Palette,
@@ -865,9 +865,13 @@ export function SchoolCensusForm() {
     }
     
     const userPermissions = userProfile.role.permissions;
-    return formConfig.filter(section => 
-        userPermissions.some(p => section.id.startsWith(p))
-    );
+    return formConfig.filter(section => {
+      // Special handling for infrastructure to match 'infra_167' or 'infrastructure'
+      if (section.id.startsWith('infra') && userPermissions.includes('infrastructure')) {
+        return true;
+      }
+      return userPermissions.includes(section.id as any);
+    });
   }, [formConfig, userProfile, isAdmin]);
   
   useEffect(() => {
@@ -936,7 +940,7 @@ export function SchoolCensusForm() {
                  <Tabs defaultValue={visibleSections[0].id} className="w-full">
                   <TabsList className="mb-4 flex h-auto flex-wrap justify-start">
                       {visibleSections.map(section => {
-                          const Icon = sectionIcons[section.id.split('_')[0]] || Building;
+                          const Icon = sectionIcons[section.id.startsWith('infra') ? 'infrastructure' : section.id] || Building;
                           return (
                              <TabsTrigger key={section.id} value={section.id} className="flex-shrink-0 flex items-center gap-2"><Icon className="h-4 w-4"/>{section.name}</TabsTrigger>
                           )

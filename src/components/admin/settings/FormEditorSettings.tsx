@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -42,7 +43,7 @@ const defaultSections: FormSectionConfig[] = [
         ] 
     },
     { 
-        id: 'infra_167', 
+        id: 'infrastructure', 
         name: 'Infraestrutura',
         description: 'Adicione as salas de aula e seus detalhes.',
         fields: []
@@ -307,3 +308,5 @@ export function FormEditorSettings() {
 }
 
     
+
+  
