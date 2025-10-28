@@ -357,7 +357,8 @@ const InfrastructureSection = () => {
                                 </AccordionContent>
                             </Card>
                         </AccordionItem>
-                    )})})}
+                        );
+                    })}
                 </Accordion>
                  <Button type="button" variant="outline" onClick={addNewClassroom}>
                     <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Sala de Aula
@@ -866,9 +867,9 @@ export function SchoolCensusForm() {
     
     const userPermissions = userProfile.role.permissions;
     return formConfig.filter(section => {
-      // Special handling for infrastructure to match 'infra_167' or 'infrastructure'
-      if (section.id.startsWith('infra') && userPermissions.includes('infrastructure')) {
-        return true;
+      // Special handling for infrastructure
+      if (section.id.startsWith('infra')) {
+        return userPermissions.includes('infrastructure');
       }
       return userPermissions.includes(section.id as any);
     });

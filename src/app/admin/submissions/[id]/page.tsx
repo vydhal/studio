@@ -25,5 +25,9 @@ export default async function SubmissionDetailPage({ params }: { params: { id: s
     // The ID of the submission is the School ID.
     const schoolId = params.id;
 
-    return <SubmissionDetail schoolId={schoolId} />;
+    return (
+        <SubmissionDetail schoolId={schoolId} />
+    );
 }
+
+  

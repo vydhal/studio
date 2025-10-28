@@ -206,7 +206,7 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
 
   if (loading || authLoading) {
     return (
-        <div className="space-y-4 p-4 md:p-8">
+        <div className="space-y-6">
              <Skeleton className="h-10 w-32" />
              <Skeleton className="h-12 w-96" />
              <Skeleton className="h-8 w-80" />
@@ -219,7 +219,7 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
 
   if (!school) {
         return (
-            <Card className="m-4 md:m-8">
+            <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-destructive">
                         <AlertTriangle/>
@@ -238,7 +238,7 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
   
   if (!submission) {
         return (
-            <Card className="m-4 md:m-8">
+            <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <AlertTriangle className="text-yellow-500" />
@@ -262,7 +262,7 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
 
 
   return (
-    <div className="p-4 md:p-8 space-y-6">
+    <div className="space-y-6">
         <div>
             <Button variant="outline" asChild>
                 <Link href="/admin/dashboard">← Voltar</Link>
@@ -307,7 +307,7 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
                         <AccordionTrigger className="p-6 text-left">
                             <CardTitle className="flex items-center gap-2"><HardHat /> {sectionConfig.name}</CardTitle>
                         </AccordionTrigger>
-                        <AccordionContent className="px-6 space-y-4">
+                        <AccordionContent className="px-6 pb-6 space-y-4">
                             {classrooms.length > 0 ? (
                                 classrooms.map((classroom, index) => (
                                     <Accordion key={index} type="single" collapsible className="w-full">
@@ -339,7 +339,7 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
                         <AccordionTrigger className="p-6 text-left">
                            <CardTitle className="flex items-center gap-2"><UserCog/> {sectionConfig.name}</CardTitle>
                         </AccordionTrigger>
-                        <AccordionContent className="px-6 space-y-4">
+                        <AccordionContent className="px-6 pb-6 space-y-4">
                             {allocations.length > 0 && allocations.some(a => a.professionalId) ? (
                                <Table>
                                   <TableHeader>
@@ -398,7 +398,7 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
                   <AccordionTrigger className="p-6 text-left">
                       <CardTitle>{sectionConfig.name}</CardTitle>
                   </AccordionTrigger>
-                  <AccordionContent className="px-6">
+                  <AccordionContent className="px-6 pb-6">
                     {!sectionData ? (
                         <Alert variant="default">
                           <AlertTriangle className="h-4 w-4" />
@@ -440,3 +440,5 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
     </div>
   );
 }
+
+  
