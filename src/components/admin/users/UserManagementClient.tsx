@@ -32,14 +32,21 @@ const roleSchema = z.object({
 });
 
 const userSchema = z.object({
-  id: z.string().optional(),
-  name: z.string().min(2, "Nome do usuário é obrigatório."),
-  email: z.string().email("Email inválido."),
-  password: z.string().min(6, "A senha deve ter no mínimo 6 caracteres.").optional(),
-  roleId: z.string().min(1, "Selecione um perfil."),
-  schoolId: z.string().optional(),
-}).refine(data => data.id || data.password, {
-    message: "A senha é obrigatória para novos usuários.",
+    id: z.string().optional(),
+    name: z.string().min(2, "Nome do usuário é obrigatório."),
+    email: z.string().email("Email inválido."),
+    password: z.string().optional(),
+    roleId: z.string().min(1, "Selecione um perfil."),
+    schoolId: z.string().optional(),
+}).refine(data => {
+    // If it's a new user (no ID), password is required
+    if (!data.id) {
+        return !!data.password && data.password.length >= 6;
+    }
+    // If it's an existing user, password is not required for validation
+    return true;
+}, {
+    message: "A senha deve ter no mínimo 6 caracteres para novos usuários.",
     path: ["password"],
 });
 
