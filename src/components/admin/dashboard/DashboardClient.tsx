@@ -30,12 +30,13 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { db } from "@/lib/firebase";
-import { collection, onSnapshot, Timestamp, doc, getDoc } from "firebase/firestore";
+import { collection, onSnapshot, Timestamp, doc, getDoc, deleteDoc } from "firebase/firestore";
 import { useAuth } from "@/hooks/useAuth";
 import { X } from "lucide-react";
 import { SubmissionsTable } from "./SubmissionsTable";
 import { gradeLevels } from "@/components/census/SchoolCensusForm";
 import { useAppSettings } from "@/context/AppContext";
+import { useToast } from "@/hooks/use-toast";
 
 const processSubmissionDoc = (doc: any): SchoolCensusSubmission => {
     const data = doc.data();
@@ -51,6 +52,7 @@ export function DashboardClient() {
   const [submissions, setSubmissions] = useState<SchoolCensusSubmission[]>([]);
   const [schools, setSchools] = useState<School[]>([]);
   const { settings, loading: appLoading } = useAppSettings();
+  const { toast } = useToast();
   const formConfig = settings?.formConfig || [];
   const [loading, setLoading] = useState(true);
   const { user, loading: authLoading } = useAuth();
@@ -138,6 +140,24 @@ export function DashboardClient() {
     setSchoolFilter("");
     setNeighborhoodFilter("");
     setGradeFilter("");
+  };
+
+  const handleDeleteSubmission = async (schoolId: string) => {
+    if (!db) return;
+    try {
+        await deleteDoc(doc(db, 'submissions', schoolId));
+        toast({
+            title: "Submissão Excluída!",
+            description: "Os dados do censo para esta escola foram removidos.",
+        });
+    } catch (error) {
+        console.error("Error deleting submission:", error);
+        toast({
+            title: "Erro ao Excluir",
+            description: "Não foi possível remover a submissão.",
+            variant: "destructive",
+        });
+    }
   };
   
   const handleExport = () => {
@@ -307,7 +327,7 @@ export function DashboardClient() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <SubmissionsTable submissions={submissions} schoolMap={schoolMap} />
+                        <SubmissionsTable submissions={submissions} schoolMap={schoolMap} onDelete={handleDeleteSubmission}/>
                     </CardContent>
                 </Card>
             </TabsContent>
