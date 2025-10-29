@@ -2,10 +2,11 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend, PieChart, Pie, Cell, Sector } from "recharts";
 import type { SchoolCensusSubmission, School, FormSectionConfig } from "@/types";
 import { useMemo, useState } from "react";
-import { gradeLevels } from "@/components/census/SchoolCensusForm";
 
 interface ChartsSectionProps {
   submissions: SchoolCensusSubmission[];
@@ -159,7 +160,7 @@ export function ChartsSection({ submissions, schoolMap, formConfig, gradeFilter 
       if (submission?.infrastructure?.classrooms) {
         submission.infrastructure.classrooms.forEach(room => {
           acc[neighborhood].totalStudents += room.studentCapacity || 0;
-          acc[neighborhood].tvCount += room.tvCount || 0;
+          if(room.hasTv) acc[neighborhood].tvCount += 1;
           if (room.hasInternet) acc[neighborhood].roomsWithInternet +=1;
           if (room.hasAirConditioning) acc[neighborhood].roomsWithAirCo += 1;
 
@@ -213,50 +214,6 @@ export function ChartsSection({ submissions, schoolMap, formConfig, gradeFilter 
       </Card>
       <Card>
         <CardHeader>
-          <CardTitle>Recursos por Bairro</CardTitle>
-          <CardDescription>Soma de recursos de tecnologia e infraestrutura por bairro.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-             <BarChart data={techByNeighborhoodData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} interval={0} tick={{ fontSize: 12 }} />
-              <YAxis allowDecimals={false}/>
-              <Tooltip
-                cursor={{fill: 'hsl(var(--muted))'}}
-                content={<CustomTooltip />}
-              />
-              <Legend wrapperStyle={{ paddingTop: '20px' }}/>
-               <Bar dataKey="tvCount" name="Nº de TVs" stackId="a" fill={COLORS[0]} />
-               <Bar dataKey="roomsWithInternet" name="Salas com Internet" stackId="a" fill={COLORS[1]} />
-               <Bar dataKey="roomsWithAirCo" name="Salas com Ar" stackId="a" fill={COLORS[2]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>Capacidade de Alunos por Bairro</CardTitle>
-           <CardDescription>Soma da capacidade de todas as salas em cada bairro.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={neighborhoodChartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} interval={0} tick={{ fontSize: 12 }} />
-              <YAxis allowDecimals={false} />
-              <Tooltip
-                cursor={{fill: 'hsl(var(--muted))'}}
-                content={<CustomTooltip />}
-              />
-              <Legend wrapperStyle={{ paddingTop: '20px' }}/>
-              <Bar dataKey="totalStudents" name="Total de Alunos" fill={COLORS[0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
           <CardTitle>Projeção de Turmas (2025-2026)</CardTitle>
           <CardDescription>{gradeFilter ? `Mostrando projeções para: ${gradeFilter}`: "Selecione uma série no filtro para ver as projeções."}</CardDescription>
         </CardHeader>
@@ -282,6 +239,62 @@ export function ChartsSection({ submissions, schoolMap, formConfig, gradeFilter 
                     <p>Selecione uma série para visualizar os dados.</p>
                 </div>
             )}
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Recursos por Bairro</CardTitle>
+          <CardDescription>Soma de recursos de tecnologia e infraestrutura por bairro.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ScrollArea className="h-[300px]">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Bairro</TableHead>
+                  <TableHead className="text-right">Nº de TVs</TableHead>
+                  <TableHead className="text-right">Salas com Internet</TableHead>
+                  <TableHead className="text-right">Salas com Ar</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {techByNeighborhoodData.map((item) => (
+                  <TableRow key={item.name}>
+                    <TableCell className="font-medium">{item.name}</TableCell>
+                    <TableCell className="text-right">{item.tvCount}</TableCell>
+                    <TableCell className="text-right">{item.roomsWithInternet}</TableCell>
+                    <TableCell className="text-right">{item.roomsWithAirCo}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </ScrollArea>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Capacidade de Alunos por Bairro</CardTitle>
+           <CardDescription>Soma da capacidade de todas as salas em cada bairro.</CardDescription>
+        </CardHeader>
+        <CardContent>
+           <ScrollArea className="h-[300px]">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Bairro</TableHead>
+                  <TableHead className="text-right">Total de Alunos</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {neighborhoodChartData.map((item) => (
+                  <TableRow key={item.name}>
+                    <TableCell className="font-medium">{item.name}</TableCell>
+                    <TableCell className="text-right">{item.totalStudents.toLocaleString()}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </ScrollArea>
         </CardContent>
       </Card>
     </div>
