@@ -12,17 +12,31 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogFooter, DialogClose, DialogTitle } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import type { UserProfile, Role, FormSectionPermission, School } from "@/types";
-import { PlusCircle, MoreHorizontal } from "lucide-react";
+import { PlusCircle, MoreHorizontal, ChevronsUpDown, Check } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { db, auth } from '@/lib/firebase';
 import { collection, onSnapshot, addDoc, doc, setDoc, deleteDoc, writeBatch, updateDoc } from 'firebase/firestore';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { useAuth } from '@/hooks/useAuth';
+import { cn } from '@/lib/utils';
 
 
 const roleSchema = z.object({
@@ -331,14 +345,58 @@ export function UserManagementClient() {
                         )} />
                         {roleName === 'Unidade Educacional' && (
                            <FormField control={userForm.control} name="schoolId" render={({ field }) => (
-                                <FormItem>
+                                <FormItem className="flex flex-col">
                                     <FormLabel>Unidade Educacional</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value}>
-                                        <FormControl><SelectTrigger><SelectValue placeholder="Selecione uma escola" /></SelectTrigger></FormControl>
-                                        <SelectContent>
-                                            {schools.map(school => <SelectItem key={school.id} value={school.id}>{school.name}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                        <FormControl>
+                                            <Button
+                                                variant="outline"
+                                                role="combobox"
+                                                className={cn(
+                                                    "w-full justify-between",
+                                                    !field.value && "text-muted-foreground"
+                                                )}
+                                                >
+                                                {field.value
+                                                    ? schools.find(
+                                                        (school) => school.id === field.value
+                                                    )?.name
+                                                    : "Selecione uma escola"}
+                                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                            </Button>
+                                        </FormControl>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-[--radix-popover-trigger-width] max-h-[--radix-popover-content-available-height] p-0">
+                                            <Command>
+                                                <CommandInput placeholder="Buscar escola..." />
+                                                <CommandList>
+                                                    <CommandEmpty>Nenhuma escola encontrada.</CommandEmpty>
+                                                    <CommandGroup>
+                                                        {schools.map((school) => (
+                                                        <CommandItem
+                                                            value={school.name}
+                                                            key={school.id}
+                                                            onSelect={() => {
+                                                                field.onChange(school.id);
+                                                            }}
+                                                        >
+                                                            <Check
+                                                            className={cn(
+                                                                "mr-2 h-4 w-4",
+                                                                school.id === field.value
+                                                                ? "opacity-100"
+                                                                : "opacity-0"
+                                                            )}
+                                                            />
+                                                            {school.name}
+                                                        </CommandItem>
+                                                        ))}
+                                                    </CommandGroup>
+                                                </CommandList>
+                                            </Command>
+                                        </PopoverContent>
+                                    </Popover>
                                     <FormDescription>Associe este usuário a uma escola específica.</FormDescription>
                                     <FormMessage />
                                 </FormItem>

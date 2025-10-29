@@ -912,29 +912,60 @@ export function SchoolCensusForm() {
                     control={form.control}
                     name="schoolId"
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="flex flex-col">
                         <FormLabel>Selecione a escola que está sendo recenseada</FormLabel>
-                        <Select 
-                            onValueChange={(value) => {
-                                field.onChange(value);
-                                router.push(`/census?schoolId=${value}`, { scroll: false });
-                            }} 
-                            value={field.value}
-                            disabled={!!userProfile?.schoolId}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione uma escola" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {schools.map((school) => (
-                              <SelectItem key={school.id} value={school.id}>
-                                {school.name} (INEP: {school.inep})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <FormControl>
+                                    <Button
+                                    variant="outline"
+                                    role="combobox"
+                                    disabled={!!userProfile?.schoolId}
+                                    className={cn(
+                                        "w-full justify-between",
+                                        !field.value && "text-muted-foreground"
+                                    )}
+                                    >
+                                    {field.value
+                                        ? schools.find(
+                                            (school) => school.id === field.value
+                                        )?.name
+                                        : "Selecione uma escola"}
+                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                    </Button>
+                                </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[--radix-popover-trigger-width] max-h-[--radix-popover-content-available-height] p-0">
+                                <Command>
+                                    <CommandInput placeholder="Buscar escola..." />
+                                    <CommandList>
+                                        <CommandEmpty>Nenhuma escola encontrada.</CommandEmpty>
+                                        <CommandGroup>
+                                            {schools.map((school) => (
+                                            <CommandItem
+                                                value={school.name}
+                                                key={school.id}
+                                                onSelect={() => {
+                                                    field.onChange(school.id);
+                                                    router.push(`/census?schoolId=${school.id}`, { scroll: false });
+                                                }}
+                                            >
+                                                <Check
+                                                className={cn(
+                                                    "mr-2 h-4 w-4",
+                                                    school.id === field.value
+                                                    ? "opacity-100"
+                                                    : "opacity-0"
+                                                )}
+                                                />
+                                                {school.name} (INEP: {school.inep})
+                                            </CommandItem>
+                                            ))}
+                                        </CommandGroup>
+                                    </CommandList>
+                                </Command>
+                            </PopoverContent>
+                        </Popover>
                         <FormMessage />
                       </FormItem>
                     )}

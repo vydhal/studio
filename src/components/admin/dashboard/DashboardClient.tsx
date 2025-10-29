@@ -22,6 +22,19 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs"
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command"
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -32,11 +45,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { db } from "@/lib/firebase";
 import { collection, onSnapshot, Timestamp, doc, getDoc, deleteDoc } from "firebase/firestore";
 import { useAuth } from "@/hooks/useAuth";
-import { X } from "lucide-react";
+import { X, ChevronsUpDown, Check } from "lucide-react";
 import { SubmissionsTable } from "./SubmissionsTable";
 import { gradeLevels } from "@/components/census/SchoolCensusForm";
 import { useAppSettings } from "@/context/AppContext";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 const processSubmissionDoc = (doc: any): SchoolCensusSubmission => {
     const data = doc.data();
@@ -60,6 +74,8 @@ export function DashboardClient() {
   const [schoolFilter, setSchoolFilter] = useState("");
   const [neighborhoodFilter, setNeighborhoodFilter] = useState("");
   const [gradeFilter, setGradeFilter] = useState("");
+  const [schoolPopoverOpen, setSchoolPopoverOpen] = useState(false);
+
 
   useEffect(() => {
     if (authLoading || appLoading) return;
@@ -278,16 +294,49 @@ export function DashboardClient() {
                     </CardHeader>
                     <CardContent>
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            <Select value={schoolFilter} onValueChange={setSchoolFilter}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Filtrar por escola..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {schools.map(school => (
-                                        <SelectItem key={school.id} value={school.id}>{school.name}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                             <Popover open={schoolPopoverOpen} onOpenChange={setSchoolPopoverOpen}>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                    variant="outline"
+                                    role="combobox"
+                                    aria-expanded={schoolPopoverOpen}
+                                    className="w-full justify-between"
+                                    >
+                                    {schoolFilter
+                                        ? schools.find((school) => school.id === schoolFilter)?.name
+                                        : "Filtrar por escola..."}
+                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-[--radix-popover-trigger-width] max-h-[--radix-popover-content-available-height] p-0">
+                                    <Command>
+                                        <CommandInput placeholder="Buscar escola..." />
+                                        <CommandList>
+                                            <CommandEmpty>Nenhuma escola encontrada.</CommandEmpty>
+                                            <CommandGroup>
+                                                {schools.map((school) => (
+                                                <CommandItem
+                                                    key={school.id}
+                                                    value={school.name}
+                                                    onSelect={() => {
+                                                        setSchoolFilter(school.id === schoolFilter ? "" : school.id)
+                                                        setSchoolPopoverOpen(false)
+                                                    }}
+                                                >
+                                                    <Check
+                                                    className={cn(
+                                                        "mr-2 h-4 w-4",
+                                                        schoolFilter === school.id ? "opacity-100" : "opacity-0"
+                                                    )}
+                                                    />
+                                                    {school.name}
+                                                </CommandItem>
+                                                ))}
+                                            </CommandGroup>
+                                        </CommandList>
+                                    </Command>
+                                </PopoverContent>
+                            </Popover>
                             <Select value={neighborhoodFilter} onValueChange={setNeighborhoodFilter}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Filtrar por bairro..." />
