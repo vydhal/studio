@@ -139,6 +139,10 @@ export const gradeLevels = [
     "7º Ano",
     "8º Ano",
     "9º Ano",
+    "EJA 1º Ciclo",
+    "EJA 2º Ciclo",
+    "EJA 3º Ciclo",
+    "EJA 4º Ciclo",
     "AEE - Atendimento Educacional Especializado",
     "Não se aplica",
 ];
