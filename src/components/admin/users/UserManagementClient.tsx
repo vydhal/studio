@@ -124,6 +124,10 @@ export function UserManagementClient() {
     }
     setUserModalOpen(true);
   };
+  
+  const handleEditUser = (user: UserProfile) => {
+    handleOpenUserModal(user);
+  };
 
   const handleEditRole = (role: Role) => {
     setEditingRole(role);
@@ -147,12 +151,16 @@ export function UserManagementClient() {
   }
 
   const onUserSubmit = async (values: z.infer<typeof userSchema>) => {
-    alert('Botão Salvar clicado!'); // Test alert
-    if(!db) return;
+    console.log("Submit button clicked. Form values:", values);
+    if(!db) {
+        console.error("Firestore DB instance is not available.");
+        return;
+    }
     toast({ title: `Salvando usuário...` });
     
     try {
         if (editingUser && editingUser.id) {
+            console.log("Editing existing user:", editingUser.id);
             // Updating existing user
             const userRef = doc(db, 'users', editingUser.id);
             await updateDoc(userRef, { 
@@ -160,7 +168,9 @@ export function UserManagementClient() {
               roleId: values.roleId,
               schoolId: values.schoolId || null,
             });
+            console.log("User updated successfully.");
         } else {
+            console.log("Creating new user.");
             // Creating new user
             const { password } = values;
             if (!password) {
@@ -170,6 +180,7 @@ export function UserManagementClient() {
             const userCredential = await createUserWithEmailAndPassword(auth, values.email, password);
             const user = userCredential.user;
             await updateProfile(user, { displayName: values.name });
+            console.log("Firebase Auth user created.");
 
             // Now create the user profile document in Firestore
             const userRef = doc(db, 'users', user.uid);
@@ -179,17 +190,18 @@ export function UserManagementClient() {
               roleId: values.roleId,
               schoolId: values.schoolId || null,
             });
+            console.log("Firestore user profile created.");
         }
         setUserModalOpen(false);
         setEditingUser(null);
         userForm.reset();
         toast({ title: `Usuário ${editingUser ? 'atualizado' : 'criado'} com sucesso!` });
     } catch (e: any) {
+        console.error("User submit error:", e);
         let message = "Erro ao salvar usuário";
         if (e.code === 'auth/email-already-in-use') {
             message = "Este email já está sendo utilizado por outro usuário.";
         }
-        console.error("User submit error:", e);
         toast({ title: message, description: e.message, variant: "destructive"});
     }
   };
@@ -237,7 +249,7 @@ export function UserManagementClient() {
                     </div>
                 </CardHeader>
                 <CardContent>
-                    <UsersTable users={users} roles={roles} schools={schools} onEdit={(user) => handleOpenUserModal(user)} onDelete={handleDeleteUser} />
+                    <UsersTable users={users} roles={roles} schools={schools} onEdit={handleEditUser} onDelete={handleDeleteUser} />
                 </CardContent>
             </Card>
         </TabsContent>
