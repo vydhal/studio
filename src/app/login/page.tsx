@@ -8,14 +8,18 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 export default function LoginPage() {
-  const { user, loading } = useAuth();
+  const { user, userProfile, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     if (!loading && user) {
-      router.push('/admin/dashboard');
+      if (userProfile?.role?.name === 'Unidade Educacional') {
+        router.push('/census');
+      } else {
+        router.push('/admin/dashboard');
+      }
     }
-  }, [user, loading, router]);
+  }, [user, userProfile, loading, router]);
 
 
   return (

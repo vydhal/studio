@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -24,6 +25,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardFooter } from "../ui/card";
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
+import type { Role, UserProfile } from "@/types";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Por favor, insira um email válido." }),
@@ -42,7 +44,7 @@ async function provisionAdminRole() {
         await setDoc(roleRef, {
             id: ADMIN_ROLE_ID,
             name: 'Administrador',
-            permissions: ['users', 'general', 'infrastructure', 'technology', 'cultural', 'maintenance']
+            permissions: ['users', 'general', 'infrastructure', 'technology', 'cultural', 'maintenance', 'professionals']
         });
     }
 }
@@ -62,28 +64,51 @@ export function LoginForm() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setLoading(true);
+    if (!db) {
+        toast({ title: "Erro de Configuração", description: "O banco de dados não está disponível.", variant: "destructive" });
+        setLoading(false);
+        return;
+    }
     try {
       const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
+      const user = userCredential.user;
+      
+      const userRef = doc(db, 'users', user.uid);
+      const userSnap = await getDoc(userRef);
+      
+      let userProfile: UserProfile | null = null;
       
       // Special check for the admin user to ensure their profile exists
-      if (userCredential.user.email === ADMIN_EMAIL) {
-          const userRef = doc(db, 'users', userCredential.user.uid);
-          const userSnap = await getDoc(userRef);
-          if (!userSnap.exists()) {
-              await provisionAdminRole();
-              await setDoc(userRef, {
-                  name: 'Admin',
-                  email: userCredential.user.email,
-                  roleId: ADMIN_ROLE_ID
-              });
+      if (user.email === ADMIN_EMAIL && !userSnap.exists()) {
+          await provisionAdminRole();
+          const adminProfileData = {
+              name: 'Admin',
+              email: user.email,
+              roleId: ADMIN_ROLE_ID
+          };
+          await setDoc(userRef, adminProfileData);
+          userProfile = { id: user.uid, ...adminProfileData, role: { id: ADMIN_ROLE_ID, name: 'Administrador', permissions: ['users'] } };
+      } else if (userSnap.exists()) {
+          const userData = userSnap.data() as Omit<UserProfile, 'id' | 'role'>;
+          if (userData.roleId) {
+              const roleRef = doc(db, 'roles', userData.roleId);
+              const roleSnap = await getDoc(roleRef);
+              if (roleSnap.exists()) {
+                  userProfile = { id: user.uid, ...userData, role: roleSnap.data() as Role };
+              }
           }
       }
 
       toast({
         title: "Login bem-sucedido!",
-        description: "Redirecionando para o painel...",
+        description: "Redirecionando...",
       });
-      router.push("/admin/dashboard");
+      
+      if (userProfile?.role?.name === 'Unidade Educacional') {
+          router.push("/census");
+      } else {
+          router.push("/admin/dashboard");
+      }
       
     } catch (error: any) {
         let errorMessage = "Ocorreu um erro desconhecido.";

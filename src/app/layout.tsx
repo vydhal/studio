@@ -6,8 +6,8 @@ import { AppProvider } from '@/context/AppContext';
 import { AuthProvider } from '@/context/AuthContext';
 
 export const metadata: Metadata = {
-  title: 'Firebase School Central',
-  description: 'School census management system powered by Firebase',
+  title: 'Censo Educacional | SEDUC',
+  description: 'Sistema para censo educacional prático e interativo.',
 };
 
 export default function RootLayout({
