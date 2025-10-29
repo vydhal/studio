@@ -151,60 +151,76 @@ export function UserManagementClient() {
   }
 
   const onUserSubmit = async (values: z.infer<typeof userSchema>) => {
-    console.log("Submit button clicked. Form values:", values);
-    if(!db) {
-        console.error("Firestore DB instance is not available.");
-        toast({ title: "Erro de Conexão", description: "Ocorreu um problema com o banco de dados.", variant: "destructive" });
-        return;
+    // This function will now be called by handleSave after validation
+    if (!db) {
+      toast({ title: "Erro de Conexão", description: "Ocorreu um problema com o banco de dados.", variant: "destructive" });
+      return;
     }
     toast({ title: `Salvando usuário...` });
-    
+
     try {
-        if (editingUser && editingUser.id) {
-            console.log("Attempting to EDIT user with ID:", editingUser.id);
-            const userRef = doc(db, 'users', editingUser.id);
-            await updateDoc(userRef, { 
-              name: values.name, 
-              roleId: values.roleId,
-              schoolId: values.schoolId || null,
-            });
-            console.log("User updated successfully.");
-            toast({ title: "Usuário atualizado com sucesso!" });
+      if (editingUser && editingUser.id) {
+        // EDIT operation
+        const userRef = doc(db, 'users', editingUser.id);
+        await updateDoc(userRef, {
+          name: values.name,
+          roleId: values.roleId,
+          schoolId: values.schoolId || null,
+        });
+        toast({ title: "Usuário atualizado com sucesso!" });
 
-        } else {
-            console.log("Attempting to CREATE new user with email:", values.email);
-            const { password } = values;
-            if (!password) {
-                toast({ title: "Erro de Validação", description: "Senha é obrigatória para novos usuários.", variant: "destructive"});
-                return;
-            }
-            const userCredential = await createUserWithEmailAndPassword(auth, values.email, password);
-            const user = userCredential.user;
-            await updateProfile(user, { displayName: values.name });
-            console.log("Firebase Auth user created.");
-
-            await setDoc(doc(db, 'users', user.uid), {
-              name: values.name, 
-              email: values.email, 
-              roleId: values.roleId,
-              schoolId: values.schoolId || null,
-            });
-            console.log("Firestore user profile created.");
-            toast({ title: "Usuário criado com sucesso!" });
+      } else {
+        // CREATE operation
+        const { password } = values;
+        if (!password) {
+          toast({ title: "Erro de Validação", description: "Senha é obrigatória para novos usuários.", variant: "destructive" });
+          return;
         }
-        setUserModalOpen(false);
-        setEditingUser(null);
-        userForm.reset();
+        const userCredential = await createUserWithEmailAndPassword(auth, values.email, password);
+        const user = userCredential.user;
+        await updateProfile(user, { displayName: values.name });
 
-    } catch (e: any) {
-        console.error("User submit error:", e);
-        let message = "Erro ao salvar usuário";
-        if (e.code === 'auth/email-already-in-use') {
-            message = "Este email já está sendo utilizado por outro usuário.";
-        }
-        toast({ title: message, description: e.message, variant: "destructive"});
+        await setDoc(doc(db, 'users', user.uid), {
+          name: values.name,
+          email: values.email,
+          roleId: values.roleId,
+          schoolId: values.schoolId || null,
+        });
+        toast({ title: "Usuário criado com sucesso!" });
+      }
+
+      setUserModalOpen(false);
+      setEditingUser(null);
+      userForm.reset();
+
+    } catch (error: any) {
+      console.error("Error saving user:", error);
+      let message = "Ocorreu um erro desconhecido ao salvar o usuário.";
+      if (error.code === 'auth/email-already-in-use') {
+        message = "Este email já está em uso por outra conta.";
+      }
+      toast({
+        title: "Erro ao Salvar",
+        description: message,
+        variant: "destructive",
+      });
     }
   };
+  
+  const handleSave = async () => {
+    const isValid = await userForm.trigger();
+    if (isValid) {
+      const values = userForm.getValues();
+      await onUserSubmit(values);
+    } else {
+      toast({
+        title: "Formulário Inválido",
+        description: "Por favor, corrija os erros antes de salvar.",
+        variant: "destructive",
+      });
+    }
+  };
+
 
   const onRoleSubmit = async (values: z.infer<typeof roleSchema>) => {
     if(!db) return;
@@ -282,7 +298,7 @@ export function UserManagementClient() {
                     </DialogDescription>
                 </DialogHeader>
                 <Form {...userForm}>
-                    <form onSubmit={userForm.handleSubmit(onUserSubmit)} className="space-y-4">
+                    <form onSubmit={(e) => e.preventDefault()} className="space-y-4">
                         <FormField control={userForm.control} name="name" render={({ field }) => (
                             <FormItem><FormLabel>Nome</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                         )} />
@@ -323,7 +339,7 @@ export function UserManagementClient() {
                         )}
                         <DialogFooter>
                             <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
-                            <Button type="submit">Salvar</Button>
+                            <Button type="button" onClick={handleSave}>Salvar</Button>
                         </DialogFooter>
                     </form>
                 </Form>
