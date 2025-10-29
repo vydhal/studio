@@ -2,7 +2,7 @@
 
 "use client";
 
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Table,
   TableBody,
@@ -16,12 +16,10 @@ import type { SchoolCensusSubmission, School, FormSectionConfig } from "@/types"
 import Link from "next/link";
 import { format } from "date-fns";
 import { ptBR } from 'date-fns/locale';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ArrowRight, CheckCircle, Circle, MoreHorizontal, File, Download, AlertTriangle, Trash2 } from "lucide-react";
+import { ArrowRight, CheckCircle, Circle, MoreHorizontal, AlertTriangle, Trash2, Edit } from "lucide-react";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -45,8 +43,8 @@ import { Timestamp } from 'firebase/firestore';
 
 
 interface SubmissionsTableProps {
-  submissions: SchoolCensusSubmission[];
-  schoolMap: Map<string, School>;
+  schools: School[];
+  submissionMap: Map<string, SchoolCensusSubmission>;
   onDelete: (schoolId: string) => void;
 }
 
@@ -74,7 +72,8 @@ const getSectionStatus = (submission: SchoolCensusSubmission, sectionId: keyof S
                 ? 'completed'
                 : 'pending';
         case 'professionals':
-            return submission.professionals?.allocations?.some(alloc => alloc.teachers && alloc.teachers.some(teacher => teacher.professionalId))
+            // This check might need refinement based on actual data structure for 'professionals'
+            return submission.professionals?.allocations && submission.professionals.allocations.length > 0
                 ? 'completed'
                 : 'pending';
         default:
@@ -83,7 +82,11 @@ const getSectionStatus = (submission: SchoolCensusSubmission, sectionId: keyof S
 };
 
 
-const getOverallStatus = (submission: SchoolCensusSubmission, formConfig: FormSectionConfig[]): { label: string; variant: "default" | "secondary" | "destructive" | "outline" | null | undefined; completedCount: number, totalSections: number } => {
+const getOverallStatus = (submission: SchoolCensusSubmission | undefined, formConfig: FormSectionConfig[]): { label: string; variant: "default" | "secondary" | "destructive" | "outline" | null | undefined; completedCount: number, totalSections: number } => {
+    if (!submission) {
+        return { label: 'Não Iniciado', variant: 'destructive', completedCount: 0, totalSections: formConfig.length };
+    }
+    
     const totalSections = formConfig.length;
     if (totalSections === 0) {
         return { label: 'N/A', variant: 'outline', completedCount: 0, totalSections: 0 };
@@ -100,13 +103,13 @@ const getOverallStatus = (submission: SchoolCensusSubmission, formConfig: FormSe
         return { label: 'Completo', variant: 'default', completedCount, totalSections };
     }
     if (completedCount === 0) {
-        return { label: 'Pendente', variant: 'destructive', completedCount, totalSections };
+        return { label: 'Pendente', variant: 'secondary', completedCount, totalSections };
     }
     return { label: 'Em Andamento', variant: 'secondary', completedCount, totalSections };
 }
 
 
-const SubmissionStatusModal = ({ submission, school, overallStatus, formConfig }: { submission: SchoolCensusSubmission, school: School | undefined, overallStatus: ReturnType<typeof getOverallStatus>, formConfig: FormSectionConfig[] }) => {
+const SubmissionStatusModal = ({ submission, school, overallStatus, formConfig }: { submission: SchoolCensusSubmission, school: School, overallStatus: ReturnType<typeof getOverallStatus>, formConfig: FormSectionConfig[] }) => {
     const { totalSections, completedCount } = overallStatus;
 
     return (
@@ -149,7 +152,7 @@ const SubmissionStatusModal = ({ submission, school, overallStatus, formConfig }
 }
 
 
-export function SubmissionsTable({ submissions, schoolMap, onDelete }: SubmissionsTableProps) {
+export function SubmissionsTable({ schools, submissionMap, onDelete }: SubmissionsTableProps) {
   const { settings } = useAppSettings();
   const formConfig = settings?.formConfig || [];
 
@@ -182,10 +185,10 @@ export function SubmissionsTable({ submissions, schoolMap, onDelete }: Submissio
   }
 
 
-  if (submissions.length === 0) {
+  if (schools.length === 0) {
       return (
           <div className="p-6 text-center text-muted-foreground">
-              Nenhuma submissão encontrada. Preencha o formulário para uma escola para começar.
+              Nenhuma escola cadastrada no sistema.
           </div>
       )
   }
@@ -205,68 +208,81 @@ export function SubmissionsTable({ submissions, schoolMap, onDelete }: Submissio
         </TableRow>
     </TableHeader>
     <TableBody>
-        {submissions.map((submission) => {
-        const school = schoolMap.get(submission.schoolId);
-        const overallStatus = getOverallStatus(submission, formConfig);
-        return (
-            <TableRow key={submission.id}>
-            <TableCell className="font-medium">{school?.name || 'Escola não encontrada'}</TableCell>
-            <TableCell className="hidden md:table-cell">{school?.inep || 'N/A'}</TableCell>
-            <TableCell className="hidden md:table-cell">{getFormattedDate(submission.submittedAt)}</TableCell>
-            <TableCell>
-                <Badge variant={overallStatus.variant}>{overallStatus.label}</Badge>
-            </TableCell>
-            <TableCell className="hidden md:table-cell">
-                 <SubmissionStatusModal submission={submission} school={school} overallStatus={overallStatus} formConfig={formConfig} />
-            </TableCell>
-            <TableCell>
-                 <AlertDialog>
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                        <Button aria-haspopup="true" size="icon" variant="ghost">
-                            <MoreHorizontal className="h-4 w-4" />
-                            <span className="sr-only">Toggle menu</span>
-                        </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                        <DropdownMenuItem asChild>
-                            <Link href={`/admin/submissions/${submission.schoolId}`}>Ver Detalhes</Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                            <Link href={`/census?schoolId=${submission.schoolId}`}>Editar Formulário</Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem disabled>Exportar PDF</DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <AlertDialogTrigger asChild>
-                             <DropdownMenuItem className="text-destructive" onSelect={(e) => e.preventDefault()}>
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Excluir
-                            </DropdownMenuItem>
-                        </AlertDialogTrigger>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                     <AlertDialogContent>
-                        <AlertDialogHeader>
-                        <AlertDialogTitle className="flex items-center gap-2"><AlertTriangle/>Confirmar Exclusão</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Esta ação é permanente e não pode ser desfeita. Todos os dados do censo para a escola <strong>{school?.name || 'desconhecida'}</strong> serão apagados.
-                        </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction
-                            className="bg-destructive hover:bg-destructive/90"
-                            onClick={() => onDelete(submission.schoolId)}
-                        >
-                            Excluir Submissão
-                        </AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                 </AlertDialog>
-            </TableCell>
-            </TableRow>
-        );
+        {schools.map((school) => {
+            const submission = submissionMap.get(school.id);
+            const overallStatus = getOverallStatus(submission, formConfig);
+            return (
+                <TableRow key={school.id}>
+                    <TableCell className="font-medium">{school.name}</TableCell>
+                    <TableCell className="hidden md:table-cell">{school.inep}</TableCell>
+                    <TableCell className="hidden md:table-cell">{submission ? getFormattedDate(submission.submittedAt) : 'N/A'}</TableCell>
+                    <TableCell>
+                        <Badge variant={overallStatus.variant}>{overallStatus.label}</Badge>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                        {submission ? (
+                            <SubmissionStatusModal submission={submission} school={school} overallStatus={overallStatus} formConfig={formConfig} />
+                        ) : (
+                            <span className="text-xs text-muted-foreground">N/A</span>
+                        )}
+                    </TableCell>
+                    <TableCell>
+                        {submission ? (
+                            <AlertDialog>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button aria-haspopup="true" size="icon" variant="ghost">
+                                            <MoreHorizontal className="h-4 w-4" />
+                                            <span className="sr-only">Toggle menu</span>
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                                        <DropdownMenuItem asChild>
+                                            <Link href={`/admin/submissions/${submission.schoolId}`}>Ver Detalhes</Link>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem asChild>
+                                            <Link href={`/census?schoolId=${submission.schoolId}`}>Editar Formulário</Link>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem disabled>Exportar PDF</DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                        <AlertDialogTrigger asChild>
+                                            <DropdownMenuItem className="text-destructive" onSelect={(e) => e.preventDefault()}>
+                                                <Trash2 className="mr-2 h-4 w-4" />
+                                                Excluir
+                                            </DropdownMenuItem>
+                                        </AlertDialogTrigger>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle className="flex items-center gap-2"><AlertTriangle />Confirmar Exclusão</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            Esta ação é permanente e não pode ser desfeita. Todos os dados do censo para a escola <strong>{school.name}</strong> serão apagados.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                        <AlertDialogAction
+                                            className="bg-destructive hover:bg-destructive/90"
+                                            onClick={() => onDelete(submission.schoolId)}
+                                        >
+                                            Excluir Submissão
+                                        </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        ) : (
+                            <Button variant="outline" size="sm" asChild>
+                                <Link href={`/census?schoolId=${school.id}`}>
+                                    <Edit className="mr-2 h-3 w-3" />
+                                    Iniciar Preenchimento
+                                </Link>
+                            </Button>
+                        )}
+                    </TableCell>
+                </TableRow>
+            );
         })}
     </TableBody>
     </Table>

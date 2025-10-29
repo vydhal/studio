@@ -113,6 +113,8 @@ export function DashboardClient() {
   }, [user, authLoading, appLoading, schools.length]);
 
   const schoolMap = useMemo(() => new Map(schools.map(s => [s.id, s])), [schools]);
+  const submissionMap = useMemo(() => new Map(submissions.map(s => [s.schoolId, s])), [submissions]);
+
 
   const availableNeighborhoods = useMemo(() => {
     const neighborhoods = new Set(schools.map(s => s.neighborhood).filter(Boolean));
@@ -376,7 +378,7 @@ export function DashboardClient() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <SubmissionsTable submissions={submissions} schoolMap={schoolMap} onDelete={handleDeleteSubmission}/>
+                        <SubmissionsTable schools={schools} submissionMap={submissionMap} onDelete={handleDeleteSubmission}/>
                     </CardContent>
                 </Card>
             </TabsContent>
