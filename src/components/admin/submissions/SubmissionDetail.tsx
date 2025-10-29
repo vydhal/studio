@@ -340,8 +340,9 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
                            <CardTitle className="flex items-center gap-2"><UserCog/> {sectionConfig.name}</CardTitle>
                         </AccordionTrigger>
                         <AccordionContent className="px-6 pb-6 space-y-4">
-                            {allocations.length > 0 && allocations.some(a => a.professionalId) ? (
-                               <Table>
+                            {allocations.length > 0 && allocations.some(a => a.teachers?.length > 0) ? (
+                               <div className="overflow-x-auto">
+                                <Table>
                                   <TableHeader>
                                     <TableRow>
                                       <TableHead>Sala</TableHead>
@@ -354,32 +355,39 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
                                     </TableRow>
                                   </TableHeader>
                                   <TableBody>
-                                    {allocations.map((alloc, index) => 
-                                        <TableRow key={`${index}`}>
-                                            <TableCell>{alloc.classroomName}</TableCell>
-                                            <TableCell className="capitalize">{alloc.turn === 'morning' ? 'Manhã' : alloc.turn === 'afternoon' ? 'Tarde' : alloc.turn === 'night' ? 'Noite' : 'Integral'}</TableCell>
-                                            <TableCell>{alloc.grade}</TableCell>
-                                            <TableCell>{professionalMap.get(alloc.professionalId || '') || 'Não alocado'}</TableCell>
-                                            <TableCell>{alloc.contractType || 'N/A'}</TableCell>
-                                            <TableCell>{alloc.workload ? `${alloc.workload}h` : 'N/A'}</TableCell>
-                                            <TableCell>
-                                                {alloc.observations && alloc.observations !== 'Nenhuma' ? (
-                                                    <TooltipProvider>
-                                                        <Tooltip>
-                                                            <TooltipTrigger>
-                                                                <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                                                            </TooltipTrigger>
-                                                            <TooltipContent>
-                                                                <p>{alloc.observations}</p>
-                                                            </TooltipContent>
-                                                        </Tooltip>
-                                                    </TooltipProvider>
-                                                ) : 'N/A'}
-                                            </TableCell>
-                                        </TableRow>
+                                    {allocations.flatMap((alloc, index) => 
+                                        alloc.teachers?.map((teacher, teacherIndex) => (
+                                            <TableRow key={`${index}-${teacherIndex}`}>
+                                                {teacherIndex === 0 && (
+                                                    <>
+                                                        <TableCell rowSpan={alloc.teachers.length}>{alloc.classroomName}</TableCell>
+                                                        <TableCell rowSpan={alloc.teachers.length} className="capitalize">{alloc.turn === 'morning' ? 'Manhã' : alloc.turn === 'afternoon' ? 'Tarde' : alloc.turn === 'night' ? 'Noite' : 'Integral'}</TableCell>
+                                                        <TableCell rowSpan={alloc.teachers.length}>{alloc.grade}</TableCell>
+                                                    </>
+                                                )}
+                                                <TableCell>{professionalMap.get(teacher.professionalId || '') || 'Não alocado'}</TableCell>
+                                                <TableCell>{teacher.contractType || 'N/A'}</TableCell>
+                                                <TableCell>{teacher.workload ? `${teacher.workload}h` : 'N/A'}</TableCell>
+                                                <TableCell>
+                                                    {teacher.observations && teacher.observations !== 'Nenhuma' ? (
+                                                        <TooltipProvider>
+                                                            <Tooltip>
+                                                                <TooltipTrigger>
+                                                                    <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                                                                </TooltipTrigger>
+                                                                <TooltipContent>
+                                                                    <p>{teacher.observations}</p>
+                                                                </TooltipContent>
+                                                            </Tooltip>
+                                                        </TooltipProvider>
+                                                    ) : '-'}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
                                     )}
                                   </TableBody>
                                 </Table>
+                               </div>
                             ) : (
                                 <Alert variant="default">
                                   <AlertTriangle className="h-4 w-4" />
@@ -440,5 +448,3 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
     </div>
   );
 }
-
-  

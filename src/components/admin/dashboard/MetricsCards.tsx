@@ -36,7 +36,7 @@ export function MetricsCards({ submissions, schools }: MetricsCardsProps) {
     { title: "Total de Alunos", value: totalStudentCapacity.toLocaleString(), icon: Users, description: "Capacidade total no filtro" },
     { title: "Salas de Aula", value: totalClassrooms.toLocaleString(), icon: Armchair, description: "Soma de todas as salas" },
     { title: "Questionários Iniciados", value: `${startedSubmissions}/${totalSchools}`, icon: FilePenLine, description: "Total de censos em andamento" },
-    { title: "Questionários Completos", value: `${completedSubmissions}/${totalSchools}`, icon: Wifi, description: "Total de censos finalizados" },
+    { title: "Questionários Completos", value: `${completedSubmissions}/${totalSchools}`, icon: FilePenLine, description: "Total de censos finalizados" },
   ];
 
   return (
