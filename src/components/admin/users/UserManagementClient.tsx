@@ -154,14 +154,14 @@ export function UserManagementClient() {
     console.log("Submit button clicked. Form values:", values);
     if(!db) {
         console.error("Firestore DB instance is not available.");
+        toast({ title: "Erro de Conexão", description: "Ocorreu um problema com o banco de dados.", variant: "destructive" });
         return;
     }
     toast({ title: `Salvando usuário...` });
     
     try {
         if (editingUser && editingUser.id) {
-            console.log("Editing existing user:", editingUser.id);
-            // Updating existing user
+            console.log("Attempting to EDIT user with ID:", editingUser.id);
             const userRef = doc(db, 'users', editingUser.id);
             await updateDoc(userRef, { 
               name: values.name, 
@@ -169,12 +169,13 @@ export function UserManagementClient() {
               schoolId: values.schoolId || null,
             });
             console.log("User updated successfully.");
+            toast({ title: "Usuário atualizado com sucesso!" });
+
         } else {
-            console.log("Creating new user.");
-            // Creating new user
+            console.log("Attempting to CREATE new user with email:", values.email);
             const { password } = values;
             if (!password) {
-                toast({ title: "Erro", description: "Senha é obrigatória para novos usuários.", variant: "destructive"});
+                toast({ title: "Erro de Validação", description: "Senha é obrigatória para novos usuários.", variant: "destructive"});
                 return;
             }
             const userCredential = await createUserWithEmailAndPassword(auth, values.email, password);
@@ -182,20 +183,19 @@ export function UserManagementClient() {
             await updateProfile(user, { displayName: values.name });
             console.log("Firebase Auth user created.");
 
-            // Now create the user profile document in Firestore
-            const userRef = doc(db, 'users', user.uid);
-            await setDoc(userRef, { 
+            await setDoc(doc(db, 'users', user.uid), {
               name: values.name, 
               email: values.email, 
               roleId: values.roleId,
               schoolId: values.schoolId || null,
             });
             console.log("Firestore user profile created.");
+            toast({ title: "Usuário criado com sucesso!" });
         }
         setUserModalOpen(false);
         setEditingUser(null);
         userForm.reset();
-        toast({ title: `Usuário ${editingUser ? 'atualizado' : 'criado'} com sucesso!` });
+
     } catch (e: any) {
         console.error("User submit error:", e);
         let message = "Erro ao salvar usuário";
