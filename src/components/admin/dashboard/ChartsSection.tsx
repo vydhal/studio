@@ -101,7 +101,6 @@ export function ChartsSection({ submissions, schoolMap, formConfig, gradeFilter 
     const projectionData: {
         name: string;
         current: number;
-        proj2025: number;
         proj2026: number;
     }[] = [];
 
@@ -109,19 +108,20 @@ export function ChartsSection({ submissions, schoolMap, formConfig, gradeFilter 
         const data = {
             name: gradeFilter,
             current: 0,
-            proj2025: 0,
             proj2026: 0,
         };
         submissions.forEach(sub => {
             sub.infrastructure?.classrooms?.forEach(room => {
-                if (room.gradeMorning === gradeFilter || room.gradeAfternoon === gradeFilter) {
-                    data.current += 1;
-                }
-                if (room.gradeProjection2025Morning === gradeFilter || room.gradeProjection2025Afternoon === gradeFilter) {
-                    data.proj2025 += 1;
-                }
-                if (room.gradeProjection2026Morning === gradeFilter || room.gradeProjection2026Afternoon === gradeFilter) {
-                    data.proj2026 += 1;
+                if (room.occupationType === 'integral') {
+                    if (room.gradeIntegral === gradeFilter) data.current += 1;
+                    if (room.gradeProjection2026Integral === gradeFilter) data.proj2026 += 1;
+                } else {
+                    if (room.gradeMorning === gradeFilter || room.gradeAfternoon === gradeFilter || room.gradeNight === gradeFilter) {
+                        data.current += 1;
+                    }
+                    if (room.gradeProjection2026Morning === gradeFilter || room.gradeProjection2026Afternoon === gradeFilter || room.gradeProjection2026Night === gradeFilter) {
+                        data.proj2026 += 1;
+                    }
                 }
             });
         });
@@ -164,7 +164,7 @@ export function ChartsSection({ submissions, schoolMap, formConfig, gradeFilter 
           if (room.hasInternet) acc[neighborhood].roomsWithInternet +=1;
           if (room.hasAirConditioning) acc[neighborhood].roomsWithAirCo += 1;
 
-          if (room.gradeProjection2026Morning || room.gradeProjection2026Afternoon) {
+          if (room.gradeProjection2026Morning || room.gradeProjection2026Afternoon || room.gradeProjection2026Night || room.gradeProjection2026Integral) {
             acc[neighborhood].projectedRooms2026 += 1;
           }
         });
@@ -214,7 +214,7 @@ export function ChartsSection({ submissions, schoolMap, formConfig, gradeFilter 
       </Card>
       <Card>
         <CardHeader>
-          <CardTitle>Projeção de Turmas (2025-2026)</CardTitle>
+          <CardTitle>Projeção de Turmas (Atual vs 2026)</CardTitle>
           <CardDescription>{gradeFilter ? `Mostrando projeções para: ${gradeFilter}`: "Selecione uma série no filtro para ver as projeções."}</CardDescription>
         </CardHeader>
         <CardContent>
@@ -230,7 +230,6 @@ export function ChartsSection({ submissions, schoolMap, formConfig, gradeFilter 
                         />
                         <Legend wrapperStyle={{ paddingTop: '20px' }}/>
                         <Bar dataKey="current" name="Turmas Atuais" fill={COLORS[0]} />
-                        <Bar dataKey="proj2025" name="Projeção 2025" fill={COLORS[1]} />
                         <Bar dataKey="proj2026" name="Projeção 2026" fill={COLORS[2]} />
                     </BarChart>
                 </ResponsiveContainer>
