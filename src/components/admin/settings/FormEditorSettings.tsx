@@ -37,9 +37,12 @@ const defaultSections: FormSectionConfig[] = [
         description: 'Selecione as modalidades de ensino oferecidas.',
         fields: [
             { id: 'f_desk_1', name: 'Total de Carteiras na Unidade', type: 'number', required: false, sectionId: 'general' },
-            { id: 'f_mod_1', name: 'Anos Iniciais', type: 'boolean', required: true, sectionId: 'general' },
-            { id: 'f_mod_2', name: 'Anos Finais', type: 'boolean', required: true, sectionId: 'general' },
-            { id: 'f_mod_3', name: 'EJA', type: 'boolean', required: true, sectionId: 'general' },
+            { id: 'f_mod_ei', name: 'Educação Infantil', type: 'boolean', required: false, sectionId: 'general' },
+            { id: 'f_mod_1', name: 'Ensino Fundamental - Anos Iniciais', type: 'boolean', required: false, sectionId: 'general' },
+            { id: 'f_mod_2', name: 'Ensino Fundamental - Anos Finais', type: 'boolean', required: false, sectionId: 'general' },
+            { id: 'f_mod_3', name: 'Educação de Jovens e Adultos - EJA', type: 'boolean', required: false, sectionId: 'general' },
+            { id: 'f_mod_ti', name: 'Ensino em Tempo Integral', type: 'boolean', required: false, sectionId: 'general' },
+            { id: 'f_mod_ee', name: 'Educação Especial - AEE', type: 'boolean', required: false, sectionId: 'general' },
         ] 
     },
     { 
