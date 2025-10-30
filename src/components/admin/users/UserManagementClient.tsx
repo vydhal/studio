@@ -150,6 +150,16 @@ export function UserManagementClient() {
     handleOpenUserModal(user);
   };
 
+  const handleEditRole = (role: Role) => {
+    setEditingRole(role);
+    roleForm.reset({
+        id: role.id,
+        name: role.name,
+        permissions: role.permissions,
+    });
+    setRoleModalOpen(true);
+  };
+
   const handleDeleteUser = async (userId: string) => {
     if (!db) return;
     // This only deletes the Firestore record, which effectively revokes access.
