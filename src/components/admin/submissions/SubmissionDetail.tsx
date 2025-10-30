@@ -257,7 +257,11 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
   
    const visibleSections = formConfig.filter(section => {
         const sectionId = section.id.startsWith('infra') ? 'infrastructure' : section.id;
-        return submission[sectionId as keyof SchoolCensusSubmission] || submission.dynamicData?.[section.id];
+        // Show section if it's configured, and either it's not a dynamic section or has data
+        if(sectionId === 'infrastructure' || sectionId === 'professionals'){
+            return true;
+        }
+        return submission.dynamicData?.[section.id];
    });
 
 
