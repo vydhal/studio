@@ -373,7 +373,7 @@ const InfrastructureSection = () => {
 };
 
 const TeacherAllocationForm = ({ allocationIndex, teacherIndex, removeTeacher, professionalsList, onProfessionalCreated }: { allocationIndex: number, teacherIndex: number, removeTeacher: (index: number) => void, professionalsList: Professional[], onProfessionalCreated: (newProfessional: Professional) => void }) => {
-    const { control } = useFormContext();
+    const { control, setValue } = useFormContext();
     const { toast } = useToast();
     const [popoverOpen, setPopoverOpen] = useState(false);
     const [search, setSearch] = useState('');
@@ -387,7 +387,7 @@ const TeacherAllocationForm = ({ allocationIndex, teacherIndex, removeTeacher, p
             onProfessionalCreated(newProfessional);
             
             const fieldName = `professionals.allocations.${allocationIndex}.teachers.${teacherIndex}.professionalId`;
-            control.setValue(fieldName, newProfessional.id);
+            setValue(fieldName, newProfessional.id);
 
             setPopoverOpen(false);
             setSearch('');
