@@ -95,9 +95,9 @@ export function SchoolSettingsForm() {
         const schoolData: Omit<School, 'id'> = {
           name: schoolName,
           inep: String(schoolInep),
-          address: school.address || school['DS_ENDERECO'],
-          number: school.number || school['NU_ENDERECO'],
-          neighborhood: school.neighborhood || school['NO_BAIRRO'],
+          address: school.address || school['DS_ENDERECO'] || null,
+          number: school.number || school['NU_ENDERECO'] || null,
+          neighborhood: school.neighborhood || school['NO_BAIRRO'] || null,
         };
 
         batch.set(schoolRef, schoolData);
