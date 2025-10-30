@@ -323,16 +323,18 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
                 const classrooms = submission.infrastructure?.classrooms || [];
                 hasData = classrooms.length > 0;
                 content = hasData ? (
-                    classrooms.map((classroom, index) => (
-                        <Accordion key={index} type="single" collapsible className="w-full">
-                            <AccordionItem value={`item-${index}`} className="border rounded-md px-4">
-                                <AccordionTrigger className="py-4 text-base font-medium">{classroom.name || `Sala ${index+1}`}</AccordionTrigger>
-                                <AccordionContent>
-                                    <ClassroomDetails classroom={classroom} />
-                                </AccordionContent>
-                            </AccordionItem>
-                        </Accordion>
-                    ))
+                    <div className="space-y-4">
+                        {classrooms.map((classroom, index) => (
+                            <Accordion key={classroom.id || index} type="single" collapsible className="w-full">
+                                <AccordionItem value={`item-${index}`} className="border rounded-md px-4 bg-white dark:bg-zinc-900">
+                                    <AccordionTrigger className="py-4 text-base font-medium">{classroom.name || `Sala ${index+1}`}</AccordionTrigger>
+                                    <AccordionContent>
+                                        <ClassroomDetails classroom={classroom} />
+                                    </AccordionContent>
+                                </AccordionItem>
+                            </Accordion>
+                        ))}
+                    </div>
                 ) : null;
             } else if (sectionConfig.id === 'professionals') {
                 const allocations = submission.professionals?.allocations || [];

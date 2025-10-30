@@ -48,13 +48,13 @@ const defaultSections: FormSectionConfig[] = [
     { 
         id: 'infrastructure', 
         name: 'Infraestrutura',
-        description: 'Adicione as salas de aula e seus detalhes.',
+        description: 'Adicione as salas de aula e seus detalhes. Esta seção é fixa e não pode ser removida.',
         fields: []
     },
     { 
         id: 'professionals', 
         name: 'Profissionais',
-        description: 'Alocação de profissionais por turma.',
+        description: 'Alocação de profissionais por turma. Esta seção é fixa e não pode ser removida.',
         fields: []
     },
     { 
