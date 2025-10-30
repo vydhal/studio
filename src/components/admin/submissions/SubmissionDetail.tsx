@@ -132,6 +132,19 @@ const sectionIcons: { [key: string]: React.ElementType } = {
   maintenance: Wrench,
 };
 
+const getSectionStatus = (submission: SchoolCensusSubmission | null, sectionId: string): boolean => {
+    if (!submission) return false;
+
+    if (sectionId === 'infrastructure') {
+        return submission.infrastructure?.classrooms && submission.infrastructure.classrooms.length > 0;
+    }
+    if (sectionId === 'professionals') {
+        return submission.professionals?.allocations && submission.professionals.allocations.some(a => a.teachers?.length > 0);
+    }
+    
+    const sectionData = submission.dynamicData?.[sectionId];
+    return sectionData && Object.values(sectionData).some(v => v);
+};
 
 export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
     const [submission, setSubmission] = useState<SchoolCensusSubmission | null>(null);
@@ -157,13 +170,11 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
                 const schoolDocRef = doc(db, 'schools', schoolId);
                 const formConfigDocRef = doc(db, 'settings', 'formConfig');
                 const professionalsQuery = collection(db, 'professionals');
-                const submissionDocRef = doc(db, 'submissions', schoolId);
 
-                const [schoolDoc, formConfigDoc, professionalsSnapshot, submissionDoc] = await Promise.all([
+                const [schoolDoc, formConfigDoc, professionalsSnapshot] = await Promise.all([
                     getDoc(schoolDocRef),
                     getDoc(formConfigDocRef),
                     getDocs(professionalsQuery),
-                    getDoc(submissionDocRef),
                 ]);
 
                 if (schoolDoc.exists()) {
@@ -181,34 +192,27 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
                 } else {
                     console.warn("Form config not found");
                 }
-
-                if (submissionDoc.exists()) {
-                     setSubmission({
-                        id: submissionDoc.id,
-                        ...submissionDoc.data(),
-                    } as SchoolCensusSubmission);
-                } else {
-                    setSubmission(null);
-                }
                 
             } catch (error) {
                 console.error("Failed to load data from Firestore", error);
             } finally {
-                setLoading(false);
+                // Submission listener will handle setting loading to false
             }
         };
 
         fetchData();
         
-        // Setup snapshot listener for real-time updates on submission
         const submissionUnsubscribe = onSnapshot(doc(db, 'submissions', schoolId), (doc) => {
             if (doc.exists()) {
+                // Set the raw data from firestore
                 setSubmission({ id: doc.id, ...doc.data() } as SchoolCensusSubmission);
             } else {
                 setSubmission(null);
             }
+            setLoading(false); // Done loading after submission is fetched
         }, (error) => {
             console.error("Error listening to submission details:", error);
+            setLoading(false);
         });
         unsubscribes.push(submissionUnsubscribe);
 
@@ -298,17 +302,7 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
   }
 
   const defaultOpenSections = formConfig
-    .filter(sectionConfig => {
-        const sectionId = sectionConfig.id;
-        if (sectionId === 'infrastructure') {
-            return submission.infrastructure?.classrooms && submission.infrastructure.classrooms.length > 0;
-        }
-        if (sectionId === 'professionals') {
-            return submission.professionals?.allocations && submission.professionals.allocations.some(a => a.teachers?.length > 0);
-        }
-        const sectionData = submission.dynamicData?.[sectionId];
-        return sectionData && Object.values(sectionData).some(v => v);
-    })
+    .filter(sectionConfig => getSectionStatus(submission, sectionConfig.id))
     .map(section => section.id);
 
 
@@ -350,11 +344,10 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
         {formConfig.map(sectionConfig => {
             const Icon = sectionIcons[sectionConfig.id] || Building2;
             let content = null;
-            let hasData = false;
+            const hasData = getSectionStatus(submission, sectionConfig.id);
 
             if (sectionConfig.id === 'infrastructure') {
                 const classrooms = submission.infrastructure?.classrooms || [];
-                hasData = classrooms.length > 0;
                 content = hasData ? (
                     <div className="space-y-4">
                         {classrooms.map((classroom, index) => (
@@ -371,7 +364,6 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
                 ) : null;
             } else if (sectionConfig.id === 'professionals') {
                 const allocations = submission.professionals?.allocations || [];
-                hasData = allocations.length > 0 && allocations.some(a => a.teachers?.length > 0);
                 content = hasData ? (
                     <div className="overflow-x-auto">
                         <Table>
@@ -423,11 +415,10 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
                 ) : null;
             } else {
                 const sectionData = submission.dynamicData?.[sectionConfig.id];
-                hasData = sectionData && Object.values(sectionData).some(v => v);
                 content = hasData ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {sectionConfig.fields.map(fieldConfig => {
-                            const value = sectionData[fieldConfig.id];
+                            const value = sectionData?.[fieldConfig.id];
                             let displayValue: React.ReactNode = "Não informado";
                             if (value !== undefined && value !== null && value !== '') {
                                 if (typeof value === 'boolean') {
@@ -472,3 +463,5 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
     </div>
   );
 }
+
+    
