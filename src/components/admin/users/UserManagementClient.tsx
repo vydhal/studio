@@ -30,11 +30,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import type { UserProfile, Role, FormSectionPermission, School } from "@/types";
 import { PlusCircle, MoreHorizontal, ChevronsUpDown, Check } from "lucide-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { db, auth } from '@/lib/firebase';
 import { collection, onSnapshot, addDoc, doc, setDoc, deleteDoc, writeBatch, updateDoc } from 'firebase/firestore';
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { createUserWithEmailAndPassword, updateProfile, sendPasswordResetEmail } from 'firebase/auth';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 
@@ -150,19 +150,30 @@ export function UserManagementClient() {
     handleOpenUserModal(user);
   };
 
-  const handleEditRole = (role: Role) => {
-    setEditingRole(role);
-    roleForm.reset(role);
-    setRoleModalOpen(true);
-  };
-  
   const handleDeleteUser = async (userId: string) => {
     if (!db) return;
-    // Note: This only deletes the Firestore record.
-    // For a production app, you'd want a Cloud Function to delete the Auth user too.
+    // This only deletes the Firestore record, which effectively revokes access.
+    // For full deletion, a Cloud Function is required to delete from Firebase Auth.
     await deleteDoc(doc(db, "users", userId));
-    toast({ title: "Usuário excluído com sucesso." });
+    toast({ title: "Usuário removido com sucesso." });
   }
+
+  const handleResetPassword = async (email: string) => {
+    try {
+        await sendPasswordResetEmail(auth, email);
+        toast({
+            title: "Email de redefinição enviado",
+            description: `Um link para redefinir a senha foi enviado para ${email}.`,
+        });
+    } catch (error) {
+        console.error("Password reset error:", error);
+        toast({
+            title: "Erro",
+            description: "Não foi possível enviar o email de redefinição de senha.",
+            variant: "destructive"
+        });
+    }
+  };
 
   const handleDeleteRole = async (roleId: string) => {
     if (!db) return;
@@ -286,7 +297,7 @@ export function UserManagementClient() {
                     </div>
                 </CardHeader>
                 <CardContent>
-                    <UsersTable users={users} roles={roles} schools={schools} onEdit={handleEditUser} onDelete={handleDeleteUser} />
+                    <UsersTable users={users} roles={roles} schools={schools} onEdit={handleEditUser} onDelete={handleDeleteUser} onResetPassword={handleResetPassword} />
                 </CardContent>
             </Card>
         </TabsContent>
@@ -470,7 +481,7 @@ export function UserManagementClient() {
   );
 }
 
-function UsersTable({ users, roles, schools, onEdit, onDelete }: { users: UserProfile[], roles: Role[], schools: School[], onEdit: (user: UserProfile) => void, onDelete: (id: string) => void }) {
+function UsersTable({ users, roles, schools, onEdit, onDelete, onResetPassword }: { users: UserProfile[], roles: Role[], schools: School[], onEdit: (user: UserProfile) => void, onDelete: (id: string) => void, onResetPassword: (email: string) => void }) {
     const roleMap = new Map(roles.map(r => [r.id, r.name]));
     const schoolMap = new Map(schools.map(s => [s.id, s.name]));
 
@@ -497,6 +508,8 @@ function UsersTable({ users, roles, schools, onEdit, onDelete }: { users: UserPr
                                 <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
                                     <DropdownMenuItem onClick={() => onEdit(user)}>Editar</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => onResetPassword(user.email)}>Redefinir Senha</DropdownMenuItem>
+                                    <DropdownMenuSeparator />
                                     <DropdownMenuItem className="text-destructive" onClick={() => onDelete(user.id)}>Excluir</DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
