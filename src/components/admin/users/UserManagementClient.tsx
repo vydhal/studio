@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -86,6 +86,7 @@ export function UserManagementClient() {
   const [editingRole, setEditingRole] = useState<Role | null>(null);
   const { userProfile, loading: authLoading } = useAuth();
   const hasUsersPermission = userProfile?.role?.permissions.includes('users');
+  const [searchQuery, setSearchQuery] = useState("");
 
 
   useEffect(() => {
@@ -286,6 +287,15 @@ export function UserManagementClient() {
   
   const roleName = userForm.watch('roleId') ? roles.find(r => r.id === userForm.watch('roleId'))?.name : '';
 
+  const filteredUsers = useMemo(() => {
+    if (!searchQuery) return users;
+    const lowercasedQuery = searchQuery.toLowerCase();
+    return users.filter(user => 
+        user.name.toLowerCase().includes(lowercasedQuery) ||
+        user.email.toLowerCase().includes(lowercasedQuery)
+    );
+  }, [users, searchQuery]);
+
   return (
     <Tabs defaultValue="users">
         <TabsList className="grid w-full grid-cols-2">
@@ -296,7 +306,7 @@ export function UserManagementClient() {
         <TabsContent value="users" className="space-y-4">
              <Card>
                 <CardHeader>
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-between items-start">
                         <div>
                             <CardTitle>Usuários</CardTitle>
                             <CardDescription>Adicione, edite e remova usuários do sistema.</CardDescription>
@@ -305,9 +315,17 @@ export function UserManagementClient() {
                             <PlusCircle className="mr-2 h-4 w-4" /> Novo Usuário
                         </Button>
                     </div>
+                     <div className="pt-4">
+                        <Input
+                            placeholder="Buscar por nome ou email..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="max-w-sm"
+                        />
+                    </div>
                 </CardHeader>
                 <CardContent>
-                    <UsersTable users={users} roles={roles} schools={schools} onEdit={handleEditUser} onDelete={handleDeleteUser} onResetPassword={handleResetPassword} />
+                    <UsersTable users={filteredUsers} roles={roles} schools={schools} onEdit={handleEditUser} onDelete={handleDeleteUser} onResetPassword={handleResetPassword} />
                 </CardContent>
             </Card>
         </TabsContent>
