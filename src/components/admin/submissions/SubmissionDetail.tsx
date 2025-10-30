@@ -63,15 +63,15 @@ const ClassroomDetails = ({ classroom }: { classroom: Classroom }) => (
         <>
             <div>
                 <h4 className="font-semibold text-md mb-2">Ocupação Atual (Turnos)</h4>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-6">
                     <InfoItem icon={Sun} label="Série Manhã" value={classroom.gradeMorning} show={!!classroom.gradeMorning} />
-                    <InfoItem icon={Users} label="Alunos Manhã" value={classroom.studentsMorning} show={!!classroom.gradeMorning} />
+                    <InfoItem icon={Users} label="Alunos Manhã" value={classroom.studentsMorning} show={!!classroom.studentsMorning} />
                     <div></div>
                     <InfoItem icon={Sun} label="Série Tarde" value={classroom.gradeAfternoon} show={!!classroom.gradeAfternoon} />
-                    <InfoItem icon={Users} label="Alunos Tarde" value={classroom.studentsAfternoon} show={!!classroom.gradeAfternoon} />
+                    <InfoItem icon={Users} label="Alunos Tarde" value={classroom.studentsAfternoon} show={!!classroom.studentsAfternoon} />
                     <div></div>
                     <InfoItem icon={Moon} label="Série Noite" value={classroom.gradeNight} show={!!classroom.gradeNight} />
-                    <InfoItem icon={Users} label="Alunos Noite" value={classroom.studentsNight} show={!!classroom.gradeNight} />
+                    <InfoItem icon={Users} label="Alunos Noite" value={classroom.studentsNight} show={!!classroom.studentsNight} />
                 </div>
             </div>
             
@@ -157,11 +157,13 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
                 const schoolDocRef = doc(db, 'schools', schoolId);
                 const formConfigDocRef = doc(db, 'settings', 'formConfig');
                 const professionalsQuery = collection(db, 'professionals');
+                const submissionDocRef = doc(db, 'submissions', schoolId);
 
-                const [schoolDoc, formConfigDoc, professionalsSnapshot] = await Promise.all([
+                const [schoolDoc, formConfigDoc, professionalsSnapshot, submissionDoc] = await Promise.all([
                     getDoc(schoolDocRef),
                     getDoc(formConfigDocRef),
-                    getDocs(professionalsQuery)
+                    getDocs(professionalsQuery),
+                    getDoc(submissionDocRef),
                 ]);
 
                 if (schoolDoc.exists()) {
@@ -179,23 +181,16 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
                 } else {
                     console.warn("Form config not found");
                 }
-                
-                const submissionDocRef = doc(db, 'submissions', schoolId);
-                const submissionUnsubscribe = onSnapshot(submissionDocRef, (doc) => {
-                    if (doc.exists()) {
-                        const submissionData = {
-                            id: doc.id,
-                            ...doc.data(),
-                        } as SchoolCensusSubmission;
-                        setSubmission(submissionData);
-                    } else {
-                        setSubmission(null);
-                    }
-                }, (error) => {
-                    console.error("Error listening to submission details:", error);
-                });
-                unsubscribes.push(submissionUnsubscribe);
 
+                if (submissionDoc.exists()) {
+                     setSubmission({
+                        id: submissionDoc.id,
+                        ...submissionDoc.data(),
+                    } as SchoolCensusSubmission);
+                } else {
+                    setSubmission(null);
+                }
+                
             } catch (error) {
                 console.error("Failed to load data from Firestore", error);
             } finally {
@@ -204,6 +199,19 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
         };
 
         fetchData();
+        
+        // Setup snapshot listener for real-time updates on submission
+        const submissionUnsubscribe = onSnapshot(doc(db, 'submissions', schoolId), (doc) => {
+            if (doc.exists()) {
+                setSubmission({ id: doc.id, ...doc.data() } as SchoolCensusSubmission);
+            } else {
+                setSubmission(null);
+            }
+        }, (error) => {
+            console.error("Error listening to submission details:", error);
+        });
+        unsubscribes.push(submissionUnsubscribe);
+
 
         return () => {
             unsubscribes.forEach(unsub => unsub());
