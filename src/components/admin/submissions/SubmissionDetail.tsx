@@ -136,14 +136,14 @@ const getSectionStatus = (submission: SchoolCensusSubmission | null, sectionId: 
     if (!submission) return false;
 
     if (sectionId === 'infrastructure') {
-        return submission.infrastructure?.classrooms && submission.infrastructure.classrooms.length > 0;
+        return !!(submission.infrastructure?.classrooms && submission.infrastructure.classrooms.length > 0);
     }
     if (sectionId === 'professionals') {
-        return submission.professionals?.allocations && submission.professionals.allocations.some(a => a.teachers?.length > 0);
+        return !!(submission.professionals?.allocations && submission.professionals.allocations.some(a => a.teachers?.length > 0));
     }
     
     const sectionData = submission.dynamicData?.[sectionId];
-    return sectionData && Object.values(sectionData).some(v => v);
+    return !!(sectionData && Object.values(sectionData).some(v => v));
 };
 
 export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {

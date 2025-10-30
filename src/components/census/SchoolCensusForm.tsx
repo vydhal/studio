@@ -158,7 +158,7 @@ export const gradeLevels = [
     "Não se aplica",
 ];
 
-const workloadOptions = [20, 30, 40, 50];
+const workloadOptions = [2, 3, 4, 5, 6, 7, 10, 20, 30, 40, 50, 60];
 
 const generateDefaultValues = (config: FormSectionConfig[]) => {
     const defaultDynamicValues: { [key: string]: any } = {};
