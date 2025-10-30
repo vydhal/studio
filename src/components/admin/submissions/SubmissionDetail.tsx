@@ -183,11 +183,9 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
                 const submissionDocRef = doc(db, 'submissions', schoolId);
                 const submissionUnsubscribe = onSnapshot(submissionDocRef, (doc) => {
                     if (doc.exists()) {
-                        const data = doc.data();
                         const submissionData = {
-                            ...data,
                             id: doc.id,
-                            submittedAt: data.submittedAt instanceof Timestamp ? data.submittedAt.toDate() : new Date(),
+                            ...doc.data(),
                         } as SchoolCensusSubmission;
                         setSubmission(submissionData);
                     } else {
@@ -263,7 +261,34 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
             </Card>
         )
     }
-  
+
+  const getFormattedDate = (dateValue: any): string => {
+    if (!dateValue) return 'N/A';
+
+    try {
+        let date: Date;
+        if (dateValue instanceof Timestamp) {
+            date = dateValue.toDate();
+        } else if (dateValue instanceof Date) {
+            date = dateValue;
+        } else if (typeof dateValue === 'string' || typeof dateValue === 'number') {
+            date = new Date(dateValue);
+        } else if (typeof dateValue === 'object' && dateValue.seconds) { // Handle serialized Timestamp
+            date = new Timestamp(dateValue.seconds, dateValue.nanoseconds).toDate();
+        } else {
+             return 'N/A';
+        }
+
+        if (isNaN(date.getTime())) {
+            return 'N/A';
+        }
+
+        return format(date, "dd 'de' MMMM 'de' yyyy, 'às' HH:mm", { locale: ptBR });
+    } catch (error) {
+        return 'N/A';
+    }
+  }
+
   const defaultOpenSections = formConfig
     .filter(sectionConfig => {
         const sectionId = sectionConfig.id;
@@ -288,7 +313,7 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
             <h1 className="text-3xl font-bold tracking-tight font-headline mt-4">Detalhes da Submissão</h1>
             {submission.submittedAt ? (
                 <p className="text-muted-foreground">
-                    Última atualização em: {format(new Date(submission.submittedAt), "dd 'de' MMMM 'de' yyyy, 'às' HH:mm", { locale: ptBR })}
+                    Última atualização em: {getFormattedDate(submission.submittedAt)}
                 </p>
             ) : (
                  <p className="text-muted-foreground">Censo em andamento. Nenhuma seção foi salva ainda.</p>
