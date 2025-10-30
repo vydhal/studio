@@ -7,7 +7,7 @@ import type { SchoolCensusSubmission, School, Classroom, FormSectionConfig, Prof
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CheckCircle2, XCircle, Users, Tv, Wind, Zap, Armchair, Wifi, Snowflake, Bot, Laptop, Printer, Router, AlertTriangle, Loader2, UserCog, HardHat, Clock, MessageSquare, Sun, Moon, Star, Building2, Bath } from "lucide-react";
+import { CheckCircle2, XCircle, Users, Tv, Wind, Zap, Armchair, Wifi, Snowflake, Bot, Laptop, Printer, Router, AlertTriangle, Loader2, UserCog, HardHat, Clock, MessageSquare, Sun, Moon, Star, Building2, Bath, Palette, Wrench } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from 'date-fns/locale';
 import Link from "next/link";
@@ -121,6 +121,15 @@ const techIcons: { [key: string]: React.ElementType } = {
   'Modems': Router,
   'Impressoras': Printer,
   'Modems com Defeito': Router,
+};
+
+const sectionIcons: { [key: string]: React.ElementType } = {
+  general: Building2,
+  infrastructure: HardHat,
+  professionals: UserCog,
+  tech: Laptop,
+  cultural: Palette,
+  maintenance: Wrench,
 };
 
 
@@ -255,14 +264,14 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
         )
     }
   
-   const visibleSections = formConfig.filter(section => {
-        const sectionId = section.id.startsWith('infra') ? 'infrastructure' : section.id;
-        // Show section if it's configured, and either it's not a dynamic section or has data
-        if(sectionId === 'infrastructure' || sectionId === 'professionals'){
-            return true;
-        }
-        return submission.dynamicData?.[section.id];
-   });
+    const defaultOpenSections = formConfig
+        .filter(section => {
+            const sectionId = section.id.startsWith('infra') ? 'infrastructure' : section.id;
+            if (sectionId === 'infrastructure') return submission.infrastructure?.classrooms && submission.infrastructure.classrooms.length > 0;
+            if (sectionId === 'professionals') return submission.professionals?.allocations && submission.professionals.allocations.length > 0;
+            return submission.dynamicData?.[sectionId] && Object.values(submission.dynamicData[sectionId]).some(v => !!v);
+        })
+        .map(section => section.id);
 
 
   return (
@@ -299,17 +308,17 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
         </CardContent>
       </Card>
       
-       <Accordion type="multiple" className="w-full space-y-4" defaultValue={visibleSections.map(s => s.id)}>
-        {visibleSections.map(sectionConfig => {
-          const sectionData = submission.dynamicData?.[sectionConfig.id];
-
+      <Accordion type="multiple" className="w-full space-y-4" defaultValue={defaultOpenSections}>
+        {formConfig.map(sectionConfig => {
+          const Icon = sectionIcons[sectionConfig.id] || Building2;
+          
           if (sectionConfig.id.startsWith('infra')) {
             const classrooms = submission.infrastructure?.classrooms || [];
             return (
                 <AccordionItem value={sectionConfig.id} key={sectionConfig.id} className="border-b-0">
                     <Card>
                         <AccordionTrigger className="p-6 text-left">
-                            <CardTitle className="flex items-center gap-2"><HardHat /> {sectionConfig.name}</CardTitle>
+                            <CardTitle className="flex items-center gap-2"><Icon /> {sectionConfig.name}</CardTitle>
                         </AccordionTrigger>
                         <AccordionContent className="px-6 pb-6 space-y-4">
                             {classrooms.length > 0 ? (
@@ -341,7 +350,7 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
                 <AccordionItem value={sectionConfig.id} key={sectionConfig.id} className="border-b-0">
                     <Card>
                         <AccordionTrigger className="p-6 text-left">
-                           <CardTitle className="flex items-center gap-2"><UserCog/> {sectionConfig.name}</CardTitle>
+                           <CardTitle className="flex items-center gap-2"><Icon/> {sectionConfig.name}</CardTitle>
                         </AccordionTrigger>
                         <AccordionContent className="px-6 pb-6 space-y-4">
                             {allocations.length > 0 && allocations.some(a => a.teachers?.length > 0) ? (
@@ -404,14 +413,17 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
             );
           }
          
+          const sectionData = submission.dynamicData?.[sectionConfig.id];
+          const hasData = sectionData && Object.values(sectionData).some(v => v);
+
           return (
              <AccordionItem value={sectionConfig.id} key={sectionConfig.id} className="border-b-0">
                 <Card>
                   <AccordionTrigger className="p-6 text-left">
-                      <CardTitle>{sectionConfig.name}</CardTitle>
+                      <CardTitle className="flex items-center gap-2"><Icon /> {sectionConfig.name}</CardTitle>
                   </AccordionTrigger>
                   <AccordionContent className="px-6 pb-6">
-                    {!sectionData ? (
+                    {!hasData ? (
                         <Alert variant="default">
                           <AlertTriangle className="h-4 w-4" />
                           <AlertTitle>Seção não preenchida</AlertTitle>
