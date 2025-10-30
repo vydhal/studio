@@ -29,7 +29,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import type { UserProfile, Role, FormSectionPermission, School } from "@/types";
-import { PlusCircle, MoreHorizontal, ChevronsUpDown, Check } from "lucide-react";
+import { PlusCircle, MoreHorizontal, ChevronsUpDown, Check, Badge } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { db, auth } from '@/lib/firebase';
@@ -86,7 +86,6 @@ export function UserManagementClient() {
   const [editingRole, setEditingRole] = useState<Role | null>(null);
   const { userProfile, loading: authLoading } = useAuth();
   const hasUsersPermission = userProfile?.role?.permissions.includes('users');
-  const [searchQuery, setSearchQuery] = useState("");
 
 
   useEffect(() => {
@@ -161,13 +160,17 @@ export function UserManagementClient() {
     setRoleModalOpen(true);
   };
 
-  const handleDeleteUser = async (userId: string) => {
+  const handleToggleUserStatus = async (user: UserProfile) => {
     if (!db) return;
-    // This only deletes the Firestore record, which effectively revokes access.
-    // For full deletion, a Cloud Function is required to delete from Firebase Auth.
-    await deleteDoc(doc(db, "users", userId));
-    toast({ title: "Usuário removido com sucesso." });
-  }
+    const newStatus = user.status === 'active' ? 'inactive' : 'active';
+    const userRef = doc(db, "users", user.id);
+    try {
+        await updateDoc(userRef, { status: newStatus });
+        toast({ title: `Usuário ${newStatus === 'active' ? 'reativado' : 'desativado'} com sucesso.` });
+    } catch(error) {
+        toast({ title: "Erro ao alterar status do usuário", variant: "destructive" });
+    }
+  };
 
   const handleResetPassword = async (email: string) => {
     try {
@@ -228,6 +231,7 @@ export function UserManagementClient() {
           email: values.email,
           roleId: values.roleId,
           schoolId: values.schoolId || null,
+          status: 'active', // Default status on creation
         });
         toast({ title: "Usuário criado com sucesso!" });
       }
@@ -287,14 +291,16 @@ export function UserManagementClient() {
   
   const roleName = userForm.watch('roleId') ? roles.find(r => r.id === userForm.watch('roleId'))?.name : '';
 
-  const filteredUsers = useMemo(() => {
-    if (!searchQuery) return users;
-    const lowercasedQuery = searchQuery.toLowerCase();
-    return users.filter(user => 
-        user.name.toLowerCase().includes(lowercasedQuery) ||
-        user.email.toLowerCase().includes(lowercasedQuery)
-    );
-  }, [users, searchQuery]);
+  const { activeUsers, inactiveUsers } = useMemo(() => {
+    return users.reduce((acc, user) => {
+        if (user.status === 'inactive') {
+            acc.inactiveUsers.push(user);
+        } else {
+            acc.activeUsers.push(user);
+        }
+        return acc;
+    }, { activeUsers: [] as UserProfile[], inactiveUsers: [] as UserProfile[] });
+  }, [users]);
 
   return (
     <Tabs defaultValue="users">
@@ -309,23 +315,26 @@ export function UserManagementClient() {
                     <div className="flex justify-between items-start">
                         <div>
                             <CardTitle>Usuários</CardTitle>
-                            <CardDescription>Adicione, edite e remova usuários do sistema.</CardDescription>
+                            <CardDescription>Adicione, edite e gerencie usuários do sistema.</CardDescription>
                         </div>
                          <Button onClick={() => handleOpenUserModal(null)}>
                             <PlusCircle className="mr-2 h-4 w-4" /> Novo Usuário
                         </Button>
                     </div>
-                     <div className="pt-4">
-                        <Input
-                            placeholder="Buscar por nome ou email..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="max-w-sm"
-                        />
-                    </div>
                 </CardHeader>
                 <CardContent>
-                    <UsersTable users={filteredUsers} roles={roles} schools={schools} onEdit={handleEditUser} onDelete={handleDeleteUser} onResetPassword={handleResetPassword} />
+                    <Tabs defaultValue="active" className="w-full">
+                        <TabsList>
+                            <TabsTrigger value="active">Ativos</TabsTrigger>
+                            <TabsTrigger value="inactive">Inativos</TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="active">
+                             <UsersTable users={activeUsers} roles={roles} schools={schools} onEdit={handleEditUser} onToggleStatus={handleToggleUserStatus} onResetPassword={handleResetPassword} />
+                        </TabsContent>
+                        <TabsContent value="inactive">
+                             <UsersTable users={inactiveUsers} roles={roles} schools={schools} onEdit={handleEditUser} onToggleStatus={handleToggleUserStatus} onResetPassword={handleResetPassword} />
+                        </TabsContent>
+                    </Tabs>
                 </CardContent>
             </Card>
         </TabsContent>
@@ -509,7 +518,7 @@ export function UserManagementClient() {
   );
 }
 
-function UsersTable({ users, roles, schools, onEdit, onDelete, onResetPassword }: { users: UserProfile[], roles: Role[], schools: School[], onEdit: (user: UserProfile) => void, onDelete: (id: string) => void, onResetPassword: (email: string) => void }) {
+function UsersTable({ users, roles, schools, onEdit, onToggleStatus, onResetPassword }: { users: UserProfile[], roles: Role[], schools: School[], onEdit: (user: UserProfile) => void, onToggleStatus: (user: UserProfile) => void, onResetPassword: (email: string) => void }) {
     const roleMap = new Map(roles.map(r => [r.id, r.name]));
     const schoolMap = new Map(schools.map(s => [s.id, s.name]));
 
@@ -521,29 +530,40 @@ function UsersTable({ users, roles, schools, onEdit, onDelete, onResetPassword }
                     <TableHead>Email</TableHead>
                     <TableHead>Perfil</TableHead>
                     <TableHead>Unidade</TableHead>
+                    <TableHead>Status</TableHead>
                     <TableHead><span className="sr-only">Ações</span></TableHead>
                 </TableRow>
             </TableHeader>
             <TableBody>
-                {users.map(user => (
-                    <TableRow key={user.id}>
-                        <TableCell className="font-medium">{user.name}</TableCell>
-                        <TableCell>{user.email}</TableCell>
-                        <TableCell>{roleMap.get(user.roleId) || 'N/A'}</TableCell>
-                        <TableCell>{(user.schoolId && schoolMap.get(user.schoolId)) || 'N/A'}</TableCell>
-                        <TableCell className="text-right">
-                           <DropdownMenu>
-                                <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={() => onEdit(user)}>Editar</DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => onResetPassword(user.email)}>Redefinir Senha</DropdownMenuItem>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem className="text-destructive" onClick={() => onDelete(user.id)}>Excluir</DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        </TableCell>
-                    </TableRow>
-                ))}
+                {users.map(user => {
+                    const status = user.status || 'active';
+                    return (
+                        <TableRow key={user.id}>
+                            <TableCell className="font-medium">{user.name}</TableCell>
+                            <TableCell>{user.email}</TableCell>
+                            <TableCell>{roleMap.get(user.roleId) || 'N/A'}</TableCell>
+                            <TableCell>{(user.schoolId && schoolMap.get(user.schoolId)) || 'N/A'}</TableCell>
+                            <TableCell>
+                                <Badge variant={status === 'active' ? 'default' : 'secondary'} className={status === 'active' ? 'bg-green-500' : ''}>{status === 'active' ? 'Ativo' : 'Inativo'}</Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                            <DropdownMenu>
+                                    <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onClick={() => onEdit(user)}>Editar</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => onResetPassword(user.email)}>Redefinir Senha</DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                        {status === 'active' ? (
+                                            <DropdownMenuItem className="text-destructive" onClick={() => onToggleStatus(user)}>Desativar</DropdownMenuItem>
+                                        ) : (
+                                            <DropdownMenuItem onClick={() => onToggleStatus(user)}>Reativar</DropdownMenuItem>
+                                        )}
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </TableCell>
+                        </TableRow>
+                    )
+                })}
             </TableBody>
         </Table>
     );
@@ -581,3 +601,5 @@ function RolesTable({ roles, onEdit, onDelete }: { roles: Role[], onEdit: (role:
         </Table>
     );
 }
+
+    

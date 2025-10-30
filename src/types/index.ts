@@ -163,6 +163,7 @@ export interface UserProfile {
     role: Role | null; // Populated role object
     password?: string;
     schoolId?: string; // Foreign key to School
+    status?: 'active' | 'inactive';
 }
 
 
@@ -214,3 +215,5 @@ export interface FormSectionConfig {
     description?: string;
     fields: FormFieldConfig[];
 }
+
+    

@@ -1,13 +1,15 @@
 
+
 "use client";
 
 import React, { createContext, useState, useEffect, ReactNode, useContext } from 'react';
-import { User, onAuthStateChanged } from 'firebase/auth';
+import { User, onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { usePathname, useRouter } from 'next/navigation';
 import { doc, getDoc } from 'firebase/firestore';
 import type { UserProfile, Role } from '@/types';
 import { School } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 
 interface AuthContextType {
@@ -24,6 +26,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const pathname = usePathname();
   const router = useRouter();
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!auth || !db) {
@@ -33,45 +36,62 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setLoading(true);
-      setUser(user);
-
+      
       if (user) {
         // User is logged in, fetch their profile from Firestore.
         const userRef = doc(db, 'users', user.uid);
         const userSnap = await getDoc(userRef);
 
         if (userSnap.exists()) {
-            const userData = userSnap.data() as Omit<UserProfile, 'id' | 'role'>;
-            
-            if (userData.roleId) {
-                const roleRef = doc(db, 'roles', userData.roleId);
-                const roleSnap = await getDoc(roleRef);
-                
-                if (roleSnap.exists()) {
-                    const userRole = { id: roleSnap.id, ...roleSnap.data() } as Role;
-                    setUserProfile({ id: user.uid, ...userData, role: userRole });
+            const userData = userSnap.data() as Omit<UserProfile, 'id' | 'role'> & { status?: 'active' | 'inactive' };
+
+            if (userData.status === 'inactive') {
+                // If user is inactive, log them out and block access.
+                setUser(null);
+                setUserProfile(null);
+                await signOut(auth);
+                toast({
+                    title: "Conta Desativada",
+                    description: "Sua conta foi desativada. Entre em contato com um administrador.",
+                    variant: "destructive"
+                });
+                 router.push('/login');
+            } else {
+                setUser(user);
+                if (userData.roleId) {
+                    const roleRef = doc(db, 'roles', userData.roleId);
+                    const roleSnap = await getDoc(roleRef);
+                    
+                    if (roleSnap.exists()) {
+                        const userRole = { id: roleSnap.id, ...roleSnap.data() } as Role;
+                        setUserProfile({ id: user.uid, ...userData, role: userRole });
+                    } else {
+                        // User has a roleId that doesn't exist in the roles collection
+                        setUserProfile({ id: user.uid, ...userData, role: null });
+                    }
                 } else {
-                     // User has a roleId that doesn't exist in the roles collection
+                    // User has no roleId assigned
                     setUserProfile({ id: user.uid, ...userData, role: null });
                 }
-            } else {
-                 // User has no roleId assigned
-                 setUserProfile({ id: user.uid, ...userData, role: null });
             }
         } else {
             // User exists in Auth but not in 'users' collection.
             // This could be a partially created user. Treat as having no profile.
+            // Also handles the initial admin login case before the profile is created.
+            setUser(user);
             setUserProfile({
               id: user.uid,
               email: user.email!,
               name: user.displayName || 'Usuário sem perfil',
               roleId: '',
-              role: null
+              role: null,
+              status: 'active'
             }); 
         }
 
       } else {
         // User is logged out.
+        setUser(null);
         setUserProfile(null);
         if (pathname.startsWith('/admin')) {
             router.push('/login');
@@ -82,7 +102,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
 
     return () => unsubscribe();
-  }, [pathname, router]);
+  }, [pathname, router, toast]);
 
   if (loading) {
     return (
@@ -124,3 +144,5 @@ export const useAuth = () => {
 };
 
 // Add School icon for loading screen
+
+    
