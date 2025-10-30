@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import type { SchoolCensusSubmission, School, Classroom, FormSectionConfig, Professional, ClassroomAllocation } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -156,72 +156,61 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
     
     const professionalMap = new Map(professionals.map(p => [p.id, p.name]));
 
-    useEffect(() => {
-        if (authLoading || !user || !db) {
-            if (!authLoading) setLoading(false);
+    const fetchAllData = useCallback(async () => {
+        if (!db) {
+            console.error("Firestore instance not available");
+            setLoading(false);
             return;
         }
-
-        let unsubscribes: (() => void)[] = [];
         setLoading(true);
+        try {
+            const schoolDocRef = doc(db, 'schools', schoolId);
+            const submissionDocRef = doc(db, 'submissions', schoolId);
+            const formConfigDocRef = doc(db, 'settings', 'formConfig');
+            const professionalsQuery = collection(db, 'professionals');
 
-        const fetchData = async () => {
-            try {
-                const schoolDocRef = doc(db, 'schools', schoolId);
-                const formConfigDocRef = doc(db, 'settings', 'formConfig');
-                const professionalsQuery = collection(db, 'professionals');
+            const [schoolDoc, submissionDoc, formConfigDoc, professionalsSnapshot] = await Promise.all([
+                getDoc(schoolDocRef),
+                getDoc(submissionDocRef),
+                getDoc(formConfigDocRef),
+                getDocs(professionalsQuery),
+            ]);
 
-                const [schoolDoc, formConfigDoc, professionalsSnapshot] = await Promise.all([
-                    getDoc(schoolDocRef),
-                    getDoc(formConfigDocRef),
-                    getDocs(professionalsQuery),
-                ]);
-
-                if (schoolDoc.exists()) {
-                    setSchool({ id: schoolDoc.id, ...schoolDoc.data() } as School);
-                } else {
-                    console.warn("School not found");
-                }
-                
-                if (professionalsSnapshot) {
-                    setProfessionals(professionalsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Professional[]);
-                }
-
-                if (formConfigDoc.exists()) {
-                    setFormConfig(formConfigDoc.data().sections || []);
-                } else {
-                    console.warn("Form config not found");
-                }
-                
-            } catch (error) {
-                console.error("Failed to load data from Firestore", error);
-            } finally {
-                // Submission listener will handle setting loading to false
-            }
-        };
-
-        fetchData();
-        
-        const submissionUnsubscribe = onSnapshot(doc(db, 'submissions', schoolId), (doc) => {
-            if (doc.exists()) {
-                // Set the raw data from firestore
-                setSubmission({ id: doc.id, ...doc.data() } as SchoolCensusSubmission);
+            if (schoolDoc.exists()) {
+                setSchool({ id: schoolDoc.id, ...schoolDoc.data() } as School);
             } else {
-                setSubmission(null);
+                console.warn("School not found");
             }
-            setLoading(false); // Done loading after submission is fetched
-        }, (error) => {
-            console.error("Error listening to submission details:", error);
+
+            if (submissionDoc.exists()) {
+                setSubmission({ id: submissionDoc.id, ...submissionDoc.data() } as SchoolCensusSubmission);
+            }
+
+            if (formConfigDoc.exists()) {
+                setFormConfig(formConfigDoc.data().sections || []);
+            } else {
+                console.warn("Form config not found");
+            }
+            
+            if (professionalsSnapshot) {
+                setProfessionals(professionalsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Professional[]);
+            }
+
+        } catch (error) {
+            console.error("Failed to load data from Firestore", error);
+        } finally {
             setLoading(false);
-        });
-        unsubscribes.push(submissionUnsubscribe);
+        }
+    }, [schoolId]);
 
 
-        return () => {
-            unsubscribes.forEach(unsub => unsub());
-        };
-
-    }, [schoolId, user, authLoading]);
+    useEffect(() => {
+        if (authLoading || !user) {
+             if (!authLoading) setLoading(false);
+            return;
+        }
+        fetchAllData();
+    }, [schoolId, user, authLoading, fetchAllData]);
 
   if (loading || authLoading) {
     return (
@@ -463,5 +452,3 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
     </div>
   );
 }
-
-    
