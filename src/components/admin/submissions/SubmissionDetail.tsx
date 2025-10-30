@@ -78,9 +78,9 @@ const ClassroomDetails = ({ classroom }: { classroom: Classroom }) => (
             <div>
                 <h4 className="font-semibold text-md mb-2">Projeção 2026 (Turnos)</h4>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                    <InfoItem icon={Sun} label="Série Manhã" value={classroom.gradeProjection2026Morning} show={!!classroom.gradeProjection2026Morning} />
-                    <InfoItem icon={Sun} label="Série Tarde" value={classroom.gradeProjection2026Afternoon} show={!!classroom.gradeProjection2026Afternoon} />
-                    <InfoItem icon={Moon} label="Série Noite" value={classroom.gradeProjection2026Night} show={!!classroom.gradeProjection2026Night} />
+                    <InfoItem icon={Sun} label="Projeção Manhã" value={classroom.gradeProjection2026Morning} show={!!classroom.gradeProjection2026Morning} />
+                    <InfoItem icon={Sun} label="Projeção Tarde" value={classroom.gradeProjection2026Afternoon} show={!!classroom.gradeProjection2026Afternoon} />
+                    <InfoItem icon={Moon} label="Projeção Noite" value={classroom.gradeProjection2026Night} show={!!classroom.gradeProjection2026Night} />
                 </div>
             </div>
         </>
@@ -267,8 +267,12 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
     const defaultOpenSections = formConfig
         .filter(section => {
             const sectionId = section.id.startsWith('infra') ? 'infrastructure' : section.id;
-            if (sectionId === 'infrastructure') return submission.infrastructure?.classrooms && submission.infrastructure.classrooms.length > 0;
-            if (sectionId === 'professionals') return submission.professionals?.allocations && submission.professionals.allocations.length > 0;
+            if (sectionId === 'infrastructure') {
+                return submission.infrastructure?.classrooms && submission.infrastructure.classrooms.length > 0;
+            }
+            if (sectionId === 'professionals') {
+                return submission.professionals?.allocations && submission.professionals.allocations.some(a => a.teachers?.length > 0);
+            }
             return submission.dynamicData?.[sectionId] && Object.values(submission.dynamicData[sectionId]).some(v => !!v);
         })
         .map(section => section.id);
