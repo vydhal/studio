@@ -144,6 +144,17 @@ export const gradeLevels = [
     "EJA 3º Ciclo",
     "EJA 4º Ciclo",
     "AEE - Atendimento Educacional Especializado",
+    "MISTA (PRÉ-ESCOLA I E II)",
+    "MISTA (MATERNAL II, PRE I E PRE II)",
+    "MISTA (MAT II E PRE I)",
+    "MULTIANUAL (1º AO 5º ANO)",
+    "MULTIANUAL (4º E 5º ANO)",
+    "MULTIANUAL (2º E 3º ANO)",
+    "MULTIANUAL (1º E 2º ANO)",
+    "MULTIANUAL (1º, 2º E 3º ANO)",
+    "MULTIANUAL (3º E 4º ANO)",
+    "PROTAR 1 - (6º E 7º ANO)",
+    "PROTAR 2 - (8º E 9º ANO)",
     "Não se aplica",
 ];
 
