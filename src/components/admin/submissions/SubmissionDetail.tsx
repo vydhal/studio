@@ -75,7 +75,7 @@ const ClassroomDetails = ({ classroom }: { classroom: Classroom }) => (
                 </div>
             </div>
             
-            <div>
+             <div>
                 <h4 className="font-semibold text-md mb-2">Projeção 2026 (Turnos)</h4>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                     <InfoItem icon={Sun} label="Projeção Manhã" value={classroom.gradeProjection2026Morning} show={!!classroom.gradeProjection2026Morning} />
@@ -264,18 +264,19 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
         )
     }
   
-    const defaultOpenSections = formConfig
-        .filter(section => {
-            const sectionId = section.id.startsWith('infra') ? 'infrastructure' : section.id;
-            if (sectionId === 'infrastructure') {
-                return submission.infrastructure?.classrooms && submission.infrastructure.classrooms.length > 0;
-            }
-            if (sectionId === 'professionals') {
-                return submission.professionals?.allocations && submission.professionals.allocations.some(a => a.teachers?.length > 0);
-            }
-            return submission.dynamicData?.[sectionId] && Object.values(submission.dynamicData[sectionId]).some(v => !!v);
-        })
-        .map(section => section.id);
+  const defaultOpenSections = formConfig
+    .filter(sectionConfig => {
+        const sectionId = sectionConfig.id;
+        if (sectionId === 'infrastructure') {
+            return submission.infrastructure?.classrooms && submission.infrastructure.classrooms.length > 0;
+        }
+        if (sectionId === 'professionals') {
+            return submission.professionals?.allocations && submission.professionals.allocations.some(a => a.teachers?.length > 0);
+        }
+        const sectionData = submission.dynamicData?.[sectionId];
+        return sectionData && Object.values(sectionData).some(v => v);
+    })
+    .map(section => section.id);
 
 
   return (
@@ -314,10 +315,105 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
       
       <Accordion type="multiple" className="w-full space-y-4" defaultValue={defaultOpenSections}>
         {formConfig.map(sectionConfig => {
-          const Icon = sectionIcons[sectionConfig.id] || Building2;
-          
-          if (sectionConfig.id.startsWith('infra')) {
-            const classrooms = submission.infrastructure?.classrooms || [];
+            const Icon = sectionIcons[sectionConfig.id] || Building2;
+            let content = null;
+            let hasData = false;
+
+            if (sectionConfig.id === 'infrastructure') {
+                const classrooms = submission.infrastructure?.classrooms || [];
+                hasData = classrooms.length > 0;
+                content = hasData ? (
+                    classrooms.map((classroom, index) => (
+                        <Accordion key={index} type="single" collapsible className="w-full">
+                            <AccordionItem value={`item-${index}`} className="border rounded-md px-4">
+                                <AccordionTrigger className="py-4 text-base font-medium">{classroom.name || `Sala ${index+1}`}</AccordionTrigger>
+                                <AccordionContent>
+                                    <ClassroomDetails classroom={classroom} />
+                                </AccordionContent>
+                            </AccordionItem>
+                        </Accordion>
+                    ))
+                ) : null;
+            } else if (sectionConfig.id === 'professionals') {
+                const allocations = submission.professionals?.allocations || [];
+                hasData = allocations.length > 0 && allocations.some(a => a.teachers?.length > 0);
+                content = hasData ? (
+                    <div className="overflow-x-auto">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Sala</TableHead>
+                                    <TableHead>Turno</TableHead>
+                                    <TableHead>Série</TableHead>
+                                    <TableHead>Professor(a)</TableHead>
+                                    <TableHead>Vínculo</TableHead>
+                                    <TableHead>C.H.</TableHead>
+                                    <TableHead>Obs.</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {allocations.flatMap((alloc, index) => 
+                                    alloc.teachers?.map((teacher, teacherIndex) => (
+                                        <TableRow key={`${index}-${teacherIndex}`}>
+                                            {teacherIndex === 0 && (
+                                                <>
+                                                    <TableCell rowSpan={alloc.teachers.length}>{alloc.classroomName}</TableCell>
+                                                    <TableCell rowSpan={alloc.teachers.length} className="capitalize">{alloc.turn === 'morning' ? 'Manhã' : alloc.turn === 'afternoon' ? 'Tarde' : alloc.turn === 'night' ? 'Noite' : 'Integral'}</TableCell>
+                                                    <TableCell rowSpan={alloc.teachers.length}>{alloc.grade}</TableCell>
+                                                </>
+                                            )}
+                                            <TableCell>{professionalMap.get(teacher.professionalId || '') || 'Não alocado'}</TableCell>
+                                            <TableCell>{teacher.contractType || 'N/A'}</TableCell>
+                                            <TableCell>{teacher.workload ? `${teacher.workload}h` : 'N/A'}</TableCell>
+                                            <TableCell>
+                                                {teacher.observations && teacher.observations !== 'Nenhuma' ? (
+                                                    <TooltipProvider>
+                                                        <Tooltip>
+                                                            <TooltipTrigger>
+                                                                <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                                                            </TooltipTrigger>
+                                                            <TooltipContent>
+                                                                <p>{teacher.observations}</p>
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    </TooltipProvider>
+                                                ) : '-'}
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
+                ) : null;
+            } else {
+                const sectionData = submission.dynamicData?.[sectionConfig.id];
+                hasData = sectionData && Object.values(sectionData).some(v => v);
+                content = hasData ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {sectionConfig.fields.map(fieldConfig => {
+                            const value = sectionData[fieldConfig.id];
+                            let displayValue: React.ReactNode = "Não informado";
+                            if (value !== undefined && value !== null && value !== '') {
+                                if (typeof value === 'boolean') {
+                                    displayValue = value ? <CheckCircle2 className="text-green-500" /> : <XCircle className="text-destructive" />;
+                                } else if (fieldConfig.type === 'date' && value) {
+                                    displayValue = format(new Date(value), "dd/MM/yyyy");
+                                } else {
+                                    displayValue = String(value);
+                                }
+                            }
+                            return (
+                                <div key={fieldConfig.id} className="flex flex-col space-y-1">
+                                    <p className="text-sm font-medium text-muted-foreground">{fieldConfig.name}</p>
+                                    <div className="font-semibold">{displayValue}</div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                ) : null;
+            }
+
             return (
                 <AccordionItem value={sectionConfig.id} key={sectionConfig.id} className="border-b-0">
                     <Card>
@@ -325,144 +421,17 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
                             <CardTitle className="flex items-center gap-2"><Icon /> {sectionConfig.name}</CardTitle>
                         </AccordionTrigger>
                         <AccordionContent className="px-6 pb-6 space-y-4">
-                            {classrooms.length > 0 ? (
-                                classrooms.map((classroom, index) => (
-                                    <Accordion key={index} type="single" collapsible className="w-full">
-                                        <AccordionItem value={`item-${index}`} className="border rounded-md px-4">
-                                            <AccordionTrigger className="py-4 text-base font-medium">{classroom.name || `Sala ${index+1}`}</AccordionTrigger>
-                                            <AccordionContent>
-                                                <ClassroomDetails classroom={classroom} />
-                                            </AccordionContent>
-                                        </AccordionItem>
-                                    </Accordion>
-                                ))
-                            ) : (
+                            {hasData ? content : (
                                 <Alert variant="default">
-                                  <AlertTriangle className="h-4 w-4" />
-                                  <AlertTitle>Nenhuma sala de aula cadastrada</AlertTitle>
+                                    <AlertTriangle className="h-4 w-4" />
+                                    <AlertTitle>Seção não preenchida</AlertTitle>
+                                    <AlertDescription>Esta seção ainda não foi preenchida.</AlertDescription>
                                 </Alert>
                             )}
                         </AccordionContent>
                     </Card>
                 </AccordionItem>
             );
-          }
-
-          if (sectionConfig.id === 'professionals') {
-            const allocations = submission.professionals?.allocations || [];
-             return (
-                <AccordionItem value={sectionConfig.id} key={sectionConfig.id} className="border-b-0">
-                    <Card>
-                        <AccordionTrigger className="p-6 text-left">
-                           <CardTitle className="flex items-center gap-2"><Icon/> {sectionConfig.name}</CardTitle>
-                        </AccordionTrigger>
-                        <AccordionContent className="px-6 pb-6 space-y-4">
-                            {allocations.length > 0 && allocations.some(a => a.teachers?.length > 0) ? (
-                               <div className="overflow-x-auto">
-                                <Table>
-                                  <TableHeader>
-                                    <TableRow>
-                                      <TableHead>Sala</TableHead>
-                                      <TableHead>Turno</TableHead>
-                                      <TableHead>Série</TableHead>
-                                      <TableHead>Professor(a)</TableHead>
-                                      <TableHead>Vínculo</TableHead>
-                                      <TableHead>C.H.</TableHead>
-                                      <TableHead>Obs.</TableHead>
-                                    </TableRow>
-                                  </TableHeader>
-                                  <TableBody>
-                                    {allocations.flatMap((alloc, index) => 
-                                        alloc.teachers?.map((teacher, teacherIndex) => (
-                                            <TableRow key={`${index}-${teacherIndex}`}>
-                                                {teacherIndex === 0 && (
-                                                    <>
-                                                        <TableCell rowSpan={alloc.teachers.length}>{alloc.classroomName}</TableCell>
-                                                        <TableCell rowSpan={alloc.teachers.length} className="capitalize">{alloc.turn === 'morning' ? 'Manhã' : alloc.turn === 'afternoon' ? 'Tarde' : alloc.turn === 'night' ? 'Noite' : 'Integral'}</TableCell>
-                                                        <TableCell rowSpan={alloc.teachers.length}>{alloc.grade}</TableCell>
-                                                    </>
-                                                )}
-                                                <TableCell>{professionalMap.get(teacher.professionalId || '') || 'Não alocado'}</TableCell>
-                                                <TableCell>{teacher.contractType || 'N/A'}</TableCell>
-                                                <TableCell>{teacher.workload ? `${teacher.workload}h` : 'N/A'}</TableCell>
-                                                <TableCell>
-                                                    {teacher.observations && teacher.observations !== 'Nenhuma' ? (
-                                                        <TooltipProvider>
-                                                            <Tooltip>
-                                                                <TooltipTrigger>
-                                                                    <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                                                                </TooltipTrigger>
-                                                                <TooltipContent>
-                                                                    <p>{teacher.observations}</p>
-                                                                </TooltipContent>
-                                                            </Tooltip>
-                                                        </TooltipProvider>
-                                                    ) : '-'}
-                                                </TableCell>
-                                            </TableRow>
-                                        ))
-                                    )}
-                                  </TableBody>
-                                </Table>
-                               </div>
-                            ) : (
-                                <Alert variant="default">
-                                  <AlertTriangle className="h-4 w-4" />
-                                  <AlertTitle>Nenhum profissional alocado</AlertTitle>
-                                </Alert>
-                            )}
-                        </AccordionContent>
-                    </Card>
-                </AccordionItem>
-            );
-          }
-         
-          const sectionData = submission.dynamicData?.[sectionConfig.id];
-          const hasData = sectionData && Object.values(sectionData).some(v => v);
-
-          return (
-             <AccordionItem value={sectionConfig.id} key={sectionConfig.id} className="border-b-0">
-                <Card>
-                  <AccordionTrigger className="p-6 text-left">
-                      <CardTitle className="flex items-center gap-2"><Icon /> {sectionConfig.name}</CardTitle>
-                  </AccordionTrigger>
-                  <AccordionContent className="px-6 pb-6">
-                    {!hasData ? (
-                        <Alert variant="default">
-                          <AlertTriangle className="h-4 w-4" />
-                          <AlertTitle>Seção não preenchida</AlertTitle>
-                          <AlertDescription>
-                            Esta seção ainda não foi preenchida.
-                          </AlertDescription>
-                      </Alert>
-                    ) : (
-                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {sectionConfig.fields.map(fieldConfig => {
-                            const value = sectionData[fieldConfig.id];
-                            let displayValue: React.ReactNode = "Não informado";
-                            if (value !== undefined && value !== null && value !== '') {
-                              if (typeof value === 'boolean') {
-                                displayValue = value ? <CheckCircle2 className="text-green-500" /> : <XCircle className="text-destructive" />;
-                              } else if (fieldConfig.type === 'date' && value) {
-                                displayValue = format(new Date(value), "dd/MM/yyyy");
-                              }
-                              else {
-                                displayValue = String(value);
-                              }
-                            }
-                            return (
-                               <div key={fieldConfig.id} className="flex flex-col space-y-1">
-                                  <p className="text-sm font-medium text-muted-foreground">{fieldConfig.name}</p>
-                                  <div className="font-semibold">{displayValue}</div>
-                               </div>
-                            )
-                          })}
-                       </div>
-                    )}
-                  </AccordionContent>
-                </Card>
-             </AccordionItem>
-          )
         })}
       </Accordion>
     </div>

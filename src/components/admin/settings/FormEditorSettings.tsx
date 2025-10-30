@@ -52,6 +52,12 @@ const defaultSections: FormSectionConfig[] = [
         fields: []
     },
     { 
+        id: 'professionals', 
+        name: 'Profissionais',
+        description: 'Alocação de profissionais por turma.',
+        fields: []
+    },
+    { 
         id: 'tech', 
         name: 'Tecnologia',
         description: 'Detalhes sobre os recursos tecnológicos da escola.',
@@ -60,6 +66,18 @@ const defaultSections: FormSectionConfig[] = [
             { id: 'f_tech_2', name: 'Velocidade (Mbps)', type: 'number', required: false, sectionId: 'tech' }
         ] 
     },
+    {
+        id: 'cultural',
+        name: 'Cultural',
+        description: 'Informações sobre atividades e espaços culturais.',
+        fields: []
+    },
+    {
+        id: 'maintenance',
+        name: 'Manutenção',
+        description: 'Detalhes sobre a manutenção e estado da escola.',
+        fields: []
+    }
 ];
 
 export function FormEditorSettings() {
@@ -203,33 +221,36 @@ export function FormEditorSettings() {
                                         value={section.name}
                                         className="font-semibold text-lg"
                                         onChange={(e) => updateSection(sectionIndex, 'name', e.target.value)}
+                                        disabled={['general', 'infrastructure', 'professionals'].includes(section.id)}
                                     />
                                 </div>
                             </div>
-                            <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                    <Button variant="ghost" size="icon">
-                                        <Trash2 className="h-4 w-4 text-destructive" />
-                                    </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                        <AlertDialogTitle className="flex items-center gap-2">
-                                            <AlertTriangle className="text-destructive"/>
-                                            Confirmar Exclusão
-                                        </AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                            Tem certeza de que deseja excluir a seção "<strong>{section.name}</strong>"? Todos os campos dentro dela serão perdidos. Esta ação não pode ser desfeita.
-                                        </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                        <AlertDialogAction onClick={() => removeSection(sectionIndex)} className="bg-destructive hover:bg-destructive/90">
-                                            Excluir
-                                        </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
+                            {!['general', 'infrastructure', 'professionals'].includes(section.id) && (
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <Button variant="ghost" size="icon">
+                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                        </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle className="flex items-center gap-2">
+                                                <AlertTriangle className="text-destructive"/>
+                                                Confirmar Exclusão
+                                            </AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                                Tem certeza de que deseja excluir a seção "<strong>{section.name}</strong>"? Todos os campos dentro dela serão perdidos. Esta ação não pode ser desfeita.
+                                            </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                            <AlertDialogAction onClick={() => removeSection(sectionIndex)} className="bg-destructive hover:bg-destructive/90">
+                                                Excluir
+                                            </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                            )}
                         </div>
                         <div className="pl-6 space-y-2">
                             <Label htmlFor={`section-desc-${section.id}`}>Descrição da Seção</Label>
@@ -241,7 +262,7 @@ export function FormEditorSettings() {
                             />
                         </div>
 
-                        { !section.id.startsWith('infra') && (
+                        { !['infrastructure', 'professionals'].includes(section.id) && (
                         <div className="space-y-4 pt-4 border-t mt-4">
                             <h4 className="font-medium pl-6">Campos da Seção</h4>
                              {section.fields.length === 0 && (
@@ -309,7 +330,3 @@ export function FormEditorSettings() {
         </Card>
     );
 }
-
-    
-
-  
