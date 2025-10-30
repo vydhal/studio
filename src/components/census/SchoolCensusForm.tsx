@@ -390,6 +390,7 @@ const TeacherAllocationForm = ({ allocationIndex, teacherIndex, removeTeacher, p
             control.setValue(fieldName, newProfessional.id);
 
             setPopoverOpen(false);
+            setSearch('');
             toast({ title: "Sucesso", description: `Profissional "${name.trim()}" criado e selecionado.` });
         } catch (error) {
             console.error("Error creating professional:", error);
@@ -444,9 +445,10 @@ const TeacherAllocationForm = ({ allocationIndex, teacherIndex, removeTeacher, p
                                             onValueChange={setSearch}
                                         />
                                         <CommandList>
-                                            <CommandEmpty onSelect={() => handleCreateProfessional(search)}>
-                                                <div
-                                                    className="cursor-pointer p-2"
+                                            <CommandEmpty>
+                                                 <div
+                                                    className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent"
+                                                    onClick={() => handleCreateProfessional(search)}
                                                 >
                                                     Adicionar novo: "{search}"
                                                 </div>
@@ -459,6 +461,7 @@ const TeacherAllocationForm = ({ allocationIndex, teacherIndex, removeTeacher, p
                                                         onSelect={() => {
                                                             field.onChange(prof.id);
                                                             setPopoverOpen(false);
+                                                            setSearch('');
                                                         }}
                                                     >
                                                         <Check
