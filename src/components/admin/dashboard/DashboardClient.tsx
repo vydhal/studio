@@ -48,6 +48,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { X, ChevronsUpDown, Check } from "lucide-react";
 import { SubmissionsTable } from "./SubmissionsTable";
 import { TeacherProjectionsTable } from "./TeacherProjectionsTable";
+import { ClassProjectionsTable } from "./ClassProjectionsTable";
 import { gradeLevels } from "@/components/census/SchoolCensusForm";
 import { useAppSettings } from "@/context/AppContext";
 import { useToast } from "@/hooks/use-toast";
@@ -307,6 +308,75 @@ export function DashboardClient() {
     document.body.removeChild(link);
   };
 
+  const handleClassProjectionsExport = () => {
+    const csvHeader = [
+      "Unidade",
+      "Sala",
+      "Turma/Turno Atual",
+      "Alunos Atuais",
+      "Projeção Turma 2026",
+    ];
+    
+    const rows: string[] = [];
+
+    filteredSubmissions.forEach(sub => {
+      const school = schoolMap.get(sub.schoolId);
+      if (!school || !sub.infrastructure?.classrooms) return;
+
+      sub.infrastructure.classrooms.forEach(room => {
+        if (room.occupationType === 'integral') {
+          if (room.gradeIntegral) {
+            rows.push([
+              `"${school.name}"`,
+              `"${room.name}"`,
+              `"${room.gradeIntegral} (Integral)"`,
+              room.studentsIntegral || 0,
+              `"${room.gradeProjection2026Integral || 'N/A'}"`,
+            ].join(','));
+          }
+        } else {
+          if (room.gradeMorning) {
+            rows.push([
+              `"${school.name}"`,
+              `"${room.name}"`,
+              `"${room.gradeMorning} (Manhã)"`,
+              room.studentsMorning || 0,
+              `"${room.gradeProjection2026Morning || 'N/A'}"`,
+            ].join(','));
+          }
+          if (room.gradeAfternoon) {
+            rows.push([
+              `"${school.name}"`,
+              `"${room.name}"`,
+              `"${room.gradeAfternoon} (Tarde)"`,
+              room.studentsAfternoon || 0,
+              `"${room.gradeProjection2026Afternoon || 'N/A'}"`,
+            ].join(','));
+          }
+          if (room.gradeNight) {
+            rows.push([
+              `"${school.name}"`,
+              `"${room.name}"`,
+              `"${room.gradeNight} (Noite)"`,
+              room.studentsNight || 0,
+              `"${room.gradeProjection2026Night || 'N/A'}"`,
+            ].join(','));
+          }
+        }
+      });
+    });
+
+    const csvContent = [csvHeader.join(','), ...rows].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.href = url;
+    link.setAttribute('download', 'export_projecao_turmas.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
 
   if (loading || authLoading || appLoading) {
     return (
@@ -334,10 +404,11 @@ export function DashboardClient() {
         </div>
 
         <Tabs defaultValue="overview">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="overview">Visão Geral</TabsTrigger>
                 <TabsTrigger value="submissions">Submissões do Censo</TabsTrigger>
-                <TabsTrigger value="projections">Projeção de Professores</TabsTrigger>
+                <TabsTrigger value="teacher_projections">Projeção de Professores</TabsTrigger>
+                <TabsTrigger value="class_projections">Projeção de Turmas</TabsTrigger>
             </TabsList>
             <TabsContent value="overview" className="space-y-4">
                 <Card>
@@ -436,7 +507,7 @@ export function DashboardClient() {
                     </CardContent>
                 </Card>
             </TabsContent>
-            <TabsContent value="projections" className="space-y-4">
+            <TabsContent value="teacher_projections" className="space-y-4">
                  <Card>
                     <CardHeader className="flex flex-row items-center justify-between">
                         <div>
@@ -452,6 +523,25 @@ export function DashboardClient() {
                             submissions={filteredSubmissions}
                             schoolMap={schoolMap}
                             professionalMap={professionalMap}
+                        />
+                    </CardContent>
+                </Card>
+            </TabsContent>
+            <TabsContent value="class_projections" className="space-y-4">
+                 <Card>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <div>
+                          <CardTitle>Projeção de Turmas para 2026</CardTitle>
+                          <CardDescription>
+                              Visualize a projeção de turmas e alunos para 2026 com base nos dados atuais.
+                          </CardDescription>
+                        </div>
+                         <Button onClick={handleClassProjectionsExport} disabled={filteredSubmissions.length === 0}>Exportar CSV de Turmas</Button>
+                    </CardHeader>
+                    <CardContent>
+                        <ClassProjectionsTable
+                            submissions={filteredSubmissions}
+                            schoolMap={schoolMap}
                         />
                     </CardContent>
                 </Card>
