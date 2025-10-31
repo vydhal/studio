@@ -4,7 +4,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import type { SchoolCensusSubmission, School, FormSectionConfig, Professional } from "@/types";
-import { MetricsCards } from "./MetricsCards";
+import { MetricsCards, calculateVacancyData } from "./MetricsCards";
 import { ChartsSection } from "./ChartsSection";
 import { Button } from "@/components/ui/button"
 import {
@@ -49,6 +49,7 @@ import { X, ChevronsUpDown, Check } from "lucide-react";
 import { SubmissionsTable } from "./SubmissionsTable";
 import { TeacherProjectionsTable } from "./TeacherProjectionsTable";
 import { ClassProjectionsTable } from "./ClassProjectionsTable";
+import { VacancyProjectionsTable } from "./VacancyProjectionsTable";
 import { gradeLevels } from "@/components/census/SchoolCensusForm";
 import { useAppSettings } from "@/context/AppContext";
 import { useToast } from "@/hooks/use-toast";
@@ -161,6 +162,8 @@ export function DashboardClient() {
         return schoolMatch && neighborhoodMatch;
      });
   }, [schools, submissions, schoolFilter, neighborhoodFilter, gradeFilter]);
+  
+  const vacancyData = useMemo(() => calculateVacancyData(filteredSubmissions), [filteredSubmissions]);
 
   const handleClearFilters = () => {
     setSchoolFilter("");
@@ -399,6 +402,38 @@ export function DashboardClient() {
     link.click();
     document.body.removeChild(link);
   };
+  
+   const handleVacancyExport = () => {
+    const csvHeader = [
+        "Unidade",
+        "Sala",
+        "Turma 2026",
+        "Capacidade",
+        "Veteranos",
+        "Novatos",
+        "Total Alunos (2026)",
+    ];
+
+    const rows: string[] = vacancyData.details.map(detail => [
+        `"${schoolMap.get(detail.schoolId)?.name || 'N/A'}"`,
+        `"${detail.classroomName}"`,
+        `"${detail.projectedGrade} (${detail.turn})"`,
+        detail.capacity,
+        detail.veterans,
+        detail.newcomers,
+        detail.total,
+    ].join(','));
+    
+    const csvContent = [csvHeader.join(','), ...rows].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.href = url;
+    link.setAttribute('download', 'export_vagas_2026.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
 
   if (loading || authLoading || appLoading) {
@@ -427,11 +462,12 @@ export function DashboardClient() {
         </div>
 
         <Tabs defaultValue="overview">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="overview">Visão Geral</TabsTrigger>
                 <TabsTrigger value="submissions">Submissões do Censo</TabsTrigger>
                 <TabsTrigger value="teacher_projections">Projeção de Professores</TabsTrigger>
                 <TabsTrigger value="class_projections">Projeção de Turmas</TabsTrigger>
+                <TabsTrigger value="vacancies_2026">Vagas 2026</TabsTrigger>
             </TabsList>
             <TabsContent value="overview" className="space-y-4">
                 <Card>
@@ -511,7 +547,7 @@ export function DashboardClient() {
                         </div>
                     </CardContent>
                 </Card>
-                <MetricsCards submissions={filteredSubmissions} schools={filteredSchools} />
+                <MetricsCards submissions={filteredSubmissions} schools={filteredSchools} vacancyData={vacancyData} />
                 <ChartsSection submissions={filteredSubmissions} schoolMap={schoolMap} formConfig={formConfig} gradeFilter={gradeFilter} />
             </TabsContent>
             <TabsContent value="submissions" className="space-y-4">
@@ -564,6 +600,25 @@ export function DashboardClient() {
                     <CardContent>
                         <ClassProjectionsTable
                             submissions={filteredSubmissions}
+                            schoolMap={schoolMap}
+                        />
+                    </CardContent>
+                </Card>
+            </TabsContent>
+            <TabsContent value="vacancies_2026" className="space-y-4">
+                 <Card>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <div>
+                          <CardTitle>Projeção de Vagas para 2026</CardTitle>
+                          <CardDescription>
+                              Análise de vagas para novatos e veteranos para o ano letivo de 2026.
+                          </CardDescription>
+                        </div>
+                         <Button onClick={handleVacancyExport} disabled={vacancyData.details.length === 0}>Exportar CSV de Vagas</Button>
+                    </CardHeader>
+                    <CardContent>
+                        <VacancyProjectionsTable
+                            vacancyData={vacancyData.details}
                             schoolMap={schoolMap}
                         />
                     </CardContent>
