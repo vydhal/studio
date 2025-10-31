@@ -144,6 +144,8 @@ export const gradeLevels = [
     "EJA 2º Ciclo",
     "EJA 3º Ciclo",
     "EJA 4º Ciclo",
+    "EJA - Multiano (1º e 2º)",
+    "EJA - Multiano (3º e 4º)",
     "AEE - Atendimento Educacional Especializado",
     "MISTA (PRÉ-ESCOLA I E II)",
     "MISTA (MATERNAL II, PRE I E PRE II)",
