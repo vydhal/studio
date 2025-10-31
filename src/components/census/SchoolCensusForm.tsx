@@ -159,8 +159,6 @@ export const gradeLevels = [
     "Não se aplica",
 ];
 
-const workloadOptions = [2, 3, 4, 5, 6, 7, 10, 20, 30, 40, 50, 60];
-
 const generateDefaultValues = (config: FormSectionConfig[]) => {
     const defaultDynamicValues: { [key: string]: any } = {};
     config.forEach((section: FormSectionConfig) => {
@@ -562,18 +560,15 @@ const TeacherAllocationForm = ({ allocationIndex, teacherIndex, removeTeacher, p
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Carga Horária</FormLabel>
-                                <Select onValueChange={(value) => field.onChange(Number(value))} value={String(field.value ?? '')}>
-                                    <FormControl>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Selecione a carga" />
-                                        </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        {workloadOptions.map(wh => (
-                                            <SelectItem key={wh} value={String(wh)}>{wh}h</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                <FormControl>
+                                    <Input 
+                                        type="number" 
+                                        placeholder="Ex: 20" 
+                                        {...field} 
+                                        value={field.value ?? ''}
+                                        onChange={e => field.onChange(e.target.value === '' ? undefined : parseInt(e.target.value, 10))}
+                                    />
+                                </FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}
@@ -905,7 +900,7 @@ export function SchoolCensusForm() {
         return;
     }
 
-    const { schoolId } = values;
+    const { schoolId, dynamicData, infrastructure, professionals } = values;
 
     if (!schoolId) {
         toast({ title: "Erro", description: "Selecione uma escola primeiro.", variant: "destructive" });
@@ -915,14 +910,19 @@ export function SchoolCensusForm() {
     const submissionRef = doc(db, 'submissions', schoolId);
     
     try {
-        const cleanedPayload = cleanData(values);
-
-        // We use setDoc with merge:true which acts like an upsert.
-        await setDoc(submissionRef, { 
-            ...cleanedPayload,
+        const payload = {
+            schoolId,
+            dynamicData,
+            infrastructure,
+            professionals,
             submittedAt: serverTimestamp(),
             submittedBy: user.uid,
-         }, { merge: true });
+        };
+        
+        const cleanedPayload = cleanData(payload);
+
+        // We use setDoc with merge:true which acts like an upsert.
+        await setDoc(submissionRef, cleanedPayload, { merge: true });
 
         toast({
             title: "Sucesso!",
