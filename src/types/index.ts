@@ -39,6 +39,9 @@ export interface Classroom {
   hasAirConditioning?: boolean;
   hasCeiling?: boolean;
   hasBathroom?: boolean;
+
+  hasLinkedTransfer?: boolean;
+  linkedTransferSchoolId?: string;
 }
 
 export interface TeachingModality {

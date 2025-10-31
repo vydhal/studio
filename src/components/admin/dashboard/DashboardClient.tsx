@@ -310,11 +310,13 @@ export function DashboardClient() {
 
   const handleClassProjectionsExport = () => {
     const csvHeader = [
-      "Unidade",
+      "Unidade Fornecedora",
       "Sala",
       "Turma/Turno Atual",
       "Alunos Atuais",
       "Projeção Turma 2026",
+      "Transf. Casada",
+      "Unidade Receptora",
     ];
     
     const rows: string[] = [];
@@ -324,42 +326,55 @@ export function DashboardClient() {
       if (!school || !sub.infrastructure?.classrooms) return;
 
       sub.infrastructure.classrooms.forEach(room => {
+        const destinationSchoolName = (room.hasLinkedTransfer && room.linkedTransferSchoolId)
+            ? (schoolMap.get(room.linkedTransferSchoolId)?.name || 'N/A')
+            : 'N/A';
+        
+        const commonData = [
+            `"${school.name}"`,
+            `"${room.name}"`,
+        ];
+
         if (room.occupationType === 'integral') {
           if (room.gradeIntegral) {
             rows.push([
-              `"${school.name}"`,
-              `"${room.name}"`,
+              ...commonData,
               `"${room.gradeIntegral} (Integral)"`,
               room.studentsIntegral || 0,
               `"${room.gradeProjection2026Integral || 'N/A'}"`,
+              `"${room.hasLinkedTransfer ? 'Sim' : 'Não'}"`,
+              `"${destinationSchoolName}"`,
             ].join(','));
           }
         } else {
           if (room.gradeMorning) {
             rows.push([
-              `"${school.name}"`,
-              `"${room.name}"`,
+              ...commonData,
               `"${room.gradeMorning} (Manhã)"`,
               room.studentsMorning || 0,
               `"${room.gradeProjection2026Morning || 'N/A'}"`,
+              `"${room.hasLinkedTransfer ? 'Sim' : 'Não'}"`,
+              `"${destinationSchoolName}"`,
             ].join(','));
           }
           if (room.gradeAfternoon) {
             rows.push([
-              `"${school.name}"`,
-              `"${room.name}"`,
+              ...commonData,
               `"${room.gradeAfternoon} (Tarde)"`,
               room.studentsAfternoon || 0,
               `"${room.gradeProjection2026Afternoon || 'N/A'}"`,
+              `"${room.hasLinkedTransfer ? 'Sim' : 'Não'}"`,
+              `"${destinationSchoolName}"`,
             ].join(','));
           }
           if (room.gradeNight) {
             rows.push([
-              `"${school.name}"`,
-              `"${room.name}"`,
+              ...commonData,
               `"${room.gradeNight} (Noite)"`,
               room.studentsNight || 0,
               `"${room.gradeProjection2026Night || 'N/A'}"`,
+               `"${room.hasLinkedTransfer ? 'Sim' : 'Não'}"`,
+              `"${destinationSchoolName}"`,
             ].join(','));
           }
         }

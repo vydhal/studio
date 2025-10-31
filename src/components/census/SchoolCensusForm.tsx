@@ -87,6 +87,9 @@ const classroomSchema = z.object({
   hasAirConditioning: z.boolean().optional(),
   hasCeiling: z.boolean().optional(),
   hasBathroom: z.boolean().optional(),
+
+  hasLinkedTransfer: z.boolean().optional(),
+  linkedTransferSchoolId: z.string().optional(),
 });
 
 const teacherAllocationSchema = z.object({
@@ -224,7 +227,7 @@ const DynamicField = ({ control, fieldConfig }: { control: any, fieldConfig: For
 };
 
 
-const InfrastructureSection = () => {
+const InfrastructureSection = ({ schools }: { schools: School[] }) => {
     const { control } = useFormContext();
     const { fields, append, remove } = useFieldArray({
         control,
@@ -256,6 +259,8 @@ const InfrastructureSection = () => {
             hasAirConditioning: false,
             hasCeiling: false,
             hasBathroom: false,
+            hasLinkedTransfer: false,
+            linkedTransferSchoolId: "",
         });
     };
     
@@ -272,6 +277,8 @@ const InfrastructureSection = () => {
                     {fields.map((item, index) => {
                         const classroomName = watchedClassrooms?.[index]?.name || `Sala ${index + 1}`;
                         const occupationType = watchedClassrooms?.[index]?.occupationType;
+                        const hasLinkedTransfer = watchedClassrooms?.[index]?.hasLinkedTransfer;
+
                         return (
                         <AccordionItem value={`item-${index}`} key={item.id} className="border-b-0">
                             <Card className="bg-muted/20">
@@ -372,9 +379,42 @@ const InfrastructureSection = () => {
                                                 </div>
                                             </>
                                         )}
-                                        
+
                                         <Separator/>
 
+                                        <p className="font-medium text-sm">Transferência</p>
+                                        <div className="space-y-4">
+                                            <FormField control={control} name={`infrastructure.classrooms.${index}.hasLinkedTransfer`} render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0 pt-2"><FormControl><Checkbox checked={field.value ?? false} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Há transferência casada para outra unidade?</FormLabel></FormItem>)} />
+                                            {hasLinkedTransfer && (
+                                                <FormField
+                                                    control={control}
+                                                    name={`infrastructure.classrooms.${index}.linkedTransferSchoolId`}
+                                                    render={({ field }) => (
+                                                        <FormItem>
+                                                            <FormLabel>Unidade Receptora</FormLabel>
+                                                            <Select onValueChange={field.onChange} value={field.value ?? ''}>
+                                                                <FormControl>
+                                                                    <SelectTrigger>
+                                                                        <SelectValue placeholder="Selecione a escola de destino" />
+                                                                    </SelectTrigger>
+                                                                </FormControl>
+                                                                <SelectContent>
+                                                                    {schools.map(school => (
+                                                                        <SelectItem key={school.id} value={school.id}>
+                                                                            {school.name}
+                                                                        </SelectItem>
+                                                                    ))}
+                                                                </SelectContent>
+                                                            </Select>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )}
+                                                />
+                                            )}
+                                        </div>
+
+                                        <Separator/>
+                                        
                                         <p className="font-medium text-sm">Recursos da Sala</p>
                                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-2">
                                             <FormField control={control} name={`infrastructure.classrooms.${index}.hasTv`} render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0"><FormControl><Checkbox checked={field.value ?? false} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Tem TV</FormLabel></FormItem>)} />
@@ -1089,7 +1129,7 @@ export function SchoolCensusForm() {
                      if (section.id.startsWith('infra')) {
                         return (
                              <TabsContent key={section.id} value={section.id}>
-                                <InfrastructureSection />
+                                <InfrastructureSection schools={schools} />
                             </TabsContent>
                         )
                      }

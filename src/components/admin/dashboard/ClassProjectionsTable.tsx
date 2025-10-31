@@ -26,6 +26,8 @@ export function ClassProjectionsTable({ submissions, schoolMap }: ClassProjectio
       currentGrade: string;
       currentStudents: number;
       projectedGrade2026: string;
+      hasLinkedTransfer?: boolean;
+      linkedTransferSchoolId?: string;
     }[] = [];
 
     submissions.forEach(sub => {
@@ -33,11 +35,17 @@ export function ClassProjectionsTable({ submissions, schoolMap }: ClassProjectio
       if (!school || !sub.infrastructure?.classrooms) return;
 
       sub.infrastructure.classrooms.forEach(room => {
+        const commonData = {
+          schoolName: school.name,
+          classroomName: room.name,
+          hasLinkedTransfer: room.hasLinkedTransfer,
+          linkedTransferSchoolId: room.linkedTransferSchoolId,
+        };
+
         if (room.occupationType === 'integral') {
           if (room.gradeIntegral) {
             data.push({
-              schoolName: school.name,
-              classroomName: room.name,
+              ...commonData,
               currentGrade: `${room.gradeIntegral} (Integral)`,
               currentStudents: room.studentsIntegral || 0,
               projectedGrade2026: room.gradeProjection2026Integral || 'N/A',
@@ -46,8 +54,7 @@ export function ClassProjectionsTable({ submissions, schoolMap }: ClassProjectio
         } else {
           if (room.gradeMorning) {
             data.push({
-              schoolName: school.name,
-              classroomName: room.name,
+              ...commonData,
               currentGrade: `${room.gradeMorning} (Manhã)`,
               currentStudents: room.studentsMorning || 0,
               projectedGrade2026: room.gradeProjection2026Morning || 'N/A',
@@ -55,8 +62,7 @@ export function ClassProjectionsTable({ submissions, schoolMap }: ClassProjectio
           }
           if (room.gradeAfternoon) {
              data.push({
-              schoolName: school.name,
-              classroomName: room.name,
+              ...commonData,
               currentGrade: `${room.gradeAfternoon} (Tarde)`,
               currentStudents: room.studentsAfternoon || 0,
               projectedGrade2026: room.gradeProjection2026Afternoon || 'N/A',
@@ -64,8 +70,7 @@ export function ClassProjectionsTable({ submissions, schoolMap }: ClassProjectio
           }
           if (room.gradeNight) {
              data.push({
-              schoolName: school.name,
-              classroomName: room.name,
+              ...commonData,
               currentGrade: `${room.gradeNight} (Noite)`,
               currentStudents: room.studentsNight || 0,
               projectedGrade2026: room.gradeProjection2026Night || 'N/A',
@@ -90,11 +95,13 @@ export function ClassProjectionsTable({ submissions, schoolMap }: ClassProjectio
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Unidade</TableHead>
+          <TableHead>Unidade Fornecedora</TableHead>
           <TableHead>Sala</TableHead>
           <TableHead>Turma/Turno Atual</TableHead>
           <TableHead>Alunos Atuais</TableHead>
           <TableHead>Projeção Turma 2026</TableHead>
+          <TableHead>Transf. Casada</TableHead>
+          <TableHead>Unidade Receptora</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -105,6 +112,12 @@ export function ClassProjectionsTable({ submissions, schoolMap }: ClassProjectio
             <TableCell>{row.currentGrade}</TableCell>
             <TableCell>{row.currentStudents}</TableCell>
             <TableCell>{row.projectedGrade2026}</TableCell>
+            <TableCell>{row.hasLinkedTransfer ? 'Sim' : 'Não'}</TableCell>
+            <TableCell>
+              {row.hasLinkedTransfer && row.linkedTransferSchoolId
+                ? schoolMap.get(row.linkedTransferSchoolId)?.name || 'N/A'
+                : 'N/A'}
+            </TableCell>
           </TableRow>
         ))}
       </TableBody>
