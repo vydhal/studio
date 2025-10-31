@@ -462,7 +462,7 @@ export function DashboardClient() {
         </div>
 
         <Tabs defaultValue="overview">
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="flex flex-wrap h-auto">
                 <TabsTrigger value="overview">Visão Geral</TabsTrigger>
                 <TabsTrigger value="submissions">Submissões do Censo</TabsTrigger>
                 <TabsTrigger value="teacher_projections">Projeção de Professores</TabsTrigger>
