@@ -40,8 +40,14 @@ export interface Classroom {
   hasCeiling?: boolean;
   hasBathroom?: boolean;
 
-  hasLinkedTransfer?: boolean;
-  linkedTransferSchoolId?: string;
+  hasLinkedTransferMorning?: boolean;
+  linkedTransferSchoolIdMorning?: string;
+  hasLinkedTransferAfternoon?: boolean;
+  linkedTransferSchoolIdAfternoon?: string;
+  hasLinkedTransferNight?: boolean;
+  linkedTransferSchoolIdNight?: string;
+  hasLinkedTransferIntegral?: boolean;
+  linkedTransferSchoolIdIntegral?: string;
 }
 
 export interface TeachingModality {
@@ -87,7 +93,7 @@ export const professionalObservationTypes = [
     'JORNADA AMPLIADA - LICENÇA MÉDICA',
     'JORNADA AMPLIADA - LICENÇA PRÊMIO',
     'JORNADA AMPLIADA - LICENÇA SEM VENCIMENTOS',
-    'JORNADA AMPLIADA - PERMUTA CAMPINA GRANDE',
+    'JORNada AMPLIADA - PERMUTA CAMPINA GRANDE',
     'JORNADA AMPLIADA - PERMUTA OUTRO MUNICÍPIO',
     'JORNADA AMPLIADA - READAPTAÇÃO',
     'JORNADA AMPLIADA - REDUÇÃO DE CARGA HORÁRIA',

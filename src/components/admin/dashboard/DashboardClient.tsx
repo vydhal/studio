@@ -326,54 +326,62 @@ export function DashboardClient() {
       if (!school || !sub.infrastructure?.classrooms) return;
 
       sub.infrastructure.classrooms.forEach(room => {
-        const destinationSchoolName = (room.hasLinkedTransfer && room.linkedTransferSchoolId)
-            ? (schoolMap.get(room.linkedTransferSchoolId)?.name || 'N/A')
-            : 'N/A';
         
-        const commonData = [
-            `"${school.name}"`,
-            `"${room.name}"`,
-        ];
-
         if (room.occupationType === 'integral') {
           if (room.gradeIntegral) {
+             const destinationSchoolName = (room.hasLinkedTransferIntegral && room.linkedTransferSchoolIdIntegral)
+              ? (schoolMap.get(room.linkedTransferSchoolIdIntegral)?.name || 'N/A')
+              : 'N/A';
             rows.push([
-              ...commonData,
+              `"${school.name}"`,
+              `"${room.name}"`,
               `"${room.gradeIntegral} (Integral)"`,
               room.studentsIntegral || 0,
               `"${room.gradeProjection2026Integral || 'N/A'}"`,
-              `"${room.hasLinkedTransfer ? 'Sim' : 'Não'}"`,
+              `"${room.hasLinkedTransferIntegral ? 'Sim' : 'Não'}"`,
               `"${destinationSchoolName}"`,
             ].join(','));
           }
         } else {
           if (room.gradeMorning) {
+             const destinationSchoolName = (room.hasLinkedTransferMorning && room.linkedTransferSchoolIdMorning)
+              ? (schoolMap.get(room.linkedTransferSchoolIdMorning)?.name || 'N/A')
+              : 'N/A';
             rows.push([
-              ...commonData,
+              `"${school.name}"`,
+              `"${room.name}"`,
               `"${room.gradeMorning} (Manhã)"`,
               room.studentsMorning || 0,
               `"${room.gradeProjection2026Morning || 'N/A'}"`,
-              `"${room.hasLinkedTransfer ? 'Sim' : 'Não'}"`,
+              `"${room.hasLinkedTransferMorning ? 'Sim' : 'Não'}"`,
               `"${destinationSchoolName}"`,
             ].join(','));
           }
           if (room.gradeAfternoon) {
+             const destinationSchoolName = (room.hasLinkedTransferAfternoon && room.linkedTransferSchoolIdAfternoon)
+              ? (schoolMap.get(room.linkedTransferSchoolIdAfternoon)?.name || 'N/A')
+              : 'N/A';
             rows.push([
-              ...commonData,
+              `"${school.name}"`,
+              `"${room.name}"`,
               `"${room.gradeAfternoon} (Tarde)"`,
               room.studentsAfternoon || 0,
               `"${room.gradeProjection2026Afternoon || 'N/A'}"`,
-              `"${room.hasLinkedTransfer ? 'Sim' : 'Não'}"`,
+              `"${room.hasLinkedTransferAfternoon ? 'Sim' : 'Não'}"`,
               `"${destinationSchoolName}"`,
             ].join(','));
           }
           if (room.gradeNight) {
+             const destinationSchoolName = (room.hasLinkedTransferNight && room.linkedTransferSchoolIdNight)
+              ? (schoolMap.get(room.linkedTransferSchoolIdNight)?.name || 'N/A')
+              : 'N/A';
             rows.push([
-              ...commonData,
+              `"${school.name}"`,
+              `"${room.name}"`,
               `"${room.gradeNight} (Noite)"`,
               room.studentsNight || 0,
               `"${room.gradeProjection2026Night || 'N/A'}"`,
-               `"${room.hasLinkedTransfer ? 'Sim' : 'Não'}"`,
+              `"${room.hasLinkedTransferNight ? 'Sim' : 'Não'}"`,
               `"${destinationSchoolName}"`,
             ].join(','));
           }
