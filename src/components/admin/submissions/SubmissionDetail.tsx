@@ -355,51 +355,67 @@ export function SubmissionDetail({ schoolId }: SubmissionDetailProps) {
                 const allocations = submission.professionals?.allocations || [];
                 content = hasData ? (
                     <div className="overflow-x-auto">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Sala</TableHead>
-                                    <TableHead>Turno</TableHead>
-                                    <TableHead>Série</TableHead>
-                                    <TableHead>Professor(a)</TableHead>
-                                    <TableHead>Vínculo</TableHead>
-                                    <TableHead>C.H.</TableHead>
-                                    <TableHead>Obs.</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {allocations.flatMap((alloc, index) => 
-                                    alloc.teachers?.map((teacher, teacherIndex) => (
-                                        <TableRow key={`${index}-${teacherIndex}`}>
-                                            {teacherIndex === 0 && (
-                                                <>
-                                                    <TableCell rowSpan={alloc.teachers.length}>{alloc.classroomName}</TableCell>
-                                                    <TableCell rowSpan={alloc.teachers.length} className="capitalize">{alloc.turn === 'morning' ? 'Manhã' : alloc.turn === 'afternoon' ? 'Tarde' : alloc.turn === 'night' ? 'Noite' : 'Integral'}</TableCell>
-                                                    <TableCell rowSpan={alloc.teachers.length}>{alloc.grade}</TableCell>
-                                                </>
-                                            )}
-                                            <TableCell>{professionalMap.get(teacher.professionalId || '') || 'Não alocado'}</TableCell>
-                                            <TableCell>{teacher.contractType || 'N/A'}</TableCell>
-                                            <TableCell>{teacher.workload ? `${teacher.workload}h` : 'N/A'}</TableCell>
-                                            <TableCell>
-                                                {teacher.observations && teacher.observations !== 'Nenhuma' ? (
-                                                    <TooltipProvider>
-                                                        <Tooltip>
-                                                            <TooltipTrigger>
-                                                                <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                                                            </TooltipTrigger>
-                                                            <TooltipContent>
-                                                                <p>{teacher.observations}</p>
-                                                            </TooltipContent>
-                                                        </Tooltip>
-                                                    </TooltipProvider>
-                                                ) : '-'}
-                                            </TableCell>
+                        {allocations.map((alloc, index) => (
+                            <div key={index} className="mb-6">
+                                <h4 className="font-semibold text-base mb-2">{alloc.classroomName} - {alloc.grade} ({alloc.turn === 'morning' ? 'Manhã' : alloc.turn === 'afternoon' ? 'Tarde' : alloc.turn === 'night' ? 'Noite' : 'Integral'})</h4>
+                                {alloc.teachers && alloc.teachers.length > 0 && (
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Professor(a) Atual</TableHead>
+                                            <TableHead>Vínculo</TableHead>
+                                            <TableHead>C.H.</TableHead>
+                                            <TableHead>Obs.</TableHead>
                                         </TableRow>
-                                    ))
+                                    </TableHeader>
+                                    <TableBody>
+                                        {alloc.teachers.map((teacher, teacherIndex) => (
+                                            <TableRow key={teacherIndex}>
+                                                <TableCell>{professionalMap.get(teacher.professionalId || '') || 'Não alocado'}</TableCell>
+                                                <TableCell>{teacher.contractType || 'N/A'}</TableCell>
+                                                <TableCell>{teacher.workload ? `${teacher.workload}h` : 'N/A'}</TableCell>
+                                                <TableCell>
+                                                    {teacher.observations && teacher.observations !== 'Nenhuma' ? (
+                                                        <TooltipProvider>
+                                                            <Tooltip>
+                                                                <TooltipTrigger>
+                                                                    <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                                                                </TooltipTrigger>
+                                                                <TooltipContent>
+                                                                    <p>{teacher.observations}</p>
+                                                                </TooltipContent>
+                                                            </Tooltip>
+                                                        </TooltipProvider>
+                                                    ) : '-'}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
                                 )}
-                            </TableBody>
-                        </Table>
+                                {alloc.teachers2026 && alloc.teachers2026.length > 0 && (
+                                    <div className="mt-4">
+                                        <h5 className="font-semibold text-sm mb-2">Projeção 2026</h5>
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead>Professor(a) Projetado</TableHead>
+                                                    <TableHead>Observações</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                 {alloc.teachers2026.map((teacher, teacherIndex) => (
+                                                    <TableRow key={teacherIndex}>
+                                                        <TableCell>{professionalMap.get(teacher.professionalId || '') || 'Não alocado'}</TableCell>
+                                                        <TableCell>{teacher.observations || 'N/A'}</TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+                                )}
+                            </div>
+                        ))}
                     </div>
                 ) : null;
             } else {

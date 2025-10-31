@@ -112,6 +112,7 @@ export interface ClassroomAllocation {
     turn: 'morning' | 'afternoon' | 'night' | 'integral';
     grade: string;
     teachers: TeacherAllocation[];
+    teachers2026?: TeacherAllocation[];
 }
 
 
@@ -215,5 +216,3 @@ export interface FormSectionConfig {
     description?: string;
     fields: FormFieldConfig[];
 }
-
-    
