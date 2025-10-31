@@ -3,7 +3,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import type { SchoolCensusSubmission, School, FormSectionConfig } from "@/types";
+import type { SchoolCensusSubmission, School, FormSectionConfig, Professional } from "@/types";
 import { MetricsCards } from "./MetricsCards";
 import { ChartsSection } from "./ChartsSection";
 import { Button } from "@/components/ui/button"
@@ -43,10 +43,11 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { db } from "@/lib/firebase";
-import { collection, onSnapshot, Timestamp, doc, getDoc, deleteDoc } from "firebase/firestore";
+import { collection, onSnapshot, Timestamp, doc, getDoc, deleteDoc, getDocs } from "firebase/firestore";
 import { useAuth } from "@/hooks/useAuth";
 import { X, ChevronsUpDown, Check } from "lucide-react";
 import { SubmissionsTable } from "./SubmissionsTable";
+import { TeacherProjectionsTable } from "./TeacherProjectionsTable";
 import { gradeLevels } from "@/components/census/SchoolCensusForm";
 import { useAppSettings } from "@/context/AppContext";
 import { useToast } from "@/hooks/use-toast";
@@ -65,6 +66,7 @@ const processSubmissionDoc = (doc: any): SchoolCensusSubmission => {
 export function DashboardClient() {
   const [submissions, setSubmissions] = useState<SchoolCensusSubmission[]>([]);
   const [schools, setSchools] = useState<School[]>([]);
+  const [professionals, setProfessionals] = useState<Professional[]>([]);
   const { settings, loading: appLoading } = useAppSettings();
   const { toast } = useToast();
   const formConfig = settings?.formConfig || [];
@@ -86,34 +88,39 @@ export function DashboardClient() {
 
     setLoading(true);
 
-    const schoolsQuery = collection(db, 'schools');
-    
     const submissionsUnsubscribe = onSnapshot(collection(db, 'submissions'), (snapshot) => {
         const submissionsData = snapshot.docs.map(processSubmissionDoc);
         setSubmissions(submissionsData);
-        if(!schools.length) setLoading(false); // Only stop loading if schools are also loaded or fail
+        setLoading(false);
     }, (error) => {
         console.error("Error listening to submissions:", error);
         setLoading(false);
     });
     
-    const schoolsUnsubscribe = onSnapshot(schoolsQuery, (snapshot) => {
+    const schoolsUnsubscribe = onSnapshot(collection(db, 'schools'), (snapshot) => {
         const schoolsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as School[];
         setSchools(schoolsData);
-        setLoading(false);
     }, (error) => {
         console.error("Error listening to schools:", error);
-        setLoading(false);
+    });
+
+    const professionalsUnsubscribe = onSnapshot(collection(db, 'professionals'), (snapshot) => {
+        const professionalsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Professional[];
+        setProfessionals(professionalsData);
+    }, (error) => {
+        console.error("Error listening to professionals:", error);
     });
     
     return () => {
       submissionsUnsubscribe();
       schoolsUnsubscribe();
+      professionalsUnsubscribe();
     }
-  }, [user, authLoading, appLoading, schools.length]);
+  }, [user, authLoading, appLoading]);
 
   const schoolMap = useMemo(() => new Map(schools.map(s => [s.id, s])), [schools]);
   const submissionMap = useMemo(() => new Map(submissions.map(s => [s.schoolId, s])), [submissions]);
+  const professionalMap = useMemo(() => new Map(professionals.map(p => [p.id, p.name])), [professionals]);
 
 
   const availableNeighborhoods = useMemo(() => {
@@ -253,6 +260,52 @@ export function DashboardClient() {
     link.click();
     document.body.removeChild(link);
   };
+  
+  const handleProjectionsExport = () => {
+    const csvHeader = [
+      "Escola",
+      "Sala",
+      "Turma/Turno",
+      "Professor(a) Atual",
+      "Projeção Professor(a) 2026",
+    ];
+
+    const rows: string[] = [];
+
+    filteredSubmissions.forEach(sub => {
+        const school = schoolMap.get(sub.schoolId);
+        if (!school || !sub.professionals?.allocations) return;
+
+        sub.professionals.allocations.forEach(alloc => {
+            const currentTeachers = alloc.teachers?.map(t => professionalMap.get(t.professionalId || '')) || ['N/A'];
+            const projectedTeachers = alloc.teachers2026?.map(t => professionalMap.get(t.professionalId || '')) || ['N/A'];
+            
+            const turnText = alloc.turn === 'morning' ? 'Manhã' : alloc.turn === 'afternoon' ? 'Tarde' : alloc.turn === 'night' ? 'Noite' : 'Integral';
+
+            const maxRows = Math.max(currentTeachers.length, projectedTeachers.length);
+
+            for (let i = 0; i < maxRows; i++) {
+                rows.push([
+                    `"${school.name}"`,
+                    `"${alloc.classroomName}"`,
+                    `"${alloc.grade} (${turnText})"`,
+                    `"${currentTeachers[i] || ''}"`,
+                    `"${projectedTeachers[i] || ''}"`,
+                ].join(','));
+            }
+        });
+    });
+
+    const csvContent = [csvHeader.join(','), ...rows].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.href = url;
+    link.setAttribute('download', 'export_projecao_professores.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
 
   if (loading || authLoading || appLoading) {
@@ -278,15 +331,13 @@ export function DashboardClient() {
     <div className="flex flex-1 flex-col gap-4">
         <div className="flex items-center justify-between space-y-2">
             <h1 className="text-3xl font-bold tracking-tight font-headline">Dashboard</h1>
-            <div className="flex items-center space-x-2">
-                <Button onClick={handleExport} disabled={!formConfig.length}>Exportar CSV</Button>
-            </div>
         </div>
 
         <Tabs defaultValue="overview">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="overview">Visão Geral</TabsTrigger>
                 <TabsTrigger value="submissions">Submissões do Censo</TabsTrigger>
+                <TabsTrigger value="projections">Projeção de Professores</TabsTrigger>
             </TabsList>
             <TabsContent value="overview" className="space-y-4">
                 <Card>
@@ -371,14 +422,37 @@ export function DashboardClient() {
             </TabsContent>
             <TabsContent value="submissions" className="space-y-4">
                 <Card>
-                    <CardHeader>
-                        <CardTitle>Acompanhamento do Censo Escolar</CardTitle>
-                        <CardDescription>
-                            Acompanhe e gerencie o progresso do censo de cada escola.
-                        </CardDescription>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <div>
+                          <CardTitle>Acompanhamento do Censo Escolar</CardTitle>
+                          <CardDescription>
+                              Acompanhe e gerencie o progresso do censo de cada escola.
+                          </CardDescription>
+                        </div>
+                        <Button onClick={handleExport} disabled={!formConfig.length}>Exportar CSV Geral</Button>
                     </CardHeader>
                     <CardContent>
                         <SubmissionsTable schools={schools} submissionMap={submissionMap} onDelete={handleDeleteSubmission}/>
+                    </CardContent>
+                </Card>
+            </TabsContent>
+            <TabsContent value="projections" className="space-y-4">
+                 <Card>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <div>
+                          <CardTitle>Projeção de Professores para 2026</CardTitle>
+                          <CardDescription>
+                              Visualize a alocação atual de professores em contraste com a projeção para 2026.
+                          </CardDescription>
+                        </div>
+                         <Button onClick={handleProjectionsExport} disabled={filteredSubmissions.length === 0}>Exportar CSV de Projeções</Button>
+                    </CardHeader>
+                    <CardContent>
+                        <TeacherProjectionsTable
+                            submissions={filteredSubmissions}
+                            schoolMap={schoolMap}
+                            professionalMap={professionalMap}
+                        />
                     </CardContent>
                 </Card>
             </TabsContent>
