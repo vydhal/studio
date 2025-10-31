@@ -56,6 +56,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
+import { Textarea } from "../ui/textarea";
 
 
 const classroomSchema = z.object({
@@ -64,6 +65,7 @@ const classroomSchema = z.object({
   studentCapacity: z.number().min(0).optional(),
   isAdapted: z.boolean().optional(),
   occupationType: z.enum(['turn', 'integral']).default('turn'),
+  observations: z.string().optional(),
   
   studentsMorning: z.number().min(0).optional(),
   gradeMorning: z.string().optional(),
@@ -236,6 +238,7 @@ const InfrastructureSection = () => {
             studentCapacity: 0,
             isAdapted: false,
             occupationType: 'turn',
+            observations: "",
             studentsMorning: 0,
             gradeMorning: "",
             studentsAfternoon: 0,
@@ -380,6 +383,26 @@ const InfrastructureSection = () => {
                                             <FormField control={control} name={`infrastructure.classrooms.${index}.hasCeiling`} render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0"><FormControl><Checkbox checked={field.value ?? false} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Tem Forro</FormLabel></FormItem>)} />
                                             <FormField control={control} name={`infrastructure.classrooms.${index}.hasBathroom`} render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0"><FormControl><Checkbox checked={field.value ?? false} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Tem Banheiro (Ed. Infantil)</FormLabel></FormItem>)} />
                                         </div>
+
+                                        <Separator />
+
+                                        <FormField
+                                            control={control}
+                                            name={`infrastructure.classrooms.${index}.observations`}
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Observações</FormLabel>
+                                                    <FormControl>
+                                                        <Textarea
+                                                            placeholder="Adicione observações sobre a sala, como estado de conservação, necessidades específicas, etc."
+                                                            {...field}
+                                                            value={field.value ?? ""}
+                                                        />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
                                     </div>
                                 </AccordionContent>
                             </Card>

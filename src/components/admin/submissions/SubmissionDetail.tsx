@@ -18,6 +18,7 @@ import { db } from "@/lib/firebase";
 import { doc, getDoc, onSnapshot, Timestamp, collection, getDocs } from "firebase/firestore";
 import { useAuth } from "@/hooks/useAuth";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Textarea } from "@/components/ui/textarea";
 
 
 interface SubmissionDetailProps {
@@ -111,6 +112,12 @@ const ClassroomDetails = ({ classroom }: { classroom: Classroom }) => (
                 </div>
             </div>
         </div>
+        {classroom.observations && (
+            <div>
+                <h4 className="font-semibold text-md mb-2">Observações</h4>
+                <p className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-md whitespace-pre-wrap">{classroom.observations}</p>
+            </div>
+        )}
     </div>
 )
 

@@ -15,6 +15,7 @@ export interface Classroom {
   studentCapacity?: number;
   isAdapted?: boolean;
   occupationType?: 'turn' | 'integral';
+  observations?: string;
 
   // Turno
   studentsMorning?: number;
