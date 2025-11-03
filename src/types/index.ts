@@ -14,6 +14,8 @@ export interface Classroom {
   name: string;
   studentCapacity?: number;
   isAdapted?: boolean;
+  hasExtraSpace?: boolean;
+  extraSpaceDescription?: string;
   occupationType?: 'turn' | 'integral';
   observations?: string;
 
@@ -41,13 +43,13 @@ export interface Classroom {
   hasBathroom?: boolean;
 
   hasLinkedTransferMorning?: boolean;
-  linkedTransferSchoolIdMorning?: string;
+  linkedTransferSchoolIdsMorning?: string[];
   hasLinkedTransferAfternoon?: boolean;
-  linkedTransferSchoolIdAfternoon?: string;
+  linkedTransferSchoolIdsAfternoon?: string[];
   hasLinkedTransferNight?: boolean;
-  linkedTransferSchoolIdNight?: string;
+  linkedTransferSchoolIdsNight?: string[];
   hasLinkedTransferIntegral?: boolean;
-  linkedTransferSchoolIdIntegral?: string;
+  linkedTransferSchoolIdsIntegral?: string[];
 }
 
 export interface TeachingModality {

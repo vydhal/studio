@@ -330,11 +330,13 @@ export function DashboardClient() {
 
       sub.infrastructure.classrooms.forEach(room => {
         
+        const getReceptoraNames = (schoolIds?: string[]) => {
+            if (!schoolIds || schoolIds.length === 0) return 'N/A';
+            return schoolIds.map(id => schoolMap.get(id)?.name || 'N/A').join('; ');
+        };
+
         if (room.occupationType === 'integral') {
           if (room.gradeIntegral) {
-             const destinationSchoolName = (room.hasLinkedTransferIntegral && room.linkedTransferSchoolIdIntegral)
-              ? (schoolMap.get(room.linkedTransferSchoolIdIntegral)?.name || 'N/A')
-              : 'N/A';
             rows.push([
               `"${school.name}"`,
               `"${room.name}"`,
@@ -342,14 +344,11 @@ export function DashboardClient() {
               room.studentsIntegral || 0,
               `"${room.gradeProjection2026Integral || 'N/A'}"`,
               `"${room.hasLinkedTransferIntegral ? 'Sim' : 'Não'}"`,
-              `"${destinationSchoolName}"`,
+              `"${getReceptoraNames(room.linkedTransferSchoolIdsIntegral)}"`,
             ].join(','));
           }
         } else {
           if (room.gradeMorning) {
-             const destinationSchoolName = (room.hasLinkedTransferMorning && room.linkedTransferSchoolIdMorning)
-              ? (schoolMap.get(room.linkedTransferSchoolIdMorning)?.name || 'N/A')
-              : 'N/A';
             rows.push([
               `"${school.name}"`,
               `"${room.name}"`,
@@ -357,13 +356,10 @@ export function DashboardClient() {
               room.studentsMorning || 0,
               `"${room.gradeProjection2026Morning || 'N/A'}"`,
               `"${room.hasLinkedTransferMorning ? 'Sim' : 'Não'}"`,
-              `"${destinationSchoolName}"`,
+              `"${getReceptoraNames(room.linkedTransferSchoolIdsMorning)}"`,
             ].join(','));
           }
           if (room.gradeAfternoon) {
-             const destinationSchoolName = (room.hasLinkedTransferAfternoon && room.linkedTransferSchoolIdAfternoon)
-              ? (schoolMap.get(room.linkedTransferSchoolIdAfternoon)?.name || 'N/A')
-              : 'N/A';
             rows.push([
               `"${school.name}"`,
               `"${room.name}"`,
@@ -371,13 +367,10 @@ export function DashboardClient() {
               room.studentsAfternoon || 0,
               `"${room.gradeProjection2026Afternoon || 'N/A'}"`,
               `"${room.hasLinkedTransferAfternoon ? 'Sim' : 'Não'}"`,
-              `"${destinationSchoolName}"`,
+              `"${getReceptoraNames(room.linkedTransferSchoolIdsAfternoon)}"`,
             ].join(','));
           }
           if (room.gradeNight) {
-             const destinationSchoolName = (room.hasLinkedTransferNight && room.linkedTransferSchoolIdNight)
-              ? (schoolMap.get(room.linkedTransferSchoolIdNight)?.name || 'N/A')
-              : 'N/A';
             rows.push([
               `"${school.name}"`,
               `"${room.name}"`,
@@ -385,7 +378,7 @@ export function DashboardClient() {
               room.studentsNight || 0,
               `"${room.gradeProjection2026Night || 'N/A'}"`,
               `"${room.hasLinkedTransferNight ? 'Sim' : 'Não'}"`,
-              `"${destinationSchoolName}"`,
+              `"${getReceptoraNames(room.linkedTransferSchoolIdsNight)}"`,
             ].join(','));
           }
         }

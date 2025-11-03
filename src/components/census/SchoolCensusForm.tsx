@@ -43,7 +43,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { School, FormSectionConfig, FormFieldConfig, SchoolCensusSubmission, Classroom, Professional, TeacherAllocation, ClassroomAllocation } from "@/types";
 import { professionalContractTypes, professionalObservationTypes } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from "@/components/ui/card";
-import { Loader2, Building, HardHat, Laptop, Palette, Wrench, PlusCircle, Trash2, UserCog, ChevronsUpDown, Check } from "lucide-react";
+import { Loader2, Building, HardHat, Laptop, Palette, Wrench, PlusCircle, Trash2, UserCog, ChevronsUpDown, Check, HelpCircle, X } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -57,6 +57,13 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import { Textarea } from "../ui/textarea";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import { Badge } from "@/components/ui/badge";
 
 
 const classroomSchema = z.object({
@@ -64,6 +71,8 @@ const classroomSchema = z.object({
   name: z.string().min(1, "O nome da sala é obrigatório."),
   studentCapacity: z.number().min(0).optional(),
   isAdapted: z.boolean().optional(),
+  hasExtraSpace: z.boolean().optional(),
+  extraSpaceDescription: z.string().optional(),
   occupationType: z.enum(['turn', 'integral']).default('turn'),
   observations: z.string().optional(),
   
@@ -89,13 +98,13 @@ const classroomSchema = z.object({
   hasBathroom: z.boolean().optional(),
 
   hasLinkedTransferMorning: z.boolean().optional(),
-  linkedTransferSchoolIdMorning: z.string().optional(),
+  linkedTransferSchoolIdsMorning: z.array(z.string()).optional(),
   hasLinkedTransferAfternoon: z.boolean().optional(),
-  linkedTransferSchoolIdAfternoon: z.string().optional(),
+  linkedTransferSchoolIdsAfternoon: z.array(z.string()).optional(),
   hasLinkedTransferNight: z.boolean().optional(),
-  linkedTransferSchoolIdNight: z.string().optional(),
+  linkedTransferSchoolIdsNight: z.array(z.string()).optional(),
   hasLinkedTransferIntegral: z.boolean().optional(),
-  linkedTransferSchoolIdIntegral: z.string().optional(),
+  linkedTransferSchoolIdsIntegral: z.array(z.string()).optional(),
 });
 
 const teacherAllocationSchema = z.object({
@@ -246,6 +255,8 @@ const InfrastructureSection = ({ schools }: { schools: School[] }) => {
             name: `Sala ${fields.length + 1}`,
             studentCapacity: 0,
             isAdapted: false,
+            hasExtraSpace: false,
+            extraSpaceDescription: "",
             occupationType: 'turn',
             observations: "",
             studentsMorning: 0,
@@ -266,13 +277,13 @@ const InfrastructureSection = ({ schools }: { schools: School[] }) => {
             hasCeiling: false,
             hasBathroom: false,
             hasLinkedTransferMorning: false,
-            linkedTransferSchoolIdMorning: "",
+            linkedTransferSchoolIdsMorning: [],
             hasLinkedTransferAfternoon: false,
-            linkedTransferSchoolIdAfternoon: "",
+            linkedTransferSchoolIdsAfternoon: [],
             hasLinkedTransferNight: false,
-            linkedTransferSchoolIdNight: "",
+            linkedTransferSchoolIdsNight: [],
             hasLinkedTransferIntegral: false,
-            linkedTransferSchoolIdIntegral: "",
+            linkedTransferSchoolIdsIntegral: [],
         });
     };
     
@@ -289,6 +300,7 @@ const InfrastructureSection = ({ schools }: { schools: School[] }) => {
                     {fields.map((item, index) => {
                         const classroomName = watchedClassrooms?.[index]?.name || `Sala ${index + 1}`;
                         const occupationType = watchedClassrooms?.[index]?.occupationType;
+                        const hasExtraSpace = watchedClassrooms?.[index]?.hasExtraSpace;
                         const hasLinkedTransferMorning = watchedClassrooms?.[index]?.hasLinkedTransferMorning;
                         const hasLinkedTransferAfternoon = watchedClassrooms?.[index]?.hasLinkedTransferAfternoon;
                         const hasLinkedTransferNight = watchedClassrooms?.[index]?.hasLinkedTransferNight;
@@ -320,9 +332,57 @@ const InfrastructureSection = ({ schools }: { schools: School[] }) => {
                                                     </FormItem>
                                                 )}
                                             />
-                                            <FormField control={control} name={`infrastructure.classrooms.${index}.studentCapacity`} render={({ field }) => (<FormItem><FormLabel>Capacidade de Alunos</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? 0 : e.target.valueAsNumber)} /></FormControl><FormMessage /></FormItem>)} />
+                                            <FormField control={control} name={`infrastructure.classrooms.${index}.studentCapacity`} render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="flex items-center gap-1">
+                                                        Capacidade de Alunos
+                                                        <TooltipProvider>
+                                                            <Tooltip>
+                                                                <TooltipTrigger type="button"><HelpCircle className="h-4 w-4 text-muted-foreground" /></TooltipTrigger>
+                                                                <TooltipContent>
+                                                                <p>A quantidade de alunos que ocupam a mobília da sala.</p>
+                                                                </TooltipContent>
+                                                            </Tooltip>
+                                                        </TooltipProvider>
+                                                    </FormLabel>
+                                                    <FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? 0 : e.target.valueAsNumber)} /></FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )} />
                                         </div>
-                                         <FormField control={control} name={`infrastructure.classrooms.${index}.isAdapted`} render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0 pt-2"><FormControl><Checkbox checked={field.value ?? false} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Esta sala é adaptada</FormLabel></FormItem>)} />
+                                        <div className="space-y-4">
+                                            <FormField control={control} name={`infrastructure.classrooms.${index}.isAdapted`} render={({ field }) => (
+                                                <FormItem className="flex flex-row items-center space-x-3 space-y-0 pt-2">
+                                                    <FormControl><Checkbox checked={field.value ?? false} onCheckedChange={field.onChange} /></FormControl>
+                                                    <FormLabel className="font-normal flex items-center gap-1">
+                                                        Esta sala é adaptada
+                                                         <TooltipProvider>
+                                                            <Tooltip>
+                                                                <TooltipTrigger type="button"><HelpCircle className="h-4 w-4 text-muted-foreground" /></TooltipTrigger>
+                                                                <TooltipContent className="max-w-xs">
+                                                                <p>Uma sala que era de um outro setor como direção, sala de professores, biblioteca e se transformou em sala de aula diante da necessidade de espaço.</p>
+                                                                </TooltipContent>
+                                                            </Tooltip>
+                                                        </TooltipProvider>
+                                                    </FormLabel>
+                                                </FormItem>
+                                            )} />
+                                            <FormField control={control} name={`infrastructure.classrooms.${index}.hasExtraSpace`} render={({ field }) => (
+                                                <FormItem className="flex flex-row items-center space-x-3 space-y-0 pt-2">
+                                                    <FormControl><Checkbox checked={field.value ?? false} onCheckedChange={field.onChange} /></FormControl>
+                                                    <FormLabel className="font-normal">Há espaço livre ou sala livre para uso em caso de necessidade extra?</FormLabel>
+                                                </FormItem>
+                                            )} />
+                                            {hasExtraSpace && (
+                                                <FormField control={control} name={`infrastructure.classrooms.${index}.extraSpaceDescription`} render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel>Descrição do Espaço Livre</FormLabel>
+                                                        <FormControl><Textarea placeholder="Descreva o espaço ou a sala disponível..." {...field} value={field.value ?? ""} /></FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )} />
+                                            )}
+                                        </div>
 
                                         <Separator/>
 
@@ -377,26 +437,13 @@ const InfrastructureSection = ({ schools }: { schools: School[] }) => {
                                                 <div className="space-y-4">
                                                     <FormField control={control} name={`infrastructure.classrooms.${index}.hasLinkedTransferIntegral`} render={({ field }) => (<FormItem className="flex flex-row items-center space-x-3 space-y-0 pt-2"><FormControl><Checkbox checked={field.value ?? false} onCheckedChange={field.onChange} /></FormControl><FormLabel className="font-normal">Há transferência casada para esta turma?</FormLabel></FormItem>)} />
                                                     {hasLinkedTransferIntegral && (
-                                                        <FormField
+                                                         <FormField
                                                             control={control}
-                                                            name={`infrastructure.classrooms.${index}.linkedTransferSchoolIdIntegral`}
+                                                            name={`infrastructure.classrooms.${index}.linkedTransferSchoolIdsIntegral`}
                                                             render={({ field }) => (
                                                                 <FormItem>
-                                                                    <FormLabel>Unidade Receptora</FormLabel>
-                                                                    <Select onValueChange={field.onChange} value={field.value ?? ''}>
-                                                                        <FormControl>
-                                                                            <SelectTrigger>
-                                                                                <SelectValue placeholder="Selecione a escola de destino" />
-                                                                            </SelectTrigger>
-                                                                        </FormControl>
-                                                                        <SelectContent>
-                                                                            {schools.map(school => (
-                                                                                <SelectItem key={school.id} value={school.id}>
-                                                                                    {school.name}
-                                                                                </SelectItem>
-                                                                            ))}
-                                                                        </SelectContent>
-                                                                    </Select>
+                                                                    <FormLabel>Unidade(s) Receptora(s)</FormLabel>
+                                                                    <MultiSchoolSelect schools={schools} value={field.value || []} onChange={field.onChange} />
                                                                     <FormMessage />
                                                                 </FormItem>
                                                             )}
@@ -418,16 +465,11 @@ const InfrastructureSection = ({ schools }: { schools: School[] }) => {
                                                         {hasLinkedTransferMorning && (
                                                             <FormField
                                                                 control={control}
-                                                                name={`infrastructure.classrooms.${index}.linkedTransferSchoolIdMorning`}
+                                                                name={`infrastructure.classrooms.${index}.linkedTransferSchoolIdsMorning`}
                                                                 render={({ field }) => (
                                                                     <FormItem className="pt-2">
-                                                                        <FormLabel>Unidade Receptora (Manhã)</FormLabel>
-                                                                        <Select onValueChange={field.onChange} value={field.value ?? ''}>
-                                                                            <FormControl>
-                                                                                <SelectTrigger><SelectValue placeholder="Selecione a escola de destino" /></SelectTrigger>
-                                                                            </FormControl>
-                                                                            <SelectContent>{schools.map(school => (<SelectItem key={school.id} value={school.id}>{school.name}</SelectItem>))}</SelectContent>
-                                                                        </Select>
+                                                                        <FormLabel>Unidade(s) Receptora(s) (Manhã)</FormLabel>
+                                                                         <MultiSchoolSelect schools={schools} value={field.value || []} onChange={field.onChange} />
                                                                         <FormMessage />
                                                                     </FormItem>
                                                                 )}
@@ -444,16 +486,11 @@ const InfrastructureSection = ({ schools }: { schools: School[] }) => {
                                                         {hasLinkedTransferAfternoon && (
                                                             <FormField
                                                                 control={control}
-                                                                name={`infrastructure.classrooms.${index}.linkedTransferSchoolIdAfternoon`}
+                                                                name={`infrastructure.classrooms.${index}.linkedTransferSchoolIdsAfternoon`}
                                                                 render={({ field }) => (
                                                                      <FormItem className="pt-2">
-                                                                        <FormLabel>Unidade Receptora (Tarde)</FormLabel>
-                                                                        <Select onValueChange={field.onChange} value={field.value ?? ''}>
-                                                                            <FormControl>
-                                                                                <SelectTrigger><SelectValue placeholder="Selecione a escola de destino" /></SelectTrigger>
-                                                                            </FormControl>
-                                                                            <SelectContent>{schools.map(school => (<SelectItem key={school.id} value={school.id}>{school.name}</SelectItem>))}</SelectContent>
-                                                                        </Select>
+                                                                        <FormLabel>Unidade(s) Receptora(s) (Tarde)</FormLabel>
+                                                                         <MultiSchoolSelect schools={schools} value={field.value || []} onChange={field.onChange} />
                                                                         <FormMessage />
                                                                     </FormItem>
                                                                 )}
@@ -470,16 +507,11 @@ const InfrastructureSection = ({ schools }: { schools: School[] }) => {
                                                         {hasLinkedTransferNight && (
                                                             <FormField
                                                                 control={control}
-                                                                name={`infrastructure.classrooms.${index}.linkedTransferSchoolIdNight`}
+                                                                name={`infrastructure.classrooms.${index}.linkedTransferSchoolIdsNight`}
                                                                 render={({ field }) => (
                                                                      <FormItem className="pt-2">
-                                                                        <FormLabel>Unidade Receptora (Noite)</FormLabel>
-                                                                        <Select onValueChange={field.onChange} value={field.value ?? ''}>
-                                                                            <FormControl>
-                                                                                <SelectTrigger><SelectValue placeholder="Selecione a escola de destino" /></SelectTrigger>
-                                                                            </FormControl>
-                                                                            <SelectContent>{schools.map(school => (<SelectItem key={school.id} value={school.id}>{school.name}</SelectItem>))}</SelectContent>
-                                                                        </Select>
+                                                                        <FormLabel>Unidade(s) Receptora(s) (Noite)</FormLabel>
+                                                                         <MultiSchoolSelect schools={schools} value={field.value || []} onChange={field.onChange} />
                                                                         <FormMessage />
                                                                     </FormItem>
                                                                 )}
@@ -541,6 +573,72 @@ const InfrastructureSection = ({ schools }: { schools: School[] }) => {
                 </Button>
             </CardContent>
         </Card>
+    );
+};
+
+const MultiSchoolSelect = ({ schools, value, onChange }: { schools: School[], value: string[], onChange: (value: string[]) => void }) => {
+    const [open, setOpen] = useState(false);
+    const selectedSchools = schools.filter(s => value.includes(s.id));
+
+    const handleSelect = (schoolId: string) => {
+        const newValue = value.includes(schoolId)
+            ? value.filter(id => id !== schoolId)
+            : [...value, schoolId];
+        onChange(newValue);
+    };
+
+    return (
+        <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+                <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={open}
+                    className="w-full justify-between h-auto"
+                >
+                    <div className="flex flex-wrap gap-1">
+                        {selectedSchools.length > 0 ? (
+                            selectedSchools.map(school => (
+                                <Badge
+                                    variant="secondary"
+                                    key={school.id}
+                                    className="mr-1"
+                                >
+                                    {school.name}
+                                </Badge>
+                            ))
+                        ) : (
+                            "Selecione as unidades receptoras..."
+                        )}
+                    </div>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                <Command>
+                    <CommandInput placeholder="Buscar escola..." />
+                    <CommandList>
+                        <CommandEmpty>Nenhuma escola encontrada.</CommandEmpty>
+                        <CommandGroup>
+                            {schools.map((school) => (
+                                <CommandItem
+                                    key={school.id}
+                                    onSelect={() => handleSelect(school.id)}
+                                >
+                                    <Check
+                                        className={cn(
+                                            "mr-2 h-4 w-4",
+                                            value.includes(school.id) ? "opacity-100" : "opacity-0"
+                                        )}
+                                    />
+                                    {school.name}
+                                </CommandItem>
+                            ))}
+                        </CommandGroup>
+                    </CommandList>
+                </Command>
+            </PopoverContent>
+        </Popover>
     );
 };
 
@@ -822,10 +920,10 @@ const ClassroomAllocationItem = ({ allocationIndex, professionalsList, onProfess
 
 
 const ProfessionalsAllocationSection = ({ professionals, onProfessionalCreated }: { professionals: Professional[], onProfessionalCreated: (newProfessional: Professional) => void }) => {
-    const { control, getValues, watch, setValue } = useFormContext();
+    const { control, getValues, watch, replace } = useFormContext();
     const classrooms = watch("infrastructure.classrooms") as Classroom[] || [];
 
-    const { fields, replace } = useFieldArray({
+    const { fields } = useFieldArray({
         control,
         name: "professionals.allocations",
     });
@@ -833,7 +931,7 @@ const ProfessionalsAllocationSection = ({ professionals, onProfessionalCreated }
     useEffect(() => {
         if (!classrooms) return;
 
-        const newAllocations: Omit<ClassroomAllocation, 'teachers'>[] = [];
+        const newAllocations: Omit<ClassroomAllocation, 'teachers' | 'teachers2026'>[] = [];
         classrooms.forEach(room => {
             if (!room.id) return;
             if (room.occupationType === 'integral' && room.gradeIntegral) {
@@ -873,7 +971,7 @@ const ProfessionalsAllocationSection = ({ professionals, onProfessionalCreated }
 
         const currentAllocations = getValues('professionals.allocations') || [];
         const mergedAllocations = newAllocations.map(newAlloc => {
-            const existing = currentAllocations.find((a: ClassroomAllocation) => a.classroomId === newAlloc.classroomId && a.turn === newAlloc.turn);
+            const existing = currentAllocations.find((a: ClassroomAllocation) => a.classroomId === newAlloc.classroomId && a.turn === newAlloc.turn && a.grade === newAlloc.grade);
             return existing ? { ...newAlloc, teachers: existing.teachers || [], teachers2026: existing.teachers2026 || [] } : { ...newAlloc, teachers: [], teachers2026: [] };
         });
 

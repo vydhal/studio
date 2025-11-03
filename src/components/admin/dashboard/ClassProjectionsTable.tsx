@@ -27,7 +27,7 @@ export function ClassProjectionsTable({ submissions, schoolMap }: ClassProjectio
       currentStudents: number;
       projectedGrade2026: string;
       hasLinkedTransfer?: boolean;
-      linkedTransferSchoolId?: string;
+      linkedTransferSchoolIds?: string[];
     }[] = [];
 
     submissions.forEach(sub => {
@@ -45,7 +45,7 @@ export function ClassProjectionsTable({ submissions, schoolMap }: ClassProjectio
               currentStudents: room.studentsIntegral || 0,
               projectedGrade2026: room.gradeProjection2026Integral || 'N/A',
               hasLinkedTransfer: room.hasLinkedTransferIntegral,
-              linkedTransferSchoolId: room.linkedTransferSchoolIdIntegral,
+              linkedTransferSchoolIds: room.linkedTransferSchoolIdsIntegral,
             });
           }
         } else {
@@ -57,7 +57,7 @@ export function ClassProjectionsTable({ submissions, schoolMap }: ClassProjectio
               currentStudents: room.studentsMorning || 0,
               projectedGrade2026: room.gradeProjection2026Morning || 'N/A',
               hasLinkedTransfer: room.hasLinkedTransferMorning,
-              linkedTransferSchoolId: room.linkedTransferSchoolIdMorning,
+              linkedTransferSchoolIds: room.linkedTransferSchoolIdsMorning,
             });
           }
           if (room.gradeAfternoon) {
@@ -68,7 +68,7 @@ export function ClassProjectionsTable({ submissions, schoolMap }: ClassProjectio
               currentStudents: room.studentsAfternoon || 0,
               projectedGrade2026: room.gradeProjection2026Afternoon || 'N/A',
               hasLinkedTransfer: room.hasLinkedTransferAfternoon,
-              linkedTransferSchoolId: room.linkedTransferSchoolIdAfternoon,
+              linkedTransferSchoolIds: room.linkedTransferSchoolIdsAfternoon,
             });
           }
           if (room.gradeNight) {
@@ -79,7 +79,7 @@ export function ClassProjectionsTable({ submissions, schoolMap }: ClassProjectio
               currentStudents: room.studentsNight || 0,
               projectedGrade2026: room.gradeProjection2026Night || 'N/A',
               hasLinkedTransfer: room.hasLinkedTransferNight,
-              linkedTransferSchoolId: room.linkedTransferSchoolIdNight,
+              linkedTransferSchoolIds: room.linkedTransferSchoolIdsNight,
             });
           }
         }
@@ -120,8 +120,8 @@ export function ClassProjectionsTable({ submissions, schoolMap }: ClassProjectio
             <TableCell>{row.projectedGrade2026}</TableCell>
             <TableCell>{row.hasLinkedTransfer ? 'Sim' : 'Não'}</TableCell>
             <TableCell>
-              {row.hasLinkedTransfer && row.linkedTransferSchoolId
-                ? schoolMap.get(row.linkedTransferSchoolId)?.name || 'N/A'
+              {row.hasLinkedTransfer && row.linkedTransferSchoolIds && row.linkedTransferSchoolIds.length > 0
+                ? row.linkedTransferSchoolIds.map(id => schoolMap.get(id)?.name || 'N/A').join(', ')
                 : 'N/A'}
             </TableCell>
           </TableRow>
