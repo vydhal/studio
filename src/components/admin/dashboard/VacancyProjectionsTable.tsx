@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React from 'react';
@@ -11,17 +12,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { School } from "@/types";
+import type { VacancyDetail } from './MetricsCards';
 
-interface VacancyDetail {
-    schoolId: string;
-    classroomName: string;
-    projectedGrade: string;
-    turn: string;
-    capacity: number;
-    veterans: number;
-    newcomers: number;
-    total: number;
-}
 
 interface VacancyProjectionsTableProps {
   vacancyData: VacancyDetail[];
@@ -44,6 +36,8 @@ export function VacancyProjectionsTable({ vacancyData, schoolMap }: VacancyProje
         <TableRow>
           <TableHead>Unidade</TableHead>
           <TableHead>Sala</TableHead>
+          <TableHead>Turma 2025</TableHead>
+          <TableHead className="text-right">Matriculados 2025</TableHead>
           <TableHead>Turma 2026</TableHead>
           <TableHead className="text-right">Capacidade</TableHead>
           <TableHead className="text-right">Veteranos</TableHead>
@@ -56,6 +50,8 @@ export function VacancyProjectionsTable({ vacancyData, schoolMap }: VacancyProje
           <TableRow key={index}>
             <TableCell>{schoolMap.get(row.schoolId)?.name || 'N/A'}</TableCell>
             <TableCell>{row.classroomName}</TableCell>
+            <TableCell>{row.grade2025}</TableCell>
+            <TableCell className="text-right">{row.students2025}</TableCell>
             <TableCell>{`${row.projectedGrade} (${row.turn})`}</TableCell>
             <TableCell className="text-right">{row.capacity}</TableCell>
             <TableCell className="text-right">{row.veterans}</TableCell>

@@ -211,6 +211,19 @@ export interface HomeSettings {
   twitterUrl?: string;
 }
 
+export interface VacancyDetail {
+    schoolId: string;
+    classroomName: string;
+    grade2025: string;
+    students2025: number;
+    projectedGrade: string;
+    turn: string;
+    capacity: number;
+    veterans: number;
+    newcomers: number;
+    total: number;
+}
+
 
 // Types for Dynamic Form Builder
 export interface FormFieldConfig {

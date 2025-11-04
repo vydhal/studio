@@ -3,7 +3,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import type { SchoolCensusSubmission, School, FormSectionConfig, Professional } from "@/types";
+import type { SchoolCensusSubmission, School, FormSectionConfig, Professional, VacancyDetail } from "@/types";
 import { MetricsCards, calculateVacancyData } from "./MetricsCards";
 import { ChartsSection } from "./ChartsSection";
 import { Button } from "@/components/ui/button"
@@ -400,6 +400,8 @@ export function DashboardClient() {
     const csvHeader = [
         "Unidade",
         "Sala",
+        "Turma 2025",
+        "Matriculados 2025",
         "Turma 2026",
         "Capacidade",
         "Veteranos",
@@ -410,6 +412,8 @@ export function DashboardClient() {
     const rows: string[] = vacancyData.details.map(detail => [
         `"${schoolMap.get(detail.schoolId)?.name || 'N/A'}"`,
         `"${detail.classroomName}"`,
+        `"${detail.grade2025}"`,
+        detail.students2025,
         `"${detail.projectedGrade} (${detail.turn})"`,
         detail.capacity,
         detail.veterans,

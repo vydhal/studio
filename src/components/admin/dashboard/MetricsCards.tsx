@@ -23,9 +23,11 @@ const gradeProgression: { [key: string]: string } = {
     // EJA and other complex progressions can be added here if needed
 };
 
-interface VacancyDetail {
+export interface VacancyDetail {
     schoolId: string;
     classroomName: string;
+    grade2025: string;
+    students2025: number;
     projectedGrade: string;
     turn: string;
     capacity: number;
@@ -71,8 +73,10 @@ export const calculateVacancyData = (submissions: SchoolCensusSubmission[]): Vac
             const precedingGrade = Object.keys(gradeProgression).find(key => gradeProgression[key] === projectedGrade);
             
             let veterans = 0;
+            let students2025 = 0;
             if (precedingGrade && allCurrentYearStudents[sub.schoolId]?.[precedingGrade]) {
                 veterans = allCurrentYearStudents[sub.schoolId][precedingGrade];
+                students2025 = veterans;
             }
 
             const newcomers = Math.max(0, capacity - veterans);
@@ -81,6 +85,8 @@ export const calculateVacancyData = (submissions: SchoolCensusSubmission[]): Vac
             details.push({
                 schoolId: sub.schoolId,
                 classroomName: room.name,
+                grade2025: precedingGrade || "N/A (Entrada)",
+                students2025: students2025,
                 projectedGrade: projectedGrade,
                 turn: turn,
                 capacity: capacity,
