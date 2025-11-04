@@ -317,9 +317,9 @@ export function DashboardClient() {
       "Sala",
       "Turma/Turno Atual",
       "Alunos Atuais",
-      "Projeção Turma 2026",
       "Transf. Casada",
       "Unidade Receptora",
+      "Projeção Turma 2026",
     ];
     
     const rows: string[] = [];
@@ -342,9 +342,9 @@ export function DashboardClient() {
               `"${room.name}"`,
               `"${room.gradeIntegral} (Integral)"`,
               room.studentsIntegral || 0,
-              `"${room.gradeProjection2026Integral || 'N/A'}"`,
               `"${room.hasLinkedTransferIntegral ? 'Sim' : 'Não'}"`,
               `"${getReceptoraNames(room.linkedTransferSchoolIdsIntegral)}"`,
+              `"${room.gradeProjection2026Integral || 'N/A'}"`,
             ].join(','));
           }
         } else {
@@ -354,9 +354,9 @@ export function DashboardClient() {
               `"${room.name}"`,
               `"${room.gradeMorning} (Manhã)"`,
               room.studentsMorning || 0,
-              `"${room.gradeProjection2026Morning || 'N/A'}"`,
               `"${room.hasLinkedTransferMorning ? 'Sim' : 'Não'}"`,
               `"${getReceptoraNames(room.linkedTransferSchoolIdsMorning)}"`,
+              `"${room.gradeProjection2026Morning || 'N/A'}"`,
             ].join(','));
           }
           if (room.gradeAfternoon) {
@@ -365,9 +365,9 @@ export function DashboardClient() {
               `"${room.name}"`,
               `"${room.gradeAfternoon} (Tarde)"`,
               room.studentsAfternoon || 0,
-              `"${room.gradeProjection2026Afternoon || 'N/A'}"`,
               `"${room.hasLinkedTransferAfternoon ? 'Sim' : 'Não'}"`,
               `"${getReceptoraNames(room.linkedTransferSchoolIdsAfternoon)}"`,
+              `"${room.gradeProjection2026Afternoon || 'N/A'}"`,
             ].join(','));
           }
           if (room.gradeNight) {
@@ -376,9 +376,9 @@ export function DashboardClient() {
               `"${room.name}"`,
               `"${room.gradeNight} (Noite)"`,
               room.studentsNight || 0,
-              `"${room.gradeProjection2026Night || 'N/A'}"`,
               `"${room.hasLinkedTransferNight ? 'Sim' : 'Não'}"`,
               `"${getReceptoraNames(room.linkedTransferSchoolIdsNight)}"`,
+              `"${room.gradeProjection2026Night || 'N/A'}"`,
             ].join(','));
           }
         }

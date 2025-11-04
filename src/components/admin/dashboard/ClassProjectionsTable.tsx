@@ -104,10 +104,10 @@ export function ClassProjectionsTable({ submissions, schoolMap }: ClassProjectio
           <TableHead>Unidade Fornecedora</TableHead>
           <TableHead>Sala</TableHead>
           <TableHead>Turma/Turno Atual</TableHead>
-          <TableHead>Alunos Atuais</TableHead>
-          <TableHead>Projeção Turma 2026</TableHead>
+          <TableHead className="text-center">Alunos Atuais</TableHead>
           <TableHead>Transf. Casada</TableHead>
-          <TableHead>Unidade Receptora</TableHead>
+          <TableHead className="border-r">Unidade Receptora</TableHead>
+          <TableHead>Projeção Turma 2026</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -116,14 +116,14 @@ export function ClassProjectionsTable({ submissions, schoolMap }: ClassProjectio
             <TableCell>{row.schoolName}</TableCell>
             <TableCell>{row.classroomName}</TableCell>
             <TableCell>{row.currentGrade}</TableCell>
-            <TableCell>{row.currentStudents}</TableCell>
-            <TableCell>{row.projectedGrade2026}</TableCell>
+            <TableCell className="text-center">{row.currentStudents}</TableCell>
             <TableCell>{row.hasLinkedTransfer ? 'Sim' : 'Não'}</TableCell>
-            <TableCell>
+            <TableCell className="border-r">
               {row.hasLinkedTransfer && row.linkedTransferSchoolIds && row.linkedTransferSchoolIds.length > 0
                 ? row.linkedTransferSchoolIds.map(id => schoolMap.get(id)?.name || 'N/A').join(', ')
                 : 'N/A'}
             </TableCell>
+            <TableCell>{row.projectedGrade2026}</TableCell>
           </TableRow>
         ))}
       </TableBody>
