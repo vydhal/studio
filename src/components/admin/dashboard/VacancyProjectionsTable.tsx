@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import React from 'react';
@@ -37,12 +36,12 @@ export function VacancyProjectionsTable({ vacancyData, schoolMap }: VacancyProje
           <TableHead>Unidade</TableHead>
           <TableHead>Sala</TableHead>
           <TableHead>Turma 2025</TableHead>
-          <TableHead className="text-right">Matriculados 2025</TableHead>
+          <TableHead className="text-center">Matriculados 2025</TableHead>
           <TableHead>Turma 2026</TableHead>
-          <TableHead className="text-right">Capacidade</TableHead>
-          <TableHead className="text-right">Veteranos</TableHead>
-          <TableHead className="text-right">Novatos</TableHead>
-          <TableHead className="text-right">Total Alunos (2026)</TableHead>
+          <TableHead className="text-center">Capacidade</TableHead>
+          <TableHead className="text-center">Veteranos</TableHead>
+          <TableHead className="text-center">Novatos</TableHead>
+          <TableHead className="text-center">Total Alunos (2026)</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -51,12 +50,12 @@ export function VacancyProjectionsTable({ vacancyData, schoolMap }: VacancyProje
             <TableCell>{schoolMap.get(row.schoolId)?.name || 'N/A'}</TableCell>
             <TableCell>{row.classroomName}</TableCell>
             <TableCell>{row.grade2025}</TableCell>
-            <TableCell className="text-right">{row.students2025}</TableCell>
+            <TableCell className="text-center">{row.students2025}</TableCell>
             <TableCell>{`${row.projectedGrade} (${row.turn})`}</TableCell>
-            <TableCell className="text-right">{row.capacity}</TableCell>
-            <TableCell className="text-right">{row.veterans}</TableCell>
-            <TableCell className="text-right">{row.newcomers}</TableCell>
-            <TableCell className="text-right font-bold">{row.total}</TableCell>
+            <TableCell className="text-center">{row.capacity}</TableCell>
+            <TableCell className="text-center">{row.veterans}</TableCell>
+            <TableCell className="text-center">{row.newcomers}</TableCell>
+            <TableCell className="text-center font-bold">{row.total}</TableCell>
           </TableRow>
         ))}
       </TableBody>
