@@ -400,25 +400,25 @@ export function DashboardClient() {
     const csvHeader = [
         "Unidade",
         "Sala",
-        "Turma 2025",
-        "Matriculados 2025",
         "Turma 2026",
         "Capacidade",
         "Veteranos",
         "Novatos",
         "Total Alunos (2026)",
+        "Turma 2025",
+        "Matriculados 2025",
     ];
 
     const rows: string[] = vacancyData.details.map(detail => [
         `"${schoolMap.get(detail.schoolId)?.name || 'N/A'}"`,
         `"${detail.classroomName}"`,
-        `"${detail.grade2025}"`,
-        detail.students2025,
         `"${detail.projectedGrade} (${detail.turn})"`,
         detail.capacity,
         detail.veterans,
         detail.newcomers,
         detail.total,
+        `"${detail.grade2025}"`,
+        detail.students2025,
     ].join(','));
     
     const csvContent = [csvHeader.join(','), ...rows].join('\n');

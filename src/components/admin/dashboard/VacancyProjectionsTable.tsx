@@ -35,13 +35,13 @@ export function VacancyProjectionsTable({ vacancyData, schoolMap }: VacancyProje
         <TableRow>
           <TableHead>Unidade</TableHead>
           <TableHead>Sala</TableHead>
-          <TableHead>Turma 2025</TableHead>
-          <TableHead className="text-center">Matriculados 2025</TableHead>
           <TableHead>Turma 2026</TableHead>
           <TableHead className="text-center">Capacidade</TableHead>
           <TableHead className="text-center">Veteranos</TableHead>
           <TableHead className="text-center">Novatos</TableHead>
-          <TableHead className="text-center">Total Alunos (2026)</TableHead>
+          <TableHead className="text-center border-r">Total Alunos (2026)</TableHead>
+          <TableHead>Turma 2025</TableHead>
+          <TableHead className="text-center">Matriculados 2025</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -49,13 +49,13 @@ export function VacancyProjectionsTable({ vacancyData, schoolMap }: VacancyProje
           <TableRow key={index}>
             <TableCell>{schoolMap.get(row.schoolId)?.name || 'N/A'}</TableCell>
             <TableCell>{row.classroomName}</TableCell>
-            <TableCell>{row.grade2025}</TableCell>
-            <TableCell className="text-center">{row.students2025}</TableCell>
             <TableCell>{`${row.projectedGrade} (${row.turn})`}</TableCell>
             <TableCell className="text-center">{row.capacity}</TableCell>
             <TableCell className="text-center">{row.veterans}</TableCell>
             <TableCell className="text-center">{row.newcomers}</TableCell>
-            <TableCell className="text-center font-bold">{row.total}</TableCell>
+            <TableCell className="text-center font-bold border-r">{row.total}</TableCell>
+            <TableCell>{row.grade2025}</TableCell>
+            <TableCell className="text-center">{row.students2025}</TableCell>
           </TableRow>
         ))}
       </TableBody>
