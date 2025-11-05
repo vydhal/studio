@@ -920,14 +920,13 @@ const ClassroomAllocationItem = ({ allocationIndex, professionalsList, onProfess
 
 
 const ProfessionalsAllocationSection = ({ professionals, onProfessionalCreated }: { professionals: Professional[], onProfessionalCreated: (newProfessional: Professional) => void }) => {
-    const { control, getValues, watch, replace } = useFormContext();
-    const classrooms = watch("infrastructure.classrooms") as Classroom[] || [];
-
-    const { fields } = useFieldArray({
+    const { control, getValues, watch } = useFormContext();
+    const { fields, replace } = useFieldArray({
         control,
         name: "professionals.allocations",
     });
-    
+    const classrooms = watch("infrastructure.classrooms") as Classroom[] || [];
+
     useEffect(() => {
         if (!classrooms) return;
 
@@ -1046,7 +1045,7 @@ export function SchoolCensusForm() {
             const infraIndex = configData.findIndex(s => s.id.startsWith('infra'));
             const newSection = { id: 'professionals', name: 'Profissionais', description: 'Alocação de profissionais por turma.', fields: [] };
             if (infraIndex !== -1) {
-                configData.splice(infraIndex + 1, 0, newSection);
+                formData.splice(infraIndex + 1, 0, newSection);
             } else {
                 configData.push(newSection);
             }
