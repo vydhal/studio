@@ -1045,7 +1045,7 @@ export function SchoolCensusForm() {
             const infraIndex = configData.findIndex(s => s.id.startsWith('infra'));
             const newSection = { id: 'professionals', name: 'Profissionais', description: 'Alocação de profissionais por turma.', fields: [] };
             if (infraIndex !== -1) {
-                formData.splice(infraIndex + 1, 0, newSection);
+                configData.splice(infraIndex + 1, 0, newSection);
             } else {
                 configData.push(newSection);
             }
