@@ -70,7 +70,14 @@ export interface Professional {
   unidade?: string;
 }
 
-export const professionalContractTypes = ['EFETIVO ATIVO', 'CONTRATO ATIVO', 'MOMENTO DO DESCANSO', 'JORNADA AMPLIADA'];
+export const professionalContractTypes = [
+    'EFETIVO ATIVO', 
+    'CONTRATO ATIVO', 
+    'MOMENTO DO DESCANSO', 
+    'JORNADA AMPLIADA',
+    'MOMENTO DO DESCANSO - EFETIVO',
+    'MOMENTO DO DESCANSO - CONTRATADO'
+];
 export const professionalObservationTypes = [
     'Nenhuma',
     'ATIVO',
