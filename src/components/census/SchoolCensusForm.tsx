@@ -41,7 +41,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import type { School, FormSectionConfig, FormFieldConfig, SchoolCensusSubmission, Classroom, Professional, TeacherAllocation, ClassroomAllocation } from "@/types";
-import { professionalContractTypes, professionalObservationTypes } from "@/types";
+import { professionalContractTypes, professionalObservationTypes, professionalTurnTypes } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from "@/components/ui/card";
 import { Loader2, Building, HardHat, Laptop, Palette, Wrench, PlusCircle, Trash2, UserCog, ChevronsUpDown, Check, HelpCircle, X } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -112,6 +112,8 @@ const teacherAllocationSchema = z.object({
     contractType: z.string().optional(),
     workload: z.number().optional(),
     observations: z.string().optional(),
+    turn: z.enum(['Manhã', 'Tarde', 'Intermediário']).optional(),
+    annotations: z.string().optional(),
 });
 
 const classroomAllocationSchema = z.object({
@@ -642,13 +644,11 @@ const MultiSchoolSelect = ({ schools, value, onChange }: { schools: School[], va
     );
 };
 
-const TeacherAllocationForm = ({ allocationIndex, teacherIndex, removeTeacher, professionalsList, onProfessionalCreated, isProjection }: { allocationIndex: number, teacherIndex: number, removeTeacher: (index: number) => void, professionalsList: Professional[], onProfessionalCreated: (newProfessional: Professional) => void, isProjection: boolean }) => {
+const TeacherAllocationForm = ({ allocationIndex, teacherIndex, removeTeacher, professionalsList, onProfessionalCreated, teacherArrayName }: { allocationIndex: number, teacherIndex: number, removeTeacher: (index: number) => void, professionalsList: Professional[], onProfessionalCreated: (newProfessional: Professional) => void, teacherArrayName: 'teachers' | 'teachers2026' }) => {
     const { control, setValue } = useFormContext();
     const { toast } = useToast();
     const [popoverOpen, setPopoverOpen] = useState(false);
     const [search, setSearch] = useState('');
-
-    const teacherArrayName = isProjection ? 'teachers2026' : 'teachers';
     
     const handleCreateProfessional = async (name: string) => {
         if (!name.trim()) return;
@@ -682,7 +682,7 @@ const TeacherAllocationForm = ({ allocationIndex, teacherIndex, removeTeacher, p
                 <Trash2 className="h-4 w-4 text-destructive" />
             </Button>
 
-            <div className={`grid grid-cols-1 ${isProjection ? 'md:grid-cols-2' : 'md:grid-cols-2'} gap-4 items-end`}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
                  <FormField
                     control={control}
                     name={`professionals.allocations.${allocationIndex}.${teacherArrayName}.${teacherIndex}.professionalId`}
@@ -779,51 +779,88 @@ const TeacherAllocationForm = ({ allocationIndex, teacherIndex, removeTeacher, p
                     )}
                 />
             </div>
-            {!isProjection && (
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
-                     <FormField
-                        control={control}
-                        name={`professionals.allocations.${allocationIndex}.${teacherArrayName}.${teacherIndex}.contractType`}
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Vínculo</FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value ?? ''}>
-                                    <FormControl>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Selecione o vínculo" />
-                                        </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        {professionalContractTypes.map(type => (
-                                            <SelectItem key={type} value={type}>{type}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={control}
-                        name={`professionals.allocations.${allocationIndex}.${teacherArrayName}.${teacherIndex}.workload`}
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Carga Horária</FormLabel>
+             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                 <FormField
+                    control={control}
+                    name={`professionals.allocations.${allocationIndex}.${teacherArrayName}.${teacherIndex}.turn`}
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Turno</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value ?? ''}>
                                 <FormControl>
-                                    <Input 
-                                        type="number" 
-                                        placeholder="Ex: 20" 
-                                        {...field} 
-                                        value={field.value ?? ''}
-                                        onChange={e => field.onChange(e.target.value === '' ? undefined : parseInt(e.target.value, 10))}
-                                    />
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Selecione o turno" />
+                                    </SelectTrigger>
                                 </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                </div>
-            )}
+                                <SelectContent>
+                                    {professionalTurnTypes.map(type => (
+                                        <SelectItem key={type} value={type}>{type}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                 <FormField
+                    control={control}
+                    name={`professionals.allocations.${allocationIndex}.${teacherArrayName}.${teacherIndex}.contractType`}
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Vínculo</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value ?? ''}>
+                                <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Selecione o vínculo" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    {professionalContractTypes.map(type => (
+                                        <SelectItem key={type} value={type}>{type}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={control}
+                    name={`professionals.allocations.${allocationIndex}.${teacherArrayName}.${teacherIndex}.workload`}
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Carga Horária</FormLabel>
+                            <FormControl>
+                                <Input 
+                                    type="number" 
+                                    placeholder="Ex: 20" 
+                                    {...field} 
+                                    value={field.value ?? ''}
+                                    onChange={e => field.onChange(e.target.value === '' ? undefined : parseInt(e.target.value, 10))}
+                                />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+            </div>
+            <FormField
+                control={control}
+                name={`professionals.allocations.${allocationIndex}.${teacherArrayName}.${teacherIndex}.annotations`}
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Anotações Adicionais</FormLabel>
+                        <FormControl>
+                            <Textarea
+                                placeholder="Adicione anotações extras aqui..."
+                                {...field}
+                                value={field.value ?? ""}
+                            />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )}
+            />
         </div>
     )
 };
@@ -874,14 +911,14 @@ const ClassroomAllocationItem = ({ allocationIndex, professionalsList, onProfess
                             removeTeacher={removeTeacher}
                             professionalsList={professionalsList}
                             onProfessionalCreated={onProfessionalCreated}
-                            isProjection={false}
+                            teacherArrayName="teachers"
                         />
                     ))}
                     <Button 
                         type="button" 
                         variant="outline" 
                         size="sm"
-                        onClick={() => appendTeacher({ professionalId: '', contractType: '', workload: undefined, observations: '' })}
+                        onClick={() => appendTeacher({ professionalId: '', contractType: '', workload: undefined, observations: '', turn: undefined, annotations: '' })}
                     >
                         <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Professor (Atual)
                     </Button>
@@ -901,14 +938,14 @@ const ClassroomAllocationItem = ({ allocationIndex, professionalsList, onProfess
                             removeTeacher={removeTeacher2026}
                             professionalsList={professionalsList}
                             onProfessionalCreated={onProfessionalCreated}
-                            isProjection={true}
+                            teacherArrayName="teachers2026"
                         />
                     ))}
                     <Button 
                         type="button" 
                         variant="outline" 
                         size="sm"
-                        onClick={() => appendTeacher2026({ professionalId: '', observations: '' })}
+                        onClick={() => appendTeacher2026({ professionalId: '', contractType: '', workload: undefined, observations: '', turn: undefined, annotations: '' })}
                     >
                         <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Professor (Projeção 2026)
                     </Button>

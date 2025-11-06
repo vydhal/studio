@@ -111,11 +111,16 @@ export const professionalObservationTypes = [
     'PROFESSOR CAPOEIRA'
 ];
 
+export const professionalTurnTypes = ['Manhã', 'Tarde', 'Intermediário'];
+
+
 export interface TeacherAllocation {
     professionalId?: string;
     contractType?: string;
     workload?: number;
     observations?: string;
+    turn?: 'Manhã' | 'Tarde' | 'Intermediário';
+    annotations?: string;
 }
 
 export interface ClassroomAllocation {

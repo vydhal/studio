@@ -271,7 +271,15 @@ export function DashboardClient() {
       "Sala",
       "Turma/Turno",
       "Professor(a) Atual",
-      "Projeção Professor(a) 2026",
+      "Turno (Atual)",
+      "Vínculo (Atual)",
+      "C.H (Atual)",
+      "Anotações (Atual)",
+      "Professor(a) 2026",
+      "Turno (2026)",
+      "Vínculo (2026)",
+      "C.H (2026)",
+      "Anotações (2026)",
     ];
 
     const rows: string[] = [];
@@ -281,20 +289,29 @@ export function DashboardClient() {
         if (!school || !sub.professionals?.allocations) return;
 
         sub.professionals.allocations.forEach(alloc => {
-            const currentTeachers = alloc.teachers?.map(t => professionalMap.get(t.professionalId || '')) || ['N/A'];
-            const projectedTeachers = alloc.teachers2026?.map(t => professionalMap.get(t.professionalId || '')) || ['N/A'];
-            
             const turnText = alloc.turn === 'morning' ? 'Manhã' : alloc.turn === 'afternoon' ? 'Tarde' : alloc.turn === 'night' ? 'Noite' : 'Integral';
-
+            
+            const currentTeachers = alloc.teachers || [];
+            const projectedTeachers = alloc.teachers2026 || [];
             const maxRows = Math.max(currentTeachers.length, projectedTeachers.length);
 
             for (let i = 0; i < maxRows; i++) {
+                const current = currentTeachers[i];
+                const projected = projectedTeachers[i];
                 rows.push([
                     `"${school.name}"`,
                     `"${alloc.classroomName}"`,
                     `"${alloc.grade} (${turnText})"`,
-                    `"${currentTeachers[i] || ''}"`,
-                    `"${projectedTeachers[i] || ''}"`,
+                    `"${current ? professionalMap.get(current.professionalId || '') || '' : ''}"`,
+                    `"${current?.turn || ''}"`,
+                    `"${current?.contractType || ''}"`,
+                    `"${current?.workload || ''}"`,
+                    `"${current?.annotations || ''}"`,
+                    `"${projected ? professionalMap.get(projected.professionalId || '') || '' : ''}"`,
+                    `"${projected?.turn || ''}"`,
+                    `"${projected?.contractType || ''}"`,
+                    `"${projected?.workload || ''}"`,
+                    `"${projected?.annotations || ''}"`,
                 ].join(','));
             }
         });

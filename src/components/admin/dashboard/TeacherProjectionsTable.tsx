@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { SchoolCensusSubmission, School, Professional } from "@/types";
+import type { SchoolCensusSubmission, School, Professional, TeacherAllocation } from "@/types";
 
 interface TeacherProjectionsTableProps {
   submissions: SchoolCensusSubmission[];
@@ -18,17 +18,19 @@ interface TeacherProjectionsTableProps {
   professionalMap: Map<string, string>;
 }
 
+interface ProjectionRow {
+    schoolName: string;
+    classroomName: string;
+    grade: string;
+    turn: string;
+    current?: TeacherAllocation;
+    projected?: TeacherAllocation;
+}
+
 export function TeacherProjectionsTable({ submissions, schoolMap, professionalMap }: TeacherProjectionsTableProps) {
 
   const projectionData = React.useMemo(() => {
-    const data: {
-      schoolName: string;
-      classroomName: string;
-      grade: string;
-      turn: string;
-      currentTeacher?: string;
-      projectedTeacher?: string;
-    }[] = [];
+    const data: ProjectionRow[] = [];
 
     submissions.forEach(sub => {
       const school = schoolMap.get(sub.schoolId);
@@ -36,11 +38,9 @@ export function TeacherProjectionsTable({ submissions, schoolMap, professionalMa
 
       sub.professionals.allocations.forEach(alloc => {
         const turnText = alloc.turn === 'morning' ? 'Manhã' : alloc.turn === 'afternoon' ? 'Tarde' : alloc.turn === 'night' ? 'Noite' : 'Integral';
-        const gradeWithTurn = `${alloc.grade} (${turnText})`;
 
-        const currentTeachers = alloc.teachers?.map(t => professionalMap.get(t.professionalId || '') || 'Não alocado') || [];
-        const projectedTeachers = alloc.teachers2026?.map(t => professionalMap.get(t.professionalId || '') || 'Não alocado') || [];
-
+        const currentTeachers = alloc.teachers || [];
+        const projectedTeachers = alloc.teachers2026 || [];
         const maxEntries = Math.max(currentTeachers.length, projectedTeachers.length);
 
         if (maxEntries === 0) {
@@ -49,8 +49,6 @@ export function TeacherProjectionsTable({ submissions, schoolMap, professionalMa
                 classroomName: alloc.classroomName,
                 grade: alloc.grade,
                 turn: turnText,
-                currentTeacher: 'N/A',
-                projectedTeacher: 'N/A',
             });
         } else {
             for (let i = 0; i < maxEntries; i++) {
@@ -59,8 +57,8 @@ export function TeacherProjectionsTable({ submissions, schoolMap, professionalMa
                     classroomName: alloc.classroomName,
                     grade: alloc.grade,
                     turn: turnText,
-                    currentTeacher: currentTeachers[i] || '',
-                    projectedTeacher: projectedTeachers[i] || '',
+                    current: currentTeachers[i],
+                    projected: projectedTeachers[i],
                 });
             }
         }
@@ -86,7 +84,13 @@ export function TeacherProjectionsTable({ submissions, schoolMap, professionalMa
           <TableHead>Sala</TableHead>
           <TableHead>Turma/Turno</TableHead>
           <TableHead>Professor(a) Atual</TableHead>
-          <TableHead>Projeção 2026</TableHead>
+          <TableHead>Turno (Atual)</TableHead>
+          <TableHead>Vínculo (Atual)</TableHead>
+          <TableHead>C.H (Atual)</TableHead>
+          <TableHead className="border-r">Projeção 2026</TableHead>
+          <TableHead>Turno (2026)</TableHead>
+          <TableHead>Vínculo (2026)</TableHead>
+          <TableHead>C.H (2026)</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -95,8 +99,14 @@ export function TeacherProjectionsTable({ submissions, schoolMap, professionalMa
             <TableCell>{row.schoolName}</TableCell>
             <TableCell>{row.classroomName}</TableCell>
             <TableCell>{`${row.grade} (${row.turn})`}</TableCell>
-            <TableCell>{row.currentTeacher}</TableCell>
-            <TableCell>{row.projectedTeacher}</TableCell>
+            <TableCell>{row.current ? professionalMap.get(row.current.professionalId || '') || 'N/A' : 'N/A'}</TableCell>
+            <TableCell>{row.current?.turn || 'N/A'}</TableCell>
+            <TableCell>{row.current?.contractType || 'N/A'}</TableCell>
+            <TableCell>{row.current?.workload || 'N/A'}</TableCell>
+            <TableCell className="border-r">{row.projected ? professionalMap.get(row.projected.professionalId || '') || 'N/A' : 'N/A'}</TableCell>
+            <TableCell>{row.projected?.turn || 'N/A'}</TableCell>
+            <TableCell>{row.projected?.contractType || 'N/A'}</TableCell>
+            <TableCell>{row.projected?.workload || 'N/A'}</TableCell>
           </TableRow>
         ))}
       </TableBody>
