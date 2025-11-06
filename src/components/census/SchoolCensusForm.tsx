@@ -312,10 +312,11 @@ const InfrastructureSection = ({ schools }: { schools: School[] }) => {
                         return (
                         <AccordionItem value={`item-${index}`} key={item.id} className="border-b-0">
                             <Card className="bg-muted/20">
-                                 <div className="flex items-center p-4">
-                                     <AccordionTrigger className="flex-1 p-0">
+                                 <div className="flex items-center justify-between p-4">
+                                     <div className="flex items-center gap-2">
                                         <h4 className="font-bold text-left">{classroomName}</h4>
-                                    </AccordionTrigger>
+                                        <AccordionTrigger className="p-0" />
+                                     </div>
                                     <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
                                         <Trash2 className="h-4 w-4 text-destructive" />
                                     </Button>
