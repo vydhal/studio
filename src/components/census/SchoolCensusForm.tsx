@@ -313,7 +313,7 @@ const InfrastructureSection = ({ schools }: { schools: School[] }) => {
                         <AccordionItem value={`item-${index}`} key={item.id} className="border-b-0">
                             <Card className="bg-muted/20">
                                  <div className="flex items-center p-4">
-                                     <AccordionTrigger className="flex-1">
+                                     <AccordionTrigger className="flex-1 p-0">
                                         <h4 className="font-bold text-left">{classroomName}</h4>
                                     </AccordionTrigger>
                                     <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
@@ -1078,8 +1078,8 @@ export function SchoolCensusForm() {
         setAvailableProfessionals(professionalsData);
 
         let configData: FormSectionConfig[] = formConfigDoc.exists() ? formConfigDoc.data().sections : [];
-        if (!configData.some(s => s.id === 'professionals')) {
-            const infraIndex = configData.findIndex(s => s.id.startsWith('infra'));
+        if (configData && !configData.some(s => s.id === 'professionals')) {
+             const infraIndex = configData.findIndex(s => s.id.startsWith('infra'));
             const newSection = { id: 'professionals', name: 'Profissionais', description: 'Alocação de profissionais por turma.', fields: [] };
             if (infraIndex !== -1) {
                 configData.splice(infraIndex + 1, 0, newSection);
@@ -1139,7 +1139,7 @@ export function SchoolCensusForm() {
     if (userProfile?.schoolId) {
         form.setValue('schoolId', userProfile.schoolId);
         if (schoolIdFromUrl !== userProfile.schoolId) {
-            router.replace(`/census?schoolId=${userProfile.schoolId}`, { scroll: false });
+            router.push(`/census?schoolId=${userProfile.schoolId}`, { scroll: false });
         }
     }
 
