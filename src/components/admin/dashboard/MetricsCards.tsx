@@ -46,55 +46,68 @@ export const calculateVacancyData = (submissions: SchoolCensusSubmission[]): Vac
     let totalVeterans = 0;
     let totalNewcomers = 0;
     const details: VacancyDetail[] = [];
-    const allCurrentYearStudents: { [schoolId: string]: { [grade: string]: number } } = {};
+    
+    // 1. Create a detailed, mutable pool of students for the current year (2025)
+    // Key: schoolId, Value: { gradeAndTurnKey: studentCount }
+    // e.g., { "school123": { "1º Ano-morning": 25, "1º Ano-afternoon": 23 } }
+    const mutableStudentPool: { [schoolId: string]: { [gradeAndTurn: string]: number } } = {};
 
-    // 1. Aggregate all current students by school and grade for the base year (2025)
     submissions.forEach(sub => {
         if (!sub.infrastructure?.classrooms) return;
-        allCurrentYearStudents[sub.schoolId] = allCurrentYearStudents[sub.schoolId] || {};
-
+        mutableStudentPool[sub.schoolId] = mutableStudentPool[sub.schoolId] || {};
+        
         sub.infrastructure.classrooms.forEach(room => {
-             if (room.occupationType === 'integral' && room.gradeIntegral) {
-                allCurrentYearStudents[sub.schoolId][room.gradeIntegral] = (allCurrentYearStudents[sub.schoolId][room.gradeIntegral] || 0) + (room.studentsIntegral || 0);
+            if (room.occupationType === 'integral' && room.gradeIntegral) {
+                const key = `${room.gradeIntegral}-integral`;
+                mutableStudentPool[sub.schoolId][key] = (mutableStudentPool[sub.schoolId][key] || 0) + (room.studentsIntegral || 0);
             } else {
-                if (room.gradeMorning) allCurrentYearStudents[sub.schoolId][room.gradeMorning] = (allCurrentYearStudents[sub.schoolId][room.gradeMorning] || 0) + (room.studentsMorning || 0);
-                if (room.gradeAfternoon) allCurrentYearStudents[sub.schoolId][room.gradeAfternoon] = (allCurrentYearStudents[sub.schoolId][room.gradeAfternoon] || 0) + (room.studentsAfternoon || 0);
-                if (room.gradeNight) allCurrentYearStudents[sub.schoolId][room.gradeNight] = (allCurrentYearStudents[sub.schoolId][room.gradeNight] || 0) + (room.studentsNight || 0);
+                if (room.gradeMorning) {
+                    const key = `${room.gradeMorning}-morning`;
+                    mutableStudentPool[sub.schoolId][key] = (mutableStudentPool[sub.schoolId][key] || 0) + (room.studentsMorning || 0);
+                }
+                if (room.gradeAfternoon) {
+                    const key = `${room.gradeAfternoon}-afternoon`;
+                    mutableStudentPool[sub.schoolId][key] = (mutableStudentPool[sub.schoolId][key] || 0) + (room.studentsAfternoon || 0);
+                }
+                if (room.gradeNight) {
+                    const key = `${room.gradeNight}-night`;
+                     mutableStudentPool[sub.schoolId][key] = (mutableStudentPool[sub.schoolId][key] || 0) + (room.studentsNight || 0);
+                }
             }
         });
     });
-
-    // Create a mutable copy of the student pool for distribution
-    const mutableStudentPool = JSON.parse(JSON.stringify(allCurrentYearStudents));
 
     // 2. Iterate through projected 2026 classrooms to calculate vacancies
     submissions.forEach(sub => {
         if (!sub.infrastructure?.classrooms) return;
 
-        const processProjectedTurn = (room: Classroom, projectedGrade: string | undefined, turn: string) => {
+        const processProjectedTurn = (room: Classroom, projectedGrade: string | undefined, turn: 'Manhã' | 'Tarde' | 'Noite' | 'Integral', turnKey: 'morning' | 'afternoon' | 'night' | 'integral') => {
             if (!projectedGrade) return;
 
             const capacity = room.studentCapacity || 0;
             const precedingGrade = Object.keys(gradeProgression).find(key => gradeProgression[key] === projectedGrade);
             
             let veteransForThisRoom = 0;
-            let totalStudentsInPrecedingGrade = 0;
+            let studentsInPrecedingGrade = 0;
+            const schoolPool = mutableStudentPool[sub.schoolId] || {};
 
+            // Find the pool of students from the preceding grade.
+            // This now checks for a matching turn, or takes from any turn if no specific turn matches.
+            // This could be refined further if strict turn-to-turn progression is needed.
             if (precedingGrade) {
-                totalStudentsInPrecedingGrade = allCurrentYearStudents[sub.schoolId]?.[precedingGrade] || 0;
+                const precedingGradeKey = `${precedingGrade}-${turnKey}`;
+                studentsInPrecedingGrade = schoolPool[precedingGradeKey] || 0;
                 
-                if (mutableStudentPool[sub.schoolId]?.[precedingGrade]) {
-                    // Determine how many veterans can be allocated to this room
-                    const availableVeterans = mutableStudentPool[sub.schoolId][precedingGrade];
+                // If there are students in the specific preceding grade and turn
+                if (schoolPool[precedingGradeKey] > 0) {
+                    const availableVeterans = schoolPool[precedingGradeKey];
                     veteransForThisRoom = Math.min(capacity, availableVeterans);
-
-                    // Decrease the pool of available veterans
-                    mutableStudentPool[sub.schoolId][precedingGrade] -= veteransForThisRoom;
+                    // Decrease the pool
+                    schoolPool[precedingGradeKey] -= veteransForThisRoom;
                 }
             }
 
             const newcomers = Math.max(0, capacity - veteransForThisRoom);
-            const totalFor2026 = veteransForThisRoom; // The actual number of students in the room will be the veterans
             totalNewcomers += newcomers;
             totalVeterans += veteransForThisRoom;
 
@@ -102,23 +115,23 @@ export const calculateVacancyData = (submissions: SchoolCensusSubmission[]): Vac
                 schoolId: sub.schoolId,
                 classroomName: room.name,
                 grade2025: precedingGrade || "N/A (Entrada)",
-                students2025: totalStudentsInPrecedingGrade,
+                students2025: studentsInPrecedingGrade,
                 projectedGrade: projectedGrade,
                 turn: turn,
                 capacity: capacity,
                 veterans: veteransForThisRoom,
                 newcomers: newcomers,
-                total: capacity, // Total capacity of the room
+                total: capacity,
             });
         };
         
         sub.infrastructure.classrooms.forEach(room => {
              if (room.occupationType2026 === 'integral') {
-                processProjectedTurn(room, room.gradeProjection2026Integral, 'Integral');
+                processProjectedTurn(room, room.gradeProjection2026Integral, 'Integral', 'integral');
              } else {
-                processProjectedTurn(room, room.gradeProjection2026Morning, 'Manhã');
-                processProjectedTurn(room, room.gradeProjection2026Afternoon, 'Tarde');
-                processProjectedTurn(room, room.gradeProjection2026Night, 'Noite');
+                processProjectedTurn(room, room.gradeProjection2026Morning, 'Manhã', 'morning');
+                processProjectedTurn(room, room.gradeProjection2026Afternoon, 'Tarde', 'afternoon');
+                processProjectedTurn(room, room.gradeProjection2026Night, 'Noite', 'night');
              }
         });
     });
