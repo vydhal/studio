@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { SchoolCensusSubmission, School, Classroom } from "@/types";
-import { Users, School2, Wifi, Armchair, FilePenLine, UserPlus } from "lucide-react";
+import { Users, School2, Wifi, Armchair, FilePenLine, UserPlus, UserCheck } from "lucide-react";
 
 // Grade progression mapping for 2025 -> 2026
 const gradeProgression: { [key: string]: string } = {
@@ -37,11 +37,13 @@ export interface VacancyDetail {
 }
 
 interface VacancyData {
+    totalVeterans: number;
     totalNewcomers: number;
     details: VacancyDetail[];
 }
 
 export const calculateVacancyData = (submissions: SchoolCensusSubmission[]): VacancyData => {
+    let totalVeterans = 0;
     let totalNewcomers = 0;
     const details: VacancyDetail[] = [];
     const allCurrentYearStudents: { [schoolId: string]: { [grade: string]: number } } = {};
@@ -78,20 +80,23 @@ export const calculateVacancyData = (submissions: SchoolCensusSubmission[]): Vac
             let veteransForThisRoom = 0;
             let totalStudentsInPrecedingGrade = 0;
 
-            if (precedingGrade && mutableStudentPool[sub.schoolId]?.[precedingGrade]) {
-                totalStudentsInPrecedingGrade = allCurrentYearStudents[sub.schoolId][precedingGrade];
+            if (precedingGrade) {
+                totalStudentsInPrecedingGrade = allCurrentYearStudents[sub.schoolId]?.[precedingGrade] || 0;
                 
-                // Determine how many veterans can be allocated to this room
-                const availableVeterans = mutableStudentPool[sub.schoolId][precedingGrade];
-                veteransForThisRoom = Math.min(capacity, availableVeterans);
+                if (mutableStudentPool[sub.schoolId]?.[precedingGrade]) {
+                    // Determine how many veterans can be allocated to this room
+                    const availableVeterans = mutableStudentPool[sub.schoolId][precedingGrade];
+                    veteransForThisRoom = Math.min(capacity, availableVeterans);
 
-                // Decrease the pool of available veterans
-                mutableStudentPool[sub.schoolId][precedingGrade] -= veteransForThisRoom;
+                    // Decrease the pool of available veterans
+                    mutableStudentPool[sub.schoolId][precedingGrade] -= veteransForThisRoom;
+                }
             }
 
             const newcomers = Math.max(0, capacity - veteransForThisRoom);
-            const totalFor2026 = veteransForThisRoom + newcomers;
+            const totalFor2026 = veteransForThisRoom; // The actual number of students in the room will be the veterans
             totalNewcomers += newcomers;
+            totalVeterans += veteransForThisRoom;
 
             details.push({
                 schoolId: sub.schoolId,
@@ -103,7 +108,7 @@ export const calculateVacancyData = (submissions: SchoolCensusSubmission[]): Vac
                 capacity: capacity,
                 veterans: veteransForThisRoom,
                 newcomers: newcomers,
-                total: totalFor2026,
+                total: capacity, // Total capacity of the room
             });
         };
         
@@ -118,7 +123,7 @@ export const calculateVacancyData = (submissions: SchoolCensusSubmission[]): Vac
         });
     });
 
-    return { totalNewcomers, details };
+    return { totalVeterans, totalNewcomers, details };
 };
 
 
@@ -148,14 +153,14 @@ export function MetricsCards({ submissions, schools, vacancyData }: MetricsCards
       return completedCount >= totalSections;
   }).length;
 
-  const startedSubmissions = submissions.length - completedSubmissions;
+  const startedSubmissions = submissions.length;
 
   const metrics = [
     { title: "Escolas", value: totalSchools, icon: School2, description: "Total de unidades no filtro" },
     { title: "Vagas Ofertadas (2026)", value: vacancyData.totalNewcomers.toLocaleString(), icon: UserPlus, description: "Total de vagas para novatos" },
+    { title: "Total de Veteranos (2026)", value: vacancyData.totalVeterans.toLocaleString(), icon: UserCheck, description: "Alunos que progridem de série" },
     { title: "Salas de Aula", value: totalClassrooms.toLocaleString(), icon: Armchair, description: "Soma de todas as salas" },
-    { title: "Questionários Iniciados", value: `${startedSubmissions}/${totalSchools}`, icon: FilePenLine, description: "Total de censos em andamento" },
-    { title: "Questionários Completos", value: `${completedSubmissions}/${totalSchools}`, icon: FilePenLine, description: "Total de censos finalizados" },
+    { title: "Questionários Enviados", value: `${startedSubmissions}/${totalSchools}`, icon: FilePenLine, description: "Total de censos com dados" },
   ];
 
   return (
@@ -175,4 +180,3 @@ export function MetricsCards({ submissions, schools, vacancyData }: MetricsCards
     </div>
   );
 }
-
