@@ -47,8 +47,8 @@ export const calculateVacancyData = (submissions: SchoolCensusSubmission[]): Vac
     let totalNewcomers = 0;
     const details: VacancyDetail[] = [];
     
-    // 1. Create a detailed, mutable pool of students for the current year (2025)
-    // Key: schoolId, Value: { gradeAndTurnKey: studentCount }
+    // Step 1: Create a mutable pool of current year students, segregated by school, grade, AND turn.
+    // Key: schoolId, Value: { [gradeAndTurnKey]: studentCount }
     // e.g., { "school123": { "1º Ano-morning": 25, "1º Ano-afternoon": 23 } }
     const mutableStudentPool: { [schoolId: string]: { [gradeAndTurn: string]: number } } = {};
 
@@ -77,7 +77,7 @@ export const calculateVacancyData = (submissions: SchoolCensusSubmission[]): Vac
         });
     });
 
-    // 2. Iterate through projected 2026 classrooms to calculate vacancies
+    // Step 2: Iterate through projected 2026 classrooms to calculate vacancies
     submissions.forEach(sub => {
         if (!sub.infrastructure?.classrooms) return;
 
@@ -91,16 +91,15 @@ export const calculateVacancyData = (submissions: SchoolCensusSubmission[]): Vac
             let studentsInPrecedingGrade = 0;
             const schoolPool = mutableStudentPool[sub.schoolId] || {};
 
-            // Find the pool of students from the preceding grade.
-            // This now checks for a matching turn, or takes from any turn if no specific turn matches.
-            // This could be refined further if strict turn-to-turn progression is needed.
+            // Find the pool of students from the preceding grade AND the same turn.
             if (precedingGrade) {
+                // The key must match the turn (e.g., '1º Ano-morning')
                 const precedingGradeKey = `${precedingGrade}-${turnKey}`;
                 studentsInPrecedingGrade = schoolPool[precedingGradeKey] || 0;
                 
-                // If there are students in the specific preceding grade and turn
-                if (schoolPool[precedingGradeKey] > 0) {
-                    const availableVeterans = schoolPool[precedingGradeKey];
+                // If there are students in the specific preceding grade and turn pool
+                if (studentsInPrecedingGrade > 0) {
+                    const availableVeterans = studentsInPrecedingGrade;
                     veteransForThisRoom = Math.min(capacity, availableVeterans);
                     // Decrease the pool
                     schoolPool[precedingGradeKey] -= veteransForThisRoom;
@@ -115,7 +114,7 @@ export const calculateVacancyData = (submissions: SchoolCensusSubmission[]): Vac
                 schoolId: sub.schoolId,
                 classroomName: room.name,
                 grade2025: precedingGrade || "N/A (Entrada)",
-                students2025: studentsInPrecedingGrade,
+                students2025: (mutableStudentPool[sub.schoolId] || {})[`${precedingGrade}-${turnKey}`] + veteransForThisRoom || 0, // Show the original pool size for this specific source
                 projectedGrade: projectedGrade,
                 turn: turn,
                 capacity: capacity,
