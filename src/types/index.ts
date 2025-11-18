@@ -17,6 +17,7 @@ export interface Classroom {
   hasExtraSpace?: boolean;
   extraSpaceDescription?: string;
   occupationType?: 'turn' | 'integral';
+  occupationType2026?: 'turn' | 'integral';
   observations?: string;
 
   // Turno
