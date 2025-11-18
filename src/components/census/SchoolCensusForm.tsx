@@ -109,9 +109,10 @@ const classroomSchema = z.object({
 
 const teacherAllocationSchema = z.object({
     professionalId: z.string().optional(),
+    matricula: z.string().optional(),
     contractType: z.string().optional(),
     workload: z.number().optional(),
-    observations: z.string().optional(),
+    situation: z.string().optional(),
     turn: z.enum(['Manhã', 'Tarde', 'Intermediário']).optional(),
     annotations: z.string().optional(),
 });
@@ -759,22 +760,17 @@ const TeacherAllocationForm = ({ allocationIndex, teacherIndex, removeTeacher, p
                 />
                  <FormField
                     control={control}
-                    name={`professionals.allocations.${allocationIndex}.${teacherArrayName}.${teacherIndex}.observations`}
+                    name={`professionals.allocations.${allocationIndex}.${teacherArrayName}.${teacherIndex}.matricula`}
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Observações</FormLabel>
-                             <Select onValueChange={field.onChange} value={field.value ?? ''}>
-                                <FormControl>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Selecione uma observação" />
-                                    </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    {professionalObservationTypes.map(type => (
-                                        <SelectItem key={type} value={type}>{type}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <FormLabel>Matrícula</FormLabel>
+                            <FormControl>
+                                <Input 
+                                    placeholder="Digite a matrícula"
+                                    {...field}
+                                    value={field.value ?? ""}
+                                />
+                            </FormControl>
                             <FormMessage />
                         </FormItem>
                     )}
@@ -845,6 +841,28 @@ const TeacherAllocationForm = ({ allocationIndex, teacherIndex, removeTeacher, p
                     )}
                 />
             </div>
+             <FormField
+                control={control}
+                name={`professionals.allocations.${allocationIndex}.${teacherArrayName}.${teacherIndex}.situation`}
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Situação</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value ?? ''}>
+                            <FormControl>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Selecione uma situação" />
+                                </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                                {professionalObservationTypes.map(type => (
+                                    <SelectItem key={type} value={type}>{type}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                    </FormItem>
+                )}
+            />
             <FormField
                 control={control}
                 name={`professionals.allocations.${allocationIndex}.${teacherArrayName}.${teacherIndex}.annotations`}
@@ -919,7 +937,7 @@ const ClassroomAllocationItem = ({ allocationIndex, professionalsList, onProfess
                         type="button" 
                         variant="outline" 
                         size="sm"
-                        onClick={() => appendTeacher({ professionalId: '', contractType: '', workload: undefined, observations: '', turn: undefined, annotations: '' })}
+                        onClick={() => appendTeacher({ professionalId: '', matricula: '', contractType: '', workload: undefined, situation: '', turn: undefined, annotations: '' })}
                     >
                         <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Professor (Atual)
                     </Button>
@@ -946,7 +964,7 @@ const ClassroomAllocationItem = ({ allocationIndex, professionalsList, onProfess
                         type="button" 
                         variant="outline" 
                         size="sm"
-                        onClick={() => appendTeacher2026({ professionalId: '', contractType: '', workload: undefined, observations: '', turn: undefined, annotations: '' })}
+                        onClick={() => appendTeacher2026({ professionalId: '', matricula: '', contractType: '', workload: undefined, situation: '', turn: undefined, annotations: '' })}
                     >
                         <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Professor (Projeção 2026)
                     </Button>

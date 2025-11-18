@@ -72,9 +72,7 @@ export interface Professional {
 
 export const professionalContractTypes = [
     'EFETIVO ATIVO', 
-    'CONTRATO ATIVO', 
-    'MOMENTO DO DESCANSO', 
-    'JORNADA AMPLIADA',
+    'CONTRATO ATIVO',
     'MOMENTO DO DESCANSO - EFETIVO',
     'MOMENTO DO DESCANSO - CONTRATADO'
 ];
@@ -102,7 +100,7 @@ export const professionalObservationTypes = [
     'JORNADA AMPLIADA - LICENÇA MÉDICA',
     'JORNADA AMPLIADA - LICENÇA PRÊMIO',
     'JORNADA AMPLIADA - LICENÇA SEM VENCIMENTOS',
-    'JORNada AMPLIADA - PERMUTA CAMPINA GRANDE',
+    'JORNADA AMPLIADA - PERMUTA CAMPINA GRANDE',
     'JORNADA AMPLIADA - PERMUTA OUTRO MUNICÍPIO',
     'JORNADA AMPLIADA - READAPTAÇÃO',
     'JORNADA AMPLIADA - REDUÇÃO DE CARGA HORÁRIA',
@@ -123,9 +121,10 @@ export const professionalTurnTypes = ['Manhã', 'Tarde', 'Intermediário'];
 
 export interface TeacherAllocation {
     professionalId?: string;
+    matricula?: string;
     contractType?: string;
     workload?: number;
-    observations?: string;
+    situation?: string;
     turn?: 'Manhã' | 'Tarde' | 'Intermediário';
     annotations?: string;
 }
