@@ -62,6 +62,9 @@ export const calculateVacancyData = (submissions: SchoolCensusSubmission[]): Vac
         });
     });
 
+    // Create a mutable copy of the student pool for distribution
+    const mutableStudentPool = JSON.parse(JSON.stringify(allCurrentYearStudents));
+
     // 2. Iterate through projected 2026 classrooms to calculate vacancies
     submissions.forEach(sub => {
         if (!sub.infrastructure?.classrooms) return;
@@ -72,32 +75,40 @@ export const calculateVacancyData = (submissions: SchoolCensusSubmission[]): Vac
             const capacity = room.studentCapacity || 0;
             const precedingGrade = Object.keys(gradeProgression).find(key => gradeProgression[key] === projectedGrade);
             
-            let veterans = 0;
-            let students2025 = 0;
-            if (precedingGrade && allCurrentYearStudents[sub.schoolId]?.[precedingGrade]) {
-                veterans = allCurrentYearStudents[sub.schoolId][precedingGrade];
-                students2025 = veterans;
+            let veteransForThisRoom = 0;
+            let totalStudentsInPrecedingGrade = 0;
+
+            if (precedingGrade && mutableStudentPool[sub.schoolId]?.[precedingGrade]) {
+                totalStudentsInPrecedingGrade = allCurrentYearStudents[sub.schoolId][precedingGrade];
+                
+                // Determine how many veterans can be allocated to this room
+                const availableVeterans = mutableStudentPool[sub.schoolId][precedingGrade];
+                veteransForThisRoom = Math.min(capacity, availableVeterans);
+
+                // Decrease the pool of available veterans
+                mutableStudentPool[sub.schoolId][precedingGrade] -= veteransForThisRoom;
             }
 
-            const newcomers = Math.max(0, capacity - veterans);
+            const newcomers = Math.max(0, capacity - veteransForThisRoom);
+            const totalFor2026 = veteransForThisRoom + newcomers;
             totalNewcomers += newcomers;
 
             details.push({
                 schoolId: sub.schoolId,
                 classroomName: room.name,
                 grade2025: precedingGrade || "N/A (Entrada)",
-                students2025: students2025,
+                students2025: totalStudentsInPrecedingGrade,
                 projectedGrade: projectedGrade,
                 turn: turn,
                 capacity: capacity,
-                veterans: veterans,
+                veterans: veteransForThisRoom,
                 newcomers: newcomers,
-                total: capacity, // Total for 2026 is the room capacity
+                total: totalFor2026,
             });
         };
         
         sub.infrastructure.classrooms.forEach(room => {
-             if (room.occupationType === 'integral') {
+             if (room.occupationType2026 === 'integral') {
                 processProjectedTurn(room, room.gradeProjection2026Integral, 'Integral');
              } else {
                 processProjectedTurn(room, room.gradeProjection2026Morning, 'Manhã');
@@ -164,3 +175,4 @@ export function MetricsCards({ submissions, schools, vacancyData }: MetricsCards
     </div>
   );
 }
+
