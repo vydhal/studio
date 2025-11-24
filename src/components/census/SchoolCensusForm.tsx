@@ -643,6 +643,16 @@ const MultiSchoolSelect = ({ schools, value, onChange }: { schools: School[], va
                                     className="mr-1"
                                 >
                                     {school.name}
+                                    <button
+                                        type="button"
+                                        className="ml-1 rounded-full outline-none ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleSelect(school.id);
+                                        }}
+                                    >
+                                        <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                                    </button>
                                 </Badge>
                             ))
                         ) : (
@@ -1485,4 +1495,5 @@ export function SchoolCensusForm() {
     </Card>
   );
 }
+
 

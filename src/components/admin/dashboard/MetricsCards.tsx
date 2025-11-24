@@ -46,93 +46,122 @@ export const calculateVacancyData = (submissions: SchoolCensusSubmission[]): Vac
     let totalVeterans = 0;
     let totalNewcomers = 0;
     const details: VacancyDetail[] = [];
-    
+
     // Step 1: Create a mutable pool of current year students, segregated by school, grade, AND turn.
-    // Key: schoolId, Value: { [gradeAndTurnKey]: studentCount }
-    // e.g., { "school123": { "1º Ano-morning": 25, "1º Ano-afternoon": 23 } }
     const mutableStudentPool: { [schoolId: string]: { [gradeAndTurn: string]: number } } = {};
+    const unallocatedStudents: { [schoolId: string]: { [grade: string]: number } } = {};
 
     submissions.forEach(sub => {
         if (!sub.infrastructure?.classrooms) return;
         mutableStudentPool[sub.schoolId] = mutableStudentPool[sub.schoolId] || {};
+        unallocatedStudents[sub.schoolId] = unallocatedStudents[sub.schoolId] || {};
         
         sub.infrastructure.classrooms.forEach(room => {
-            if (room.occupationType === 'integral' && room.gradeIntegral) {
-                const key = `${room.gradeIntegral}-integral`;
-                mutableStudentPool[sub.schoolId][key] = (mutableStudentPool[sub.schoolId][key] || 0) + (room.studentsIntegral || 0);
-            } else {
-                if (room.gradeMorning) {
-                    const key = `${room.gradeMorning}-morning`;
-                    mutableStudentPool[sub.schoolId][key] = (mutableStudentPool[sub.schoolId][key] || 0) + (room.studentsMorning || 0);
+            const addStudentsToPool = (grade: string | undefined, turn: string, count: number | undefined) => {
+                if (grade && count && count > 0) {
+                    const key = `${grade}-${turn}`;
+                    mutableStudentPool[sub.schoolId][key] = (mutableStudentPool[sub.schoolId][key] || 0) + count;
                 }
-                if (room.gradeAfternoon) {
-                    const key = `${room.gradeAfternoon}-afternoon`;
-                    mutableStudentPool[sub.schoolId][key] = (mutableStudentPool[sub.schoolId][key] || 0) + (room.studentsAfternoon || 0);
-                }
-                if (room.gradeNight) {
-                    const key = `${room.gradeNight}-night`;
-                     mutableStudentPool[sub.schoolId][key] = (mutableStudentPool[sub.schoolId][key] || 0) + (room.studentsNight || 0);
-                }
-            }
+            };
+
+            addStudentsToPool(room.gradeIntegral, 'integral', room.studentsIntegral);
+            addStudentsToPool(room.gradeMorning, 'morning', room.studentsMorning);
+            addStudentsToPool(room.gradeAfternoon, 'afternoon', room.studentsAfternoon);
+            addStudentsToPool(room.gradeNight, 'night', room.studentsNight);
         });
     });
 
-    // Step 2: Iterate through projected 2026 classrooms to calculate vacancies
-    submissions.forEach(sub => {
-        if (!sub.infrastructure?.classrooms) return;
+    const projectedClassrooms = submissions.flatMap(sub => 
+        sub.infrastructure?.classrooms.map(room => ({ ...room, schoolId: sub.schoolId })) || []
+    );
 
-        const processProjectedTurn = (room: Classroom, projectedGrade: string | undefined, turn: 'Manhã' | 'Tarde' | 'Noite' | 'Integral', turnKey: 'morning' | 'afternoon' | 'night' | 'integral') => {
-            if (!projectedGrade) return;
+    const processProjectedTurn = (room: Classroom & { schoolId: string }, projectedGrade: string | undefined, turn: 'Manhã' | 'Tarde' | 'Noite' | 'Integral', turnKey: 'morning' | 'afternoon' | 'night' | 'integral') => {
+        if (!projectedGrade) return;
 
-            const capacity = room.studentCapacity || 0;
-            const precedingGrade = Object.keys(gradeProgression).find(key => gradeProgression[key] === projectedGrade);
+        const capacity = room.studentCapacity || 0;
+        const precedingGrade = Object.keys(gradeProgression).find(key => gradeProgression[key] === projectedGrade);
+        
+        let veteransForThisRoom = 0;
+        let studentsInPrecedingGrade = 0;
+        const schoolPool = mutableStudentPool[room.schoolId] || {};
+        const schoolUnallocatedPool = unallocatedStudents[room.schoolId] || {};
+
+        if (precedingGrade) {
+            const possiblePrecedingTurnKeys = ['morning', 'afternoon', 'night', 'integral'];
             
-            let veteransForThisRoom = 0;
-            let studentsInPrecedingGrade = 0;
-            const schoolPool = mutableStudentPool[sub.schoolId] || {};
-
-            // Find the pool of students from the preceding grade AND the same turn.
-            if (precedingGrade) {
-                // The key must match the turn (e.g., '1º Ano-morning')
-                const precedingGradeKey = `${precedingGrade}-${turnKey}`;
-                studentsInPrecedingGrade = schoolPool[precedingGradeKey] || 0;
-                
-                // If there are students in the specific preceding grade and turn pool
-                if (studentsInPrecedingGrade > 0) {
-                    const availableVeterans = studentsInPrecedingGrade;
-                    veteransForThisRoom = Math.min(capacity, availableVeterans);
-                    // Decrease the pool
-                    schoolPool[precedingGradeKey] -= veteransForThisRoom;
-                }
+            // First, try to find students from the corresponding turn
+            let precedingGradeKey = `${precedingGrade}-${turnKey}`;
+            
+            // If no match for the specific turn, try any turn
+            if (!schoolPool[precedingGradeKey] || schoolPool[precedingGradeKey] === 0) {
+                 const foundKey = possiblePrecedingTurnKeys.find(key => schoolPool[`${precedingGrade}-${key}`] > 0);
+                 if (foundKey) {
+                    precedingGradeKey = `${precedingGrade}-${foundKey}`;
+                 }
             }
 
-            const newcomers = Math.max(0, capacity - veteransForThisRoom);
-            totalNewcomers += newcomers;
-            totalVeterans += veteransForThisRoom;
-
-            details.push({
-                schoolId: sub.schoolId,
-                classroomName: room.name,
-                grade2025: precedingGrade || "N/A (Entrada)",
-                students2025: (mutableStudentPool[sub.schoolId] || {})[`${precedingGrade}-${turnKey}`] + veteransForThisRoom || 0, // Show the original pool size for this specific source
-                projectedGrade: projectedGrade,
-                turn: turn,
-                capacity: capacity,
-                veterans: veteransForThisRoom,
-                newcomers: newcomers,
-                total: capacity,
-            });
-        };
+            studentsInPrecedingGrade = schoolPool[precedingGradeKey] || 0;
+            
+            if (studentsInPrecedingGrade > 0) {
+                const availableVeterans = studentsInPrecedingGrade;
+                veteransForThisRoom = Math.min(capacity, availableVeterans);
+                schoolPool[precedingGradeKey] -= veteransForThisRoom;
+                
+                const surplus = availableVeterans - veteransForThisRoom;
+                if (surplus > 0) {
+                    schoolUnallocatedPool[precedingGrade] = (schoolUnallocatedPool[precedingGrade] || 0) + surplus;
+                }
+            }
+        }
         
-        sub.infrastructure.classrooms.forEach(room => {
-             if (room.occupationType2026 === 'integral') {
-                processProjectedTurn(room, room.gradeProjection2026Integral, 'Integral', 'integral');
-             } else {
-                processProjectedTurn(room, room.gradeProjection2026Morning, 'Manhã', 'morning');
-                processProjectedTurn(room, room.gradeProjection2026Afternoon, 'Tarde', 'afternoon');
-                processProjectedTurn(room, room.gradeProjection2026Night, 'Noite', 'night');
-             }
+        // Try to fill remaining capacity with unallocated students
+        if (veteransForThisRoom < capacity && schoolUnallocatedPool[projectedGrade] > 0) {
+            const needed = capacity - veteransForThisRoom;
+            const fromUnallocated = Math.min(needed, schoolUnallocatedPool[projectedGrade]);
+            veteransForThisRoom += fromUnallocated;
+            schoolUnallocatedPool[projectedGrade] -= fromUnallocated;
+        }
+
+        const newcomers = Math.max(0, capacity - veteransForThisRoom);
+        totalNewcomers += newcomers;
+        totalVeterans += veteransForThisRoom;
+
+        const originalPoolKey = precedingGrade ? `${precedingGrade}-${turnKey}` : "N/A";
+        const originalStudentCount = (mutableStudentPool[room.schoolId] || {})[originalPoolKey] || 0;
+        
+        // Find the original total for the preceding grade across all turns for display
+        let totalStudentsInPrecedingGrade = 0;
+        if(precedingGrade) {
+            for(const key in mutableStudentPool[room.schoolId]) {
+                if(key.startsWith(precedingGrade + "-")) {
+                    totalStudentsInPrecedingGrade += mutableStudentPool[room.schoolId][key];
+                }
+            }
+        }
+
+
+        details.push({
+            schoolId: room.schoolId,
+            classroomName: room.name,
+            grade2025: precedingGrade || "N/A (Entrada)",
+            students2025: studentsInPrecedingGrade,
+            projectedGrade: projectedGrade,
+            turn: turn,
+            capacity: capacity,
+            veterans: veteransForThisRoom,
+            newcomers: newcomers,
+            total: veteransForThisRoom + newcomers,
         });
+    };
+
+    projectedClassrooms.forEach(room => {
+         if (room.occupationType2026 === 'integral') {
+            processProjectedTurn(room, room.gradeProjection2026Integral, 'Integral', 'integral');
+         } else {
+            processProjectedTurn(room, room.gradeProjection2026Morning, 'Manhã', 'morning');
+            processProjectedTurn(room, room.gradeProjection2026Afternoon, 'Tarde', 'afternoon');
+            processProjectedTurn(room, room.gradeProjection2026Night, 'Noite', 'night');
+         }
     });
 
     return { totalVeterans, totalNewcomers, details };
