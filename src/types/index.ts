@@ -211,18 +211,6 @@ export interface SchoolCensusSubmission {
   submittedBy?: string;
 }
 
-export interface HomeSettings {
-  appName: string;
-  logoUrl?: string;
-  title: string;
-  subtitle: string;
-  description: string;
-  footerText: string;
-  facebookUrl?: string;
-  instagramUrl?: string;
-  twitterUrl?: string;
-}
-
 export interface VacancyDetail {
     schoolId: string;
     classroomName: string;
@@ -233,6 +221,7 @@ export interface VacancyDetail {
     capacity: number;
     veterans: number;
     newcomers: number;
+    surplus: number;
     total: number;
 }
 

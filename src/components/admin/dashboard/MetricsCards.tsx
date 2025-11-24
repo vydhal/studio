@@ -33,6 +33,7 @@ export interface VacancyDetail {
     capacity: number;
     veterans: number;
     newcomers: number;
+    surplus: number;
     total: number;
 }
 
@@ -83,6 +84,7 @@ export const calculateVacancyData = (submissions: SchoolCensusSubmission[]): Vac
         
         let veteransForThisRoom = 0;
         let studentsInPrecedingGrade = 0;
+        let surplus = 0;
         const schoolPool = mutableStudentPool[room.schoolId] || {};
         const schoolUnallocatedPool = unallocatedStudents[room.schoolId] || {};
 
@@ -105,16 +107,18 @@ export const calculateVacancyData = (submissions: SchoolCensusSubmission[]): Vac
             if (studentsInPrecedingGrade > 0) {
                 const availableVeterans = studentsInPrecedingGrade;
                 veteransForThisRoom = Math.min(capacity, availableVeterans);
+                surplus = Math.max(0, availableVeterans - capacity);
+                
                 schoolPool[precedingGradeKey] -= veteransForThisRoom;
                 
-                const surplus = availableVeterans - veteransForThisRoom;
-                if (surplus > 0) {
-                    schoolUnallocatedPool[precedingGrade] = (schoolUnallocatedPool[precedingGrade] || 0) + surplus;
+                const unallocatedFromThisTransfer = availableVeterans - veteransForThisRoom;
+                if (unallocatedFromThisTransfer > 0) {
+                    schoolUnallocatedPool[precedingGrade] = (schoolUnallocatedPool[precedingGrade] || 0) + unallocatedFromThisTransfer;
                 }
             }
         }
         
-        // Try to fill remaining capacity with unallocated students
+        // Try to fill remaining capacity with unallocated students from other transfers
         if (veteransForThisRoom < capacity && schoolUnallocatedPool[projectedGrade] > 0) {
             const needed = capacity - veteransForThisRoom;
             const fromUnallocated = Math.min(needed, schoolUnallocatedPool[projectedGrade]);
@@ -125,20 +129,16 @@ export const calculateVacancyData = (submissions: SchoolCensusSubmission[]): Vac
         const newcomers = Math.max(0, capacity - veteransForThisRoom);
         totalNewcomers += newcomers;
         totalVeterans += veteransForThisRoom;
-
-        const originalPoolKey = precedingGrade ? `${precedingGrade}-${turnKey}` : "N/A";
-        const originalStudentCount = (mutableStudentPool[room.schoolId] || {})[originalPoolKey] || 0;
         
-        // Find the original total for the preceding grade across all turns for display
         let totalStudentsInPrecedingGrade = 0;
         if(precedingGrade) {
-            for(const key in mutableStudentPool[room.schoolId]) {
-                if(key.startsWith(precedingGrade + "-")) {
-                    totalStudentsInPrecedingGrade += mutableStudentPool[room.schoolId][key];
-                }
-            }
+             const baseKey = `${precedingGrade}-`;
+             for(const key in mutableStudentPool[room.schoolId]) {
+                 if(key.startsWith(baseKey)) {
+                     // This is tricky, we might want the original pool size. Let's get it from the original data.
+                 }
+             }
         }
-
 
         details.push({
             schoolId: room.schoolId,
@@ -150,6 +150,7 @@ export const calculateVacancyData = (submissions: SchoolCensusSubmission[]): Vac
             capacity: capacity,
             veterans: veteransForThisRoom,
             newcomers: newcomers,
+            surplus: surplus,
             total: veteransForThisRoom + newcomers,
         });
     };

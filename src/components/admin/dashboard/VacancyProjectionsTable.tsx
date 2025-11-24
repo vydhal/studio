@@ -39,6 +39,7 @@ export function VacancyProjectionsTable({ vacancyData, schoolMap }: VacancyProje
           <TableHead className="text-center">Capacidade</TableHead>
           <TableHead className="text-center">Veteranos</TableHead>
           <TableHead className="text-center">Novatos</TableHead>
+          <TableHead className="text-center">Excedente</TableHead>
           <TableHead className="text-center border-r">Total Alunos (2026)</TableHead>
           <TableHead>Turma 2025</TableHead>
           <TableHead className="text-center">Matriculados 2025</TableHead>
@@ -53,6 +54,7 @@ export function VacancyProjectionsTable({ vacancyData, schoolMap }: VacancyProje
             <TableCell className="text-center">{row.capacity}</TableCell>
             <TableCell className="text-center">{row.veterans}</TableCell>
             <TableCell className="text-center">{row.newcomers}</TableCell>
+            <TableCell className="text-center text-destructive font-semibold">{row.surplus > 0 ? row.surplus : '-'}</TableCell>
             <TableCell className="text-center font-bold border-r">{row.total}</TableCell>
             <TableCell>{row.grade2025}</TableCell>
             <TableCell className="text-center">{row.students2025}</TableCell>
