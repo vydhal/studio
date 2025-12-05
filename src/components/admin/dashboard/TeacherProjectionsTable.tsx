@@ -85,11 +85,13 @@ export function TeacherProjectionsTable({ submissions, schoolMap, professionalMa
           <TableHead>Turma/Turno</TableHead>
           <TableHead>Professor(a) Atual</TableHead>
           <TableHead>Matrícula (Atual)</TableHead>
+          <TableHead>Turma (Atual)</TableHead>
           <TableHead>Turno (Atual)</TableHead>
           <TableHead>Vínculo (Atual)</TableHead>
           <TableHead>C.H (Atual)</TableHead>
           <TableHead className="border-r">Projeção 2026</TableHead>
           <TableHead>Matrícula (2026)</TableHead>
+          <TableHead>Turma (2026)</TableHead>
           <TableHead>Turno (2026)</TableHead>
           <TableHead>Vínculo (2026)</TableHead>
           <TableHead>C.H (2026)</TableHead>
@@ -100,14 +102,16 @@ export function TeacherProjectionsTable({ submissions, schoolMap, professionalMa
           <TableRow key={index}>
             <TableCell>{row.schoolName}</TableCell>
             <TableCell>{row.classroomName}</TableCell>
-            <TableCell>{`${row.grade} (${row.turn})`}</TableCell>
+            <TableCell>{`${row.grade}${row.current?.class ? ` ${row.current.class}` : ''} (${row.turn})`}</TableCell>
             <TableCell>{row.current ? professionalMap.get(row.current.professionalId || '') || 'N/A' : 'N/A'}</TableCell>
             <TableCell>{row.current?.matricula || 'N/A'}</TableCell>
+            <TableCell>{row.current?.class || 'N/A'}</TableCell>
             <TableCell>{row.current?.turn || 'N/A'}</TableCell>
             <TableCell>{row.current?.contractType || 'N/A'}</TableCell>
             <TableCell>{row.current?.workload || 'N/A'}</TableCell>
             <TableCell className="border-r">{row.projected ? professionalMap.get(row.projected.professionalId || '') || 'N/A' : 'N/A'}</TableCell>
             <TableCell>{row.projected?.matricula || 'N/A'}</TableCell>
+            <TableCell>{row.projected?.class || 'N/A'}</TableCell>
             <TableCell>{row.projected?.turn || 'N/A'}</TableCell>
             <TableCell>{row.projected?.contractType || 'N/A'}</TableCell>
             <TableCell>{row.projected?.workload || 'N/A'}</TableCell>

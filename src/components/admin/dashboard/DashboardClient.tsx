@@ -272,12 +272,14 @@ export function DashboardClient() {
       "Turma/Turno",
       "Professor(a) Atual",
       "Matrícula (Atual)",
+      "Turma (Atual)",
       "Turno (Atual)",
       "Vínculo (Atual)",
       "C.H (Atual)",
       "Anotações (Atual)",
       "Professor(a) 2026",
       "Matrícula (2026)",
+      "Turma (2026)",
       "Turno (2026)",
       "Vínculo (2026)",
       "C.H (2026)",
@@ -300,18 +302,23 @@ export function DashboardClient() {
             for (let i = 0; i < maxRows; i++) {
                 const current = currentTeachers[i];
                 const projected = projectedTeachers[i];
+                const currentTurmaText = current?.class ? ` ${current.class}` : '';
+                const projectedTurmaText = projected?.class ? ` ${projected.class}` : '';
+
                 rows.push([
                     `"${school.name}"`,
                     `"${alloc.classroomName}"`,
-                    `"${alloc.grade} (${turnText})"`,
+                    `"${alloc.grade}${currentTurmaText} (${turnText})"`,
                     `"${current ? professionalMap.get(current.professionalId || '') || '' : ''}"`,
                     `"${current?.matricula || ''}"`,
+                    `"${current?.class || ''}"`,
                     `"${current?.turn || ''}"`,
                     `"${current?.contractType || ''}"`,
                     `"${current?.workload || ''}"`,
                     `"${current?.annotations || ''}"`,
                     `"${projected ? professionalMap.get(projected.professionalId || '') || '' : ''}"`,
                     `"${projected?.matricula || ''}"`,
+                    `"${projected?.class || ''}"`,
                     `"${projected?.turn || ''}"`,
                     `"${projected?.contractType || ''}"`,
                     `"${projected?.workload || ''}"`,

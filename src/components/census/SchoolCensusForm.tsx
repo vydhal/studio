@@ -43,7 +43,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { School, FormSectionConfig, FormFieldConfig, SchoolCensusSubmission, Classroom, Professional, TeacherAllocation, ClassroomAllocation } from "@/types";
 import { professionalContractTypes, professionalObservationTypes, professionalTurnTypes } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from "@/components/ui/card";
-import { Loader2, Building, HardHat, Laptop, Palette, Wrench, PlusCircle, Trash2, UserCog, ChevronsUpDown, Check, HelpCircle, X } from "lucide-react";
+import { Loader2, Building, HardHat, Laptop, Palette, Wrench, PlusCircle, Trash2, UserCog, ChevronsUpDown, Check, HelpCircle, X, Eye, EyeOff } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -116,6 +116,7 @@ const teacherAllocationSchema = z.object({
     situation: z.string().optional(),
     turn: z.enum(['Manhã', 'Tarde', 'Intermediário']).optional(),
     annotations: z.string().optional(),
+    class: z.string().optional(),
 });
 
 const classroomAllocationSchema = z.object({
@@ -316,8 +317,8 @@ const InfrastructureSection = ({ schools }: { schools: School[] }) => {
                         return (
                         <AccordionItem value={`item-${index}`} key={item.id} className="border-b-0">
                             <Card className="bg-muted/20">
-                                 <div className="flex items-center justify-between p-4">
-                                     <div className="flex items-center gap-2 flex-1">
+                                <div className="flex items-center justify-between p-4">
+                                     <div className="flex flex-1 items-center gap-2">
                                         <h4 className="font-bold text-left">{classroomName}</h4>
                                         <AccordionTrigger className="p-0" />
                                      </div>
@@ -695,6 +696,7 @@ const TeacherAllocationForm = ({ allocationIndex, teacherIndex, removeTeacher, p
     const { toast } = useToast();
     const [popoverOpen, setPopoverOpen] = useState(false);
     const [search, setSearch] = useState('');
+    const classOptions = ['A', 'B', 'C', 'D', 'E'];
     
     const handleCreateProfessional = async (name: string) => {
         if (!name.trim()) return;
@@ -820,7 +822,29 @@ const TeacherAllocationForm = ({ allocationIndex, teacherIndex, removeTeacher, p
                     )}
                 />
             </div>
-             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                <FormField
+                    control={control}
+                    name={`professionals.allocations.${allocationIndex}.${teacherArrayName}.${teacherIndex}.class`}
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Turma</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value ?? ''}>
+                                <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Selec." />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    {classOptions.map(opt => (
+                                        <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
                  <FormField
                     control={control}
                     name={`professionals.allocations.${allocationIndex}.${teacherArrayName}.${teacherIndex}.turn`}
@@ -928,8 +952,9 @@ const TeacherAllocationForm = ({ allocationIndex, teacherIndex, removeTeacher, p
     )
 };
 
-const ClassroomAllocationItem = ({ allocationIndex, professionalsList, onProfessionalCreated }: { allocationIndex: number; professionalsList: Professional[], onProfessionalCreated: (newProfessional: Professional) => void }) => {
+const ClassroomAllocationItem = ({ allocationIndex, professionalsList, onProfessionalCreated, isAdmin }: { allocationIndex: number; professionalsList: Professional[], onProfessionalCreated: (newProfessional: Professional) => void, isAdmin: boolean }) => {
     const { control, getValues, watch } = useFormContext();
+    const [showCurrent, setShowCurrent] = useState(false);
     const classrooms = watch("infrastructure.classrooms") as Classroom[] || [];
     const allocation = getValues(`professionals.allocations.${allocationIndex}`) as ClassroomAllocation;
     const room = classrooms.find(r => r.id === allocation.classroomId);
@@ -953,42 +978,50 @@ const ClassroomAllocationItem = ({ allocationIndex, professionalsList, onProfess
 
     return (
         <div className="p-4 border rounded-lg bg-muted/20 space-y-4">
-            <div>
-                <h4 className="font-bold">{allocation.classroomName}</h4>
-                <p className="text-sm text-muted-foreground">
-                    Turno: <span className="font-medium capitalize">{allocation.turn === 'morning' ? 'Manhã' : allocation.turn === 'afternoon' ? 'Tarde' : allocation.turn === 'night' ? 'Noite' : 'Integral'}</span> | 
-                    Série: <span className="font-medium">{allocation.grade}</span> {turnStudents ? `(${turnStudents} alunos)` : ''}
-                </p>
+            <div className="flex justify-between items-center">
+                <div>
+                    <h4 className="font-bold">{allocation.classroomName}</h4>
+                    <p className="text-sm text-muted-foreground">
+                        Turno: <span className="font-medium capitalize">{allocation.turn === 'morning' ? 'Manhã' : allocation.turn === 'afternoon' ? 'Tarde' : allocation.turn === 'night' ? 'Noite' : 'Integral'}</span> | 
+                        Série: <span className="font-medium">{allocation.grade}</span> {turnStudents ? `(${turnStudents} alunos)` : ''}
+                    </p>
+                </div>
+                 {isAdmin && (
+                    <Button type="button" variant="ghost" size="sm" onClick={() => setShowCurrent(!showCurrent)}>
+                        {showCurrent ? <EyeOff className="mr-2 h-4 w-4" /> : <Eye className="mr-2 h-4 w-4" />}
+                        {showCurrent ? 'Ocultar Atual' : 'Exibir Atual'}
+                    </Button>
+                )}
             </div>
             
             <Separator />
 
-            <div>
-                <p className="font-medium text-sm mb-2">Alocação Atual de Professores</p>
-                <div className="space-y-4 pl-4 border-l-2">
-                    {teacherFields.map((teacherField, teacherIndex) => (
-                        <TeacherAllocationForm 
-                            key={teacherField.id}
-                            allocationIndex={allocationIndex}
-                            teacherIndex={teacherIndex}
-                            removeTeacher={removeTeacher}
-                            professionalsList={professionalsList}
-                            onProfessionalCreated={onProfessionalCreated}
-                            teacherArrayName="teachers"
-                        />
-                    ))}
-                    <Button 
-                        type="button" 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => appendTeacher({ professionalId: '', matricula: '', contractType: '', workload: undefined, situation: '', turn: undefined, annotations: '' })}
-                    >
-                        <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Professor (Atual)
-                    </Button>
+            {showCurrent && (
+                 <div>
+                    <p className="font-medium text-sm mb-2">Alocação Atual de Professores</p>
+                    <div className="space-y-4 pl-4 border-l-2">
+                        {teacherFields.map((teacherField, teacherIndex) => (
+                            <TeacherAllocationForm 
+                                key={teacherField.id}
+                                allocationIndex={allocationIndex}
+                                teacherIndex={teacherIndex}
+                                removeTeacher={removeTeacher}
+                                professionalsList={professionalsList}
+                                onProfessionalCreated={onProfessionalCreated}
+                                teacherArrayName="teachers"
+                            />
+                        ))}
+                        <Button 
+                            type="button" 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => appendTeacher({ professionalId: '', matricula: '', class: '', contractType: '', workload: undefined, situation: '', turn: undefined, annotations: '' })}
+                        >
+                            <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Professor (Atual)
+                        </Button>
+                    </div>
                 </div>
-            </div>
-
-            <Separator />
+            )}
             
             <div>
                  <p className="font-medium text-sm mb-2">Projeção de Professores para 2026</p>
@@ -1008,7 +1041,7 @@ const ClassroomAllocationItem = ({ allocationIndex, professionalsList, onProfess
                         type="button" 
                         variant="outline" 
                         size="sm"
-                        onClick={() => appendTeacher2026({ professionalId: '', matricula: '', contractType: '', workload: undefined, situation: '', turn: undefined, annotations: '' })}
+                        onClick={() => appendTeacher2026({ professionalId: '', matricula: '', class: '', contractType: '', workload: undefined, situation: '', turn: undefined, annotations: '' })}
                     >
                         <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Professor (Projeção 2026)
                     </Button>
@@ -1019,7 +1052,7 @@ const ClassroomAllocationItem = ({ allocationIndex, professionalsList, onProfess
 };
 
 
-const ProfessionalsAllocationSection = ({ professionals, onProfessionalCreated }: { professionals: Professional[], onProfessionalCreated: (newProfessional: Professional) => void }) => {
+const ProfessionalsAllocationSection = ({ professionals, onProfessionalCreated, isAdmin }: { professionals: Professional[], onProfessionalCreated: (newProfessional: Professional) => void, isAdmin: boolean }) => {
     const { control, getValues, watch } = useFormContext();
     const { fields, replace } = useFieldArray({
         control,
@@ -1092,7 +1125,7 @@ const ProfessionalsAllocationSection = ({ professionals, onProfessionalCreated }
                 ) : (
                     <div className="space-y-6">
                         {(fields as (ClassroomAllocation & { id: string })[]).map((field, index) => (
-                            <ClassroomAllocationItem key={field.id} allocationIndex={index} professionalsList={professionals} onProfessionalCreated={onProfessionalCreated} />
+                            <ClassroomAllocationItem key={field.id} allocationIndex={index} professionalsList={professionals} onProfessionalCreated={onProfessionalCreated} isAdmin={isAdmin} />
                         ))}
                     </div>
                 )}
@@ -1419,7 +1452,7 @@ export function SchoolCensusForm() {
                       if (section.id === 'professionals') {
                         return (
                              <TabsContent key={section.id} value={section.id}>
-                                <ProfessionalsAllocationSection professionals={availableProfessionals} onProfessionalCreated={handleProfessionalCreated}/>
+                                <ProfessionalsAllocationSection professionals={availableProfessionals} onProfessionalCreated={handleProfessionalCreated} isAdmin={isAdmin} />
                             </TabsContent>
                         )
                      }
@@ -1495,5 +1528,3 @@ export function SchoolCensusForm() {
     </Card>
   );
 }
-
-

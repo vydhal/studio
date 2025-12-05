@@ -74,8 +74,6 @@ export interface Professional {
 export const professionalContractTypes = [
     'EFETIVO ATIVO', 
     'CONTRATO ATIVO',
-    'MOMENTO DO DESCANSO - EFETIVO',
-    'MOMENTO DO DESCANSO - CONTRATADO'
 ];
 export const professionalObservationTypes = [
     'Nenhuma',
@@ -106,6 +104,8 @@ export const professionalObservationTypes = [
     'JORNADA AMPLIADA - READAPTAÇÃO',
     'JORNADA AMPLIADA - REDUÇÃO DE CARGA HORÁRIA',
     'JORNADA AMPLIADA - VAGA DO GESTOR',
+    'MOMENTO DO DESCANSO - EFETIVO',
+    'MOMENTO DO DESCANSO - CONTRATADO',
     'MOMENTO DO DESCANSO - FALTA DE PROFESSOR',
     'MOMENTO DO DESCANSO - LICENÇA MATERNIDADE',
     'MOMENTO DO DESCANSO - LICENÇA MÉDICA',
@@ -123,6 +123,7 @@ export const professionalTurnTypes = ['Manhã', 'Tarde', 'Intermediário'];
 export interface TeacherAllocation {
     professionalId?: string;
     matricula?: string;
+    class?: string;
     contractType?: string;
     workload?: number;
     situation?: string;
