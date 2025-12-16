@@ -269,20 +269,14 @@ export function DashboardClient() {
     const csvHeader = [
       "Escola",
       "Sala",
-      "Turma/Turno",
-      "Professor(a) Atual",
-      "Matrícula (Atual)",
-      "Turma (Atual)",
-      "Turno (Atual)",
-      "Vínculo (Atual)",
-      "C.H (Atual)",
-      "Anotações (Atual)",
-      "Professor(a) 2026",
+      "Série/Turno (Projeção 2026)",
+      "Professor(a) (Projeção 2026)",
       "Matrícula (2026)",
       "Turma (2026)",
       "Turno (2026)",
       "Vínculo (2026)",
       "C.H (2026)",
+      "Situação (2026)",
       "Anotações (2026)",
     ];
 
@@ -295,45 +289,44 @@ export function DashboardClient() {
         sub.professionals.allocations.forEach(alloc => {
             const turnText = alloc.turn === 'morning' ? 'Manhã' : alloc.turn === 'afternoon' ? 'Tarde' : alloc.turn === 'night' ? 'Noite' : 'Integral';
             
-            const currentTeachers = alloc.teachers || [];
             const projectedTeachers = alloc.teachers2026 || [];
-            const maxRows = Math.max(currentTeachers.length, projectedTeachers.length);
-
-            for (let i = 0; i < maxRows; i++) {
-                const current = currentTeachers[i];
-                const projected = projectedTeachers[i];
-                const currentTurmaText = current?.class ? ` ${current.class}` : '';
-                const projectedTurmaText = projected?.class ? ` ${projected.class}` : '';
-
+            
+            if (projectedTeachers.length === 0) {
                 rows.push([
                     `"${school.name}"`,
                     `"${alloc.classroomName}"`,
-                    `"${alloc.grade}${currentTurmaText} (${turnText})"`,
-                    `"${current ? professionalMap.get(current.professionalId || '') || '' : ''}"`,
-                    `"${current?.matricula || ''}"`,
-                    `"${current?.class || ''}"`,
-                    `"${current?.turn || ''}"`,
-                    `"${current?.contractType || ''}"`,
-                    `"${current?.workload || ''}"`,
-                    `"${current?.annotations || ''}"`,
+                    `"${alloc.grade} (${turnText})"`,
+                    "Sem projeção",
+                    "", "", "", "", "", "", "",
+                ].join(','));
+                return;
+            }
+
+            projectedTeachers.forEach(projected => {
+                const projectedTurmaText = projected?.class ? ` ${projected.class}` : '';
+                rows.push([
+                    `"${school.name}"`,
+                    `"${alloc.classroomName}"`,
+                    `"${alloc.grade}${projectedTurmaText} (${turnText})"`,
                     `"${projected ? professionalMap.get(projected.professionalId || '') || '' : ''}"`,
                     `"${projected?.matricula || ''}"`,
                     `"${projected?.class || ''}"`,
                     `"${projected?.turn || ''}"`,
                     `"${projected?.contractType || ''}"`,
                     `"${projected?.workload || ''}"`,
-                    `"${projected?.annotations || ''}"`,
+                    `"${projected?.situation || ''}"`,
+                    `"${projected?.annotations?.replace(/"/g, '""') || ''}"`, // Escape double quotes
                 ].join(','));
-            }
+            });
         });
     });
 
     const csvContent = [csvHeader.join(','), ...rows].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' }); // Add BOM for Excel
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.href = url;
-    link.setAttribute('download', 'export_projecao_professores.csv');
+    link.setAttribute('download', 'export_projecao_professores_2026.csv');
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -599,10 +592,10 @@ export function DashboardClient() {
                         <div>
                           <CardTitle>Projeção de Professores para 2026</CardTitle>
                           <CardDescription>
-                              Visualize a alocação atual de professores em contraste com a projeção para 2026.
+                              Visualize a alocação de professores projetada para 2026.
                           </CardDescription>
                         </div>
-                         <Button onClick={handleProjectionsExport} disabled={filteredSubmissions.length === 0}>Exportar CSV de Projeções</Button>
+                         <Button onClick={handleProjectionsExport} disabled={filteredSubmissions.length === 0}>Exportar CSV de Projeções 2026</Button>
                     </CardHeader>
                     <CardContent>
                         <TeacherProjectionsTable
