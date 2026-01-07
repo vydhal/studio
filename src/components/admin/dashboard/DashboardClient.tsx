@@ -190,80 +190,158 @@ export function DashboardClient() {
   };
   
   const handleExport = () => {
-    if (!formConfig.length) return;
-    const csvHeader = [
+    if (formConfig.length === 0) {
+      toast({
+        title: "Aguarde",
+        description: "As configurações do formulário ainda estão carregando. Tente novamente em alguns segundos.",
+        variant: "destructive"
+      });
+      return;
+    }
+  
+    // Dynamically generate headers from formConfig
+    const dynamicHeaders: { [sectionId: string]: string[] } = {};
+    const fieldIdToNameMap: { [fieldId: string]: string } = {};
+  
+    formConfig.forEach(section => {
+      if (section.id !== 'infrastructure' && section.id !== 'professionals') {
+        dynamicHeaders[section.id] = [];
+        section.fields.forEach(field => {
+          const headerName = `${section.name} - ${field.name}`;
+          dynamicHeaders[section.id].push(headerName);
+          fieldIdToNameMap[field.id] = headerName;
+        });
+      }
+    });
+  
+    const staticHeaders = [
+      "ID Escola",
       "Nome da Escola",
       "INEP",
+      "Bairro",
       "Data da Submissão",
-      "Status Geral",
-      "Status Infraestrutura",
-      "Status Tecnologia",
+      // Infrastructure summary
       "Total de Salas",
-      "Capacidade Total Alunos",
-      "Total Tomadas",
-      "Total TVs",
-      "Acesso à Internet Pedagógica",
-      "Recursos Tecnológicos"
+      "Capacidade Total de Alunos",
+      // Classroom details
+      "Nome da Sala",
+      "Capacidade da Sala",
+      "Tipo de Ocupação (Atual)",
+      "Série (Manhã)",
+      "Alunos (Manhã)",
+      "Série (Tarde)",
+      "Alunos (Tarde)",
+      "Série (Noite)",
+      "Alunos (Noite)",
+      "Série (Integral)",
+      "Alunos (Integral)",
+      "Tipo de Ocupação (2026)",
+      "Projeção Série 2026 (Manhã)",
+      "Projeção Série 2026 (Tarde)",
+      "Projeção Série 2026 (Noite)",
+      "Projeção Série 2026 (Integral)",
+      "Sala Adaptada",
+      "Tem TV",
+      "Tem Internet",
+      "Tem Ar Cond.",
+      "Tem Forro",
+      "Tem Banheiro",
     ];
-
-    const csvRows = filteredSubmissions.map(sub => {
+  
+    const allHeaders = [
+        ...staticHeaders,
+        ...Object.values(dynamicHeaders).flat()
+    ];
+  
+    const csvRows: string[] = [];
+  
+    filteredSubmissions.forEach(sub => {
       const school = schoolMap.get(sub.schoolId);
-      if (!school) return null;
-
-      const totalClassrooms = sub.infrastructure?.classrooms?.length || 0;
-      const totalStudentCapacity = sub.infrastructure?.classrooms?.reduce((acc, c) => acc + (c.studentCapacity || 0), 0) || 0;
-      
-      const resources = sub.dynamicData?.tech
-        ? Object.entries(sub.dynamicData.tech).map(([key, value]) => {
-            const field = formConfig.find(s => s.id === 'tech')?.fields.find(f => f.id === key);
-            return field ? `${field.name}: ${value}` : '';
-          }).filter(Boolean).join('; ')
-        : '';
-      
-      const modalidades = sub.dynamicData?.general
-        ? Object.entries(sub.dynamicData.general).map(([key, value]) => {
-            if (key.startsWith('f_mod_') && value === true) {
-              const field = formConfig.find(s => s.id === 'general')?.fields.find(f => f.id === key);
-              return field ? field.name : '';
-            }
-            return '';
-          }).filter(Boolean).join('; ')
-        : '';
-
-      const submittedAtDate = sub.submittedAt && 'toDate' in sub.submittedAt 
-        ? (sub.submittedAt as Timestamp).toDate() 
+      if (!school) return;
+  
+      const submittedAtDate = sub.submittedAt && 'toDate' in sub.submittedAt
+        ? (sub.submittedAt as Timestamp).toDate()
         : sub.submittedAt;
+  
+      const baseRowData: { [key: string]: any } = {
+        "ID Escola": school.id,
+        "Nome da Escola": school.name,
+        "INEP": school.inep,
+        "Bairro": school.neighborhood || "N/A",
+        "Data da Submissão": submittedAtDate ? new Date(submittedAtDate).toLocaleString('pt-BR') : 'N/A',
+        "Total de Salas": sub.infrastructure?.classrooms?.length || 0,
+        "Capacidade Total de Alunos": sub.infrastructure?.classrooms?.reduce((acc, c) => acc + (c.studentCapacity || 0), 0) || 0,
+      };
 
-      return [
-        `"${school.name}"`,
-        `"${school.inep}"`,
-        `"${submittedAtDate ? new Date(submittedAtDate).toLocaleString('pt-BR') : 'N/A'}"`,
-        `"${(sub.general && Object.keys(sub.general).length > 0) ? 'completed' : 'pending'}"`,
-        `"${(sub.infrastructure && sub.infrastructure.classrooms.length > 0) ? 'completed' : 'pending'}"`,
-        `"${(sub.technology && Object.keys(sub.technology).length > 0) ? 'completed' : 'pending'}"`,
-        totalClassrooms,
-        totalStudentCapacity,
-        'N/A', // Total Outlets removed
-        'N/A', // Total TVs removed
-        `"${sub.dynamicData?.tech?.f_tech_1 ? 'Sim' : 'Não'}"`,
-        `"${modalidades}"`,
-        `"${resources}"`
-      ].join(',');
-    }).filter(Boolean);
+       // Add dynamic data
+      for (const sectionId in dynamicHeaders) {
+        for (const headerName of dynamicHeaders[sectionId]) {
+          baseRowData[headerName] = "N/A"; // Default value
+        }
+      }
 
-    const csvContent = [csvHeader.join(','), ...csvRows].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      if (sub.dynamicData) {
+        for (const sectionId in sub.dynamicData) {
+            for (const fieldId in sub.dynamicData[sectionId]) {
+                const headerName = fieldIdToNameMap[fieldId];
+                if (headerName) {
+                     let value = sub.dynamicData[sectionId][fieldId];
+                     if (typeof value === 'boolean') {
+                         value = value ? 'Sim' : 'Não';
+                     }
+                     baseRowData[headerName] = value ?? "N/A";
+                }
+            }
+        }
+      }
+  
+      if (sub.infrastructure?.classrooms && sub.infrastructure.classrooms.length > 0) {
+        sub.infrastructure.classrooms.forEach(room => {
+          const classroomData = {
+            ...baseRowData,
+            "Nome da Sala": room.name,
+            "Capacidade da Sala": room.studentCapacity || 0,
+            "Tipo de Ocupação (Atual)": room.occupationType === 'integral' ? 'Integral' : 'Turno',
+            "Série (Manhã)": room.gradeMorning || "N/A",
+            "Alunos (Manhã)": room.studentsMorning || 0,
+            "Série (Tarde)": room.gradeAfternoon || "N/A",
+            "Alunos (Tarde)": room.studentsAfternoon || 0,
+            "Série (Noite)": room.gradeNight || "N/A",
+            "Alunos (Noite)": room.studentsNight || 0,
+            "Série (Integral)": room.gradeIntegral || "N/A",
+            "Alunos (Integral)": room.studentsIntegral || 0,
+            "Tipo de Ocupação (2026)": room.occupationType2026 === 'integral' ? 'Integral' : 'Turno',
+            "Projeção Série 2026 (Manhã)": room.gradeProjection2026Morning || "N/A",
+            "Projeção Série 2026 (Tarde)": room.gradeProjection2026Afternoon || "N/A",
+            "Projeção Série 2026 (Noite)": room.gradeProjection2026Night || "N/A",
+            "Projeção Série 2026 (Integral)": room.gradeProjection2026Integral || "N/A",
+            "Sala Adaptada": room.isAdapted ? 'Sim' : 'Não',
+            "Tem TV": room.hasTv ? 'Sim' : 'Não',
+            "Tem Internet": room.hasInternet ? 'Sim' : 'Não',
+            "Tem Ar Cond.": room.hasAirConditioning ? 'Sim' : 'Não',
+            "Tem Forro": room.hasCeiling ? 'Sim' : 'Não',
+            "Tem Banheiro": room.hasBathroom ? 'Sim' : 'Não',
+          };
+          csvRows.push(allHeaders.map(header => `"${String(classroomData[header] ?? 'N/A').replace(/"/g, '""')}"`).join(','));
+        });
+      } else {
+        // Add a row for the school even if it has no classrooms
+        csvRows.push(allHeaders.map(header => `"${String(baseRowData[header] ?? 'N/A').replace(/"/g, '""')}"`).join(','));
+      }
+    });
+  
+    const csvContent = [allHeaders.join(','), ...csvRows].join('\n');
+    const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' }); // BOM for Excel
     const link = document.createElement('a');
-    if (link.href) {
-      URL.revokeObjectURL(link.href);
-    }
     const url = URL.createObjectURL(blob);
     link.href = url;
-    link.setAttribute('download', 'export_censo_escolar.csv');
+    link.setAttribute('download', 'export_censo_completo.csv');
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
+  
   
   const handleProjectionsExport = () => {
     const csvHeader = [
@@ -579,7 +657,7 @@ export function DashboardClient() {
                               Acompanhe e gerencie o progresso do censo de cada escola.
                           </CardDescription>
                         </div>
-                        <Button onClick={handleExport} disabled={!formConfig.length}>Exportar CSV Geral</Button>
+                        <Button onClick={handleExport} disabled={filteredSubmissions.length === 0}>Exportar CSV Geral</Button>
                     </CardHeader>
                     <CardContent>
                         <SubmissionsTable schools={schools} submissionMap={submissionMap} onDelete={handleDeleteSubmission}/>
@@ -648,3 +726,5 @@ export function DashboardClient() {
     </div>
   );
 }
+
+    
