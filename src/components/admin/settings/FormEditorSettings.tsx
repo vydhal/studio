@@ -49,7 +49,6 @@ const defaultSections: FormSectionConfig[] = [
             { id: 'f_equipe_supervisor', name: 'Equipe: Supervisor', type: 'text', required: false, sectionId: 'general' },
             { id: 'f_equipe_psicologa', name: 'Equipe: Psicóloga', type: 'text', required: false, sectionId: 'general' },
             { id: 'f_equipe_pedagogo', name: 'Equipe: Pedagogo', type: 'text', required: false, sectionId: 'general' },
-            { id: 'f_desk_1', name: 'Total de Carteiras na Unidade', type: 'number', required: false, sectionId: 'general' },
             { id: 'f_mod_ei', name: 'Educação Infantil', type: 'boolean', required: false, sectionId: 'general' },
             { id: 'f_mod_1', name: 'Ensino Fundamental - Anos Iniciais', type: 'boolean', required: false, sectionId: 'general' },
             { id: 'f_mod_2', name: 'Ensino Fundamental - Anos Finais', type: 'boolean', required: false, sectionId: 'general' },
