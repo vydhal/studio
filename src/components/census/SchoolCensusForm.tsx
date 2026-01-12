@@ -1475,7 +1475,7 @@ export function SchoolCensusForm() {
                         )
                      }
                     if (section.id === 'general') {
-                        return (
+                       return (
                         <TabsContent key={section.id} value={section.id}>
                             <div className="space-y-6">
                                 <Card>
@@ -1500,7 +1500,7 @@ export function SchoolCensusForm() {
                                 </Card>
                             </div>
                         </TabsContent>
-                    )
+                    );
                     }
                     return (
                         <TabsContent key={section.id} value={section.id}>
@@ -1543,9 +1543,3 @@ export function SchoolCensusForm() {
     </Card>
   );
 }
-
-    
-
-    
-
-    
