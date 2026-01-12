@@ -1469,8 +1469,8 @@ export function SchoolCensusForm() {
                         )
                      }
                     if (section.id === 'general') {
-                       const managementAndIdFields = section.fields.filter(f => !f.id.startsWith('f_mod_'));
-                       const modalityFields = section.fields.filter(f => f.id.startsWith('f_mod_'));
+                       const managementAndIdFields = section.fields.filter(f => f.type !== 'boolean');
+                       const modalityFields = section.fields.filter(f => f.type === 'boolean');
                         return (
                         <TabsContent key={section.id} value={section.id}>
                             <Card>
@@ -1514,11 +1514,8 @@ export function SchoolCensusForm() {
                                 </CardHeader>
                                 <CardContent>
                                     <div className="space-y-6">
-                                        {section.fields.filter(f => f.type !== 'boolean').map(field => (
-                                            <DynamicField key={field.id} control={form.control} fieldConfig={field} />
-                                        ))}
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            {section.fields.filter(f => f.type === 'boolean').map(field => (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                            {section.fields.map(field => (
                                                 <DynamicField key={field.id} control={form.control} fieldConfig={field} />
                                             ))}
                                         </div>
@@ -1552,5 +1549,6 @@ export function SchoolCensusForm() {
 
 
     
+
 
 
