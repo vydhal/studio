@@ -1513,7 +1513,9 @@ export function SchoolCensusForm() {
                                 <CardContent>
                                     <div className="space-y-6">
                                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                            {section.fields.map(field => (
+                                            {section.fields.length === 0 ? (
+                                                <p className="text-sm text-muted-foreground col-span-full">Nenhum campo configurado para esta seção.</p>
+                                            ) : section.fields.map(field => (
                                                 <DynamicField key={field.id} control={form.control} fieldConfig={field} />
                                             ))}
                                         </div>
@@ -1546,4 +1548,6 @@ export function SchoolCensusForm() {
 }
 
     
+    
+
     
