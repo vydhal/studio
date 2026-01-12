@@ -1334,15 +1334,17 @@ export function SchoolCensusForm() {
   const isAdmin = useMemo(() => userProfile?.role?.permissions.includes('users') ?? false, [userProfile]);
 
   const visibleSections = useMemo(() => {
+    if (!Array.isArray(formConfig)) return [];
     if (isAdmin) {
       return formConfig;
     }
-    if (!userProfile?.role || !Array.isArray(formConfig)) {
+    if (!userProfile?.role) {
       return [];
     }
     const userPermissions = userProfile.role.permissions;
     return formConfig.filter(section => {
-      if (section.id.startsWith('infra')) {
+      // Legacy check for old infra id
+      if (section.id === 'infrastructure' || section.id === 'infra_167') {
         return userPermissions.includes('infrastructure');
       }
       return userPermissions.includes(section.id as any);
@@ -1454,7 +1456,7 @@ export function SchoolCensusForm() {
                   </TabsList>
                   
                   {visibleSections.map(section => {
-                     if (section.id.startsWith('infra')) {
+                     if (section.id.startsWith('infra')) { // Handles 'infrastructure' and 'infra_167'
                         return (
                              <TabsContent key={section.id} value={section.id}>
                                 <InfrastructureSection schools={schools} />
@@ -1473,35 +1475,29 @@ export function SchoolCensusForm() {
                        const modalityFields = section.fields.filter(f => f.type === 'boolean');
                         return (
                         <TabsContent key={section.id} value={section.id}>
-                            <Card>
-                                <CardHeader>
-                                <CardTitle>{section.name}</CardTitle>
-                                {section.description && <CardDescription>{section.description}</CardDescription>}
-                                </CardHeader>
-                                <CardContent className="space-y-6">
-                                    <Card>
-                                        <CardHeader>
-                                            <CardTitle className="text-lg">Identificação e Gestão</CardTitle>
-                                        </CardHeader>
-                                        <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                            {managementAndIdFields.map(field => (
-                                                <DynamicField key={field.id} control={form.control} fieldConfig={field} />
-                                            ))}
-                                        </CardContent>
-                                    </Card>
-                                    
-                                    <Card>
-                                        <CardHeader>
-                                            <CardTitle className="text-lg">Modalidades de Ensino Oferecidas</CardTitle>
-                                        </CardHeader>
-                                        <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                            {modalityFields.map(field => (
-                                                <DynamicField key={field.id} control={form.control} fieldConfig={field} />
-                                            ))}
-                                        </CardContent>
-                                    </Card>
-                                </CardContent>
-                            </Card>
+                            <div className="space-y-6">
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle className="text-lg">Identificação e Gestão</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        {managementAndIdFields.map(field => (
+                                            <DynamicField key={field.id} control={form.control} fieldConfig={field} />
+                                        ))}
+                                    </CardContent>
+                                </Card>
+                                
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle className="text-lg">Modalidades de Ensino Oferecidas</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        {modalityFields.map(field => (
+                                            <DynamicField key={field.id} control={form.control} fieldConfig={field} />
+                                        ))}
+                                    </CardContent>
+                                </Card>
+                            </div>
                         </TabsContent>
                     )
                     }
@@ -1546,9 +1542,3 @@ export function SchoolCensusForm() {
     </Card>
   );
 }
-
-
-    
-
-
-
