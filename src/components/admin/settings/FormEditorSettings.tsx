@@ -31,8 +31,8 @@ import { doc, getDoc, setDoc } from "firebase/firestore";
 const FORM_CONFIG_DOC_ID = 'formConfig';
 
 const defaultSections: FormSectionConfig[] = [
-    { 
-        id: 'general', 
+    {
+        id: 'general',
         name: 'Dados Gerais e Modalidades',
         description: 'Informações gerais da unidade, gestão e modalidades de ensino.',
         fields: [
@@ -41,6 +41,8 @@ const defaultSections: FormSectionConfig[] = [
             { id: 'f_bairro', name: 'Bairro', type: 'text', required: false, sectionId: 'general' },
             { id: 'f_cep', name: 'CEP', type: 'text', required: false, sectionId: 'general' },
             { id: 'f_telefone', name: 'Telefone (Fone)', type: 'text', required: false, sectionId: 'general' },
+            { id: 'f_nivel_ensino', name: 'Nível/Etapa de Ensino', type: 'text', required: false, sectionId: 'general' },
+            { id: 'f_modalidade_ensino', name: 'Modalidade de Ensino', type: 'text', required: false, sectionId: 'general' },
             { id: 'f_periodo_gestao', name: 'Período da Gestão', type: 'text', required: false, sectionId: 'general' },
             { id: 'f_gestor_nome', name: 'Nome do Gestor(a)', type: 'text', required: false, sectionId: 'general' },
             { id: 'f_secretaria_nome', name: 'Nome da Secretária da Escola', type: 'text', required: false, sectionId: 'general' },
@@ -55,28 +57,28 @@ const defaultSections: FormSectionConfig[] = [
             { id: 'f_mod_3', name: 'Educação de Jovens e Adultos - EJA', type: 'boolean', required: false, sectionId: 'general' },
             { id: 'f_mod_ti', name: 'Ensino em Tempo Integral', type: 'boolean', required: false, sectionId: 'general' },
             { id: 'f_mod_ee', name: 'Educação Especial - AEE', type: 'boolean', required: false, sectionId: 'general' },
-        ] 
+        ]
     },
-    { 
-        id: 'infrastructure', 
+    {
+        id: 'infrastructure',
         name: 'Infraestrutura',
         description: 'Adicione as salas de aula e seus detalhes. Esta seção é fixa e não pode ser removida.',
         fields: []
     },
-    { 
-        id: 'professionals', 
+    {
+        id: 'professionals',
         name: 'Profissionais',
         description: 'Alocação de profissionais por turma. Esta seção é fixa e não pode ser removida.',
         fields: []
     },
-    { 
-        id: 'tech', 
+    {
+        id: 'tech',
         name: 'Tecnologia',
         description: 'Detalhes sobre os recursos tecnológicos da escola.',
         fields: [
             { id: 'f_tech_1', name: 'Possui Internet?', type: 'boolean', required: false, sectionId: 'tech' },
             { id: 'f_tech_2', name: 'Velocidade (Mbps)', type: 'number', required: false, sectionId: 'tech' }
-        ] 
+        ]
     },
     {
         id: 'cultural',
@@ -342,6 +344,8 @@ export function FormEditorSettings() {
         </Card>
     );
 }
+
+    
 
     
 

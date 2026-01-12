@@ -207,7 +207,7 @@ export function DashboardClient() {
       if (section.id !== 'infrastructure' && section.id !== 'professionals') {
         dynamicHeaders[section.id] = [];
         section.fields.forEach(field => {
-          const headerName = `${section.name} - ${field.name}`;
+          const headerName = field.name;
           dynamicHeaders[section.id].push(headerName);
           fieldIdToNameMap[field.id] = headerName;
         });
@@ -726,5 +726,7 @@ export function DashboardClient() {
     </div>
   );
 }
+
+    
 
     
