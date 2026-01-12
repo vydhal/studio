@@ -1184,7 +1184,7 @@ export function SchoolCensusForm() {
         const professionalsData = professionalsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Professional[];
         setAvailableProfessionals(professionalsData);
 
-        let configData: FormSectionConfig[] = formConfigDoc.exists() ? formConfigDoc.data().sections : [];
+        let configData: FormSectionConfig[] = (formConfigDoc.exists() ? formConfigDoc.data().sections : []) || [];
         if (configData && !configData.some(s => s.id === 'professionals')) {
              const infraIndex = configData.findIndex(s => s.id.startsWith('infra'));
             const newSection = { id: 'professionals', name: 'Profissionais', description: 'Alocação de profissionais por turma.', fields: [] };
@@ -1550,3 +1550,4 @@ export function SchoolCensusForm() {
 
 
     
+
