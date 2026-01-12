@@ -1368,9 +1368,9 @@ export function SchoolCensusForm() {
       );
   }
 
-  const generalSectionFields = formConfig.find(s => s.id === 'general')?.fields || [];
-  const managementFields = generalSectionFields.filter(f => f.type !== 'boolean');
-  const modalityFields = generalSectionFields.filter(f => f.type === 'boolean');
+  const generalSectionConfig = formConfig.find(s => s.id === 'general');
+  const managementFields = generalSectionConfig?.fields.filter(f => f.type !== 'boolean') || [];
+  const modalityFields = generalSectionConfig?.fields.filter(f => f.type === 'boolean') || [];
 
   return (
     <Card>
@@ -1546,5 +1546,7 @@ export function SchoolCensusForm() {
     </Card>
   );
 }
+
+    
 
     
