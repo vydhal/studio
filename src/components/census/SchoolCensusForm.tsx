@@ -1185,6 +1185,10 @@ export function SchoolCensusForm() {
         setAvailableProfessionals(professionalsData);
 
         let configData: FormSectionConfig[] = (formConfigDoc.exists() ? formConfigDoc.data().sections : []) || [];
+        if (!Array.isArray(configData)) {
+            configData = [];
+        }
+        
         if (configData && !configData.some(s => s.id === 'professionals')) {
              const infraIndex = configData.findIndex(s => s.id.startsWith('infra'));
             const newSection = { id: 'professionals', name: 'Profissionais', description: 'Alocação de profissionais por turma.', fields: [] };
@@ -1333,7 +1337,7 @@ export function SchoolCensusForm() {
     if (isAdmin) {
       return formConfig;
     }
-    if (!userProfile?.role) {
+    if (!userProfile?.role || !Array.isArray(formConfig)) {
       return [];
     }
     const userPermissions = userProfile.role.permissions;
@@ -1474,30 +1478,28 @@ export function SchoolCensusForm() {
                                 <CardTitle>{section.name}</CardTitle>
                                 {section.description && <CardDescription>{section.description}</CardDescription>}
                                 </CardHeader>
-                                <CardContent>
-                                    <div className="space-y-6">
-                                        <Card>
-                                            <CardHeader>
-                                                <CardTitle className="text-lg">Identificação e Gestão</CardTitle>
-                                            </CardHeader>
-                                            <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                                {managementAndIdFields.map(field => (
-                                                    <DynamicField key={field.id} control={form.control} fieldConfig={field} />
-                                                ))}
-                                            </CardContent>
-                                        </Card>
-                                        
-                                        <Separator/>
-
-                                        <div>
-                                            <h3 className="font-medium text-lg mb-4">Modalidades de Ensino Oferecidas</h3>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                                {modalityFields.map(field => (
-                                                    <DynamicField key={field.id} control={form.control} fieldConfig={field} />
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </div>
+                                <CardContent className="space-y-6">
+                                    <Card>
+                                        <CardHeader>
+                                            <CardTitle className="text-lg">Identificação e Gestão</CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                            {managementAndIdFields.map(field => (
+                                                <DynamicField key={field.id} control={form.control} fieldConfig={field} />
+                                            ))}
+                                        </CardContent>
+                                    </Card>
+                                    
+                                    <Card>
+                                        <CardHeader>
+                                            <CardTitle className="text-lg">Modalidades de Ensino Oferecidas</CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                            {modalityFields.map(field => (
+                                                <DynamicField key={field.id} control={form.control} fieldConfig={field} />
+                                            ))}
+                                        </CardContent>
+                                    </Card>
                                 </CardContent>
                             </Card>
                         </TabsContent>
@@ -1550,4 +1552,5 @@ export function SchoolCensusForm() {
 
 
     
+
 
