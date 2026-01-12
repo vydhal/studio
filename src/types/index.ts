@@ -30,6 +30,14 @@ export interface Classroom {
   gradeProjection2026Afternoon?: string;
 }
 
+export interface ManagementMember {
+  id: string;
+  name: string;
+  role: string;
+  phone?: string;
+  email?: string;
+}
+
 export interface TeachingModality {
   id: string;
   name: string;
@@ -54,36 +62,36 @@ export interface InfrastructureData {
 }
 
 export interface TechnologyData {
-    status: 'pending' | 'completed';
-    resources: TechnologyResource[];
-    hasInternetAccess: boolean;
+  status: 'pending' | 'completed';
+  resources: TechnologyResource[];
+  hasInternetAccess: boolean;
 }
 
 export interface CulturalData {
-    status: 'pending' | 'completed';
-    // Adicionar campos de dados culturais aqui futuramente
+  status: 'pending' | 'completed';
+  // Adicionar campos de dados culturais aqui futuramente
 }
 
 export interface MaintenanceData {
-    status: 'pending' | 'completed';
-    // Adicionar campos de dados de manutenção aqui futuramente
+  status: 'pending' | 'completed';
+  // Adicionar campos de dados de manutenção aqui futuramente
 }
 
 export type FormSectionPermission = 'general' | 'infrastructure' | 'technology' | 'cultural' | 'maintenance' | 'users';
 
 export interface Role {
-    id: string;
-    name: string;
-    permissions: FormSectionPermission[];
+  id: string;
+  name: string;
+  permissions: FormSectionPermission[];
 }
 
 export interface UserProfile {
-    id: string;
-    name: string;
-    email: string;
-    roleId: string; // Foreign key to Role
-    role: Role | null; // Populated role object
-    password?: string;
+  id: string;
+  name: string;
+  email: string;
+  roleId: string; // Foreign key to Role
+  role: Role | null; // Populated role object
+  password?: string;
 }
 
 
@@ -92,6 +100,10 @@ export interface SchoolCensusSubmission {
   schoolId: string;
   general?: GeneralData;
   infrastructure?: InfrastructureData;
+  management?: {
+    status?: 'pending' | 'completed';
+    members: ManagementMember[];
+  };
   technology?: TechnologyData;
   cultural?: CulturalData;
   maintenance?: MaintenanceData;
@@ -120,17 +132,17 @@ export interface HomeSettings {
 
 // Types for Dynamic Form Builder
 export interface FormFieldConfig {
-    id: string;
-    sectionId: string;
-    name: string;
-    type: 'text' | 'number' | 'boolean' | 'date' | 'select' | 'file' | 'rating';
-    required: boolean;
-    options?: string[]; // For select type
+  id: string;
+  sectionId: string;
+  name: string;
+  type: 'text' | 'number' | 'boolean' | 'date' | 'select' | 'file' | 'rating';
+  required: boolean;
+  options?: string[]; // For select type
 }
 
 export interface FormSectionConfig {
-    id: string;
-    name: string;
-    description?: string;
-    fields: FormFieldConfig[];
+  id: string;
+  name: string;
+  description?: string;
+  fields: FormFieldConfig[];
 }

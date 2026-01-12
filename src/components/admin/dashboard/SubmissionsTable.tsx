@@ -136,7 +136,10 @@ export function SubmissionsTable({ submissions, schoolMap }: SubmissionsTablePro
                 {submissions.map((submission) => {
                     const school = schoolMap.get(submission.schoolId);
                     const overallStatus = getOverallStatus(submission, totalSections);
-                    const managerName = submission.dynamicData?.management?.f_mgr_name || 'Não informado';
+
+                    const managementMembers = submission.management?.members || [];
+                    const manager = managementMembers.find(m => m.role === 'Gestor(a)' || m.role === 'Diretor(a)') || managementMembers[0];
+                    const managerName = manager?.name || 'Não informado';
 
                     return (
                         <TableRow key={submission.id}>

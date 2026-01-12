@@ -38,38 +38,15 @@ const defaultSections: FormSectionConfig[] = [
             { id: 'f_mod_1', name: 'Anos Iniciais', type: 'boolean', required: true, sectionId: 'general' },
             { id: 'f_mod_2', name: 'Anos Finais', type: 'boolean', required: true, sectionId: 'general' },
             { id: 'f_mod_3', name: 'EJA', type: 'boolean', required: true, sectionId: 'general' },
+            { id: 'f_mod_4', name: 'Integral', type: 'boolean', required: true, sectionId: 'general' },
+            { id: 'f_mod_5', name: 'Infantil', type: 'boolean', required: true, sectionId: 'general' },
         ]
     },
     {
         id: 'management',
         name: 'Dados da Gestão',
-        description: 'Informações de contato da equipe gestora.',
-        fields: [
-            // Gestor
-            { id: 'f_mgr_name', name: 'Nome do Gestor(a)', type: 'text', required: true, sectionId: 'management' },
-            { id: 'f_mgr_phone', name: 'Telefone do Gestor(a)', type: 'text', required: true, sectionId: 'management' },
-            { id: 'f_mgr_email', name: 'E-mail do Gestor(a)', type: 'text', required: true, sectionId: 'management' },
-            // Secretária
-            { id: 'f_sec_name', name: 'Nome da Secretária', type: 'text', required: true, sectionId: 'management' },
-            { id: 'f_sec_phone', name: 'Telefone da Secretária', type: 'text', required: false, sectionId: 'management' },
-            { id: 'f_sec_email', name: 'E-mail da Secretária', type: 'text', required: false, sectionId: 'management' },
-            // Orientador
-            { id: 'f_ori_name', name: 'Nome do Orientador(a)', type: 'text', required: false, sectionId: 'management' },
-            { id: 'f_ori_phone', name: 'Telefone do Orientador(a)', type: 'text', required: false, sectionId: 'management' },
-            { id: 'f_ori_email', name: 'E-mail do Orientador(a)', type: 'text', required: false, sectionId: 'management' },
-            // Supervisor
-            { id: 'f_sup_name', name: 'Nome do Supervisor(a)', type: 'text', required: false, sectionId: 'management' },
-            { id: 'f_sup_phone', name: 'Telefone do Supervisor(a)', type: 'text', required: false, sectionId: 'management' },
-            { id: 'f_sup_email', name: 'E-mail do Supervisor(a)', type: 'text', required: false, sectionId: 'management' },
-            // Psicóloga
-            { id: 'f_psy_name', name: 'Nome do Psicólogo(a)', type: 'text', required: false, sectionId: 'management' },
-            { id: 'f_psy_phone', name: 'Telefone do Psicólogo(a)', type: 'text', required: false, sectionId: 'management' },
-            { id: 'f_psy_email', name: 'E-mail do Psicólogo(a)', type: 'text', required: false, sectionId: 'management' },
-            // Pedagogo
-            { id: 'f_ped_name', name: 'Nome do Pedagogo(a)', type: 'text', required: false, sectionId: 'management' },
-            { id: 'f_ped_phone', name: 'Telefone do Pedagogo(a)', type: 'text', required: false, sectionId: 'management' },
-            { id: 'f_ped_email', name: 'E-mail do Pedagogo(a)', type: 'text', required: false, sectionId: 'management' },
-        ]
+        description: 'Adicione os membros da equipe gestora (Diretores, Secretários, Coordenadores, etc).',
+        fields: []
     },
     {
         id: 'infra_167',
