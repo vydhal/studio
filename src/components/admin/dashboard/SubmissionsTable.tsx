@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import type { SchoolCensusSubmission, School, FormSectionConfig } from "@/types";
 import Link from "next/link";
-import { format } from "date-fns";
+import { format, isValid } from "date-fns";
 import { ptBR } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ArrowRight, CheckCircle, Circle, MoreHorizontal, File, Download } from "lucide-react";
@@ -44,7 +44,7 @@ const StatusIcon = ({ status }: { status?: 'completed' | 'pending' }) => {
 }
 
 const getOverallStatus = (submission: SchoolCensusSubmission, totalSections: number): { label: string; variant: "default" | "secondary" | "destructive" | "outline" | null | undefined; completedCount: number } => {
-    const sections = [submission.general, submission.infrastructure, submission.technology, submission.cultural, submission.maintenance];
+    const sections = [submission.general, submission.infrastructure, submission.technology, submission.cultural, submission.maintenance, submission.furniture];
     const completedCount = sections.filter(s => s?.status === 'completed').length;
 
     if (completedCount === totalSections) {
@@ -63,6 +63,7 @@ const SubmissionStatusModal = ({ submission, school, overallStatus, totalSection
         { name: 'Tecnologia', status: submission.technology?.status },
         { name: 'Cultural', status: submission.cultural?.status },
         { name: 'Manutenção', status: submission.maintenance?.status },
+        { name: 'Mobilia', status: submission.furniture?.status },
     ];
 
     return (
@@ -115,7 +116,8 @@ export function SubmissionsTable({ submissions, schoolMap }: SubmissionsTablePro
 
     // Assuming the number of sections defined in the form config is what we should count against.
     // We'll have to find a way to get the formConfig here. A simple way for now is to assume 5 sections.
-    const totalSections = 5;
+    // We'll have to find a way to get the formConfig here. A simple way for now is to assume 6 sections.
+    const totalSections = 6;
 
     return (
         <Table>
@@ -146,7 +148,7 @@ export function SubmissionsTable({ submissions, schoolMap }: SubmissionsTablePro
                             <TableCell className="font-medium">{school?.name || 'Escola não encontrada'}</TableCell>
                             <TableCell className="hidden md:table-cell">{school?.inep || 'N/A'}</TableCell>
                             <TableCell className="hidden md:table-cell">{managerName}</TableCell>
-                            <TableCell className="hidden md:table-cell">{submission.submittedAt ? format(new Date(submission.submittedAt), 'dd/MM/yyyy HH:mm', { locale: ptBR }) : 'N/A'}</TableCell>
+                            <TableCell className="hidden md:table-cell">{submission.submittedAt && isValid(submission.submittedAt) ? format(submission.submittedAt, 'dd/MM/yyyy HH:mm', { locale: ptBR }) : 'N/A'}</TableCell>
                             <TableCell>
                                 <Badge variant={overallStatus.variant}>{overallStatus.label}</Badge>
                             </TableCell>

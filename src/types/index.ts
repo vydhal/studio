@@ -77,7 +77,33 @@ export interface MaintenanceData {
   // Adicionar campos de dados de manutenção aqui futuramente
 }
 
-export type FormSectionPermission = 'general' | 'infrastructure' | 'technology' | 'cultural' | 'maintenance' | 'users';
+export interface FurnitureData {
+  status: 'pending' | 'completed';
+}
+
+export interface InventoryItem {
+  id?: string;
+  description: string;
+  quantity: number;
+  origin: string;
+  observation?: string;
+}
+
+export interface InventoryData {
+  status: 'pending' | 'completed';
+  permanent_tech?: InventoryItem[];
+  audio_visual?: InventoryItem[];
+  connected_edu?: InventoryItem[];
+  pedagogical_games?: InventoryItem[];
+  pedagogical_aee?: InventoryItem[];
+  physical_edu?: InventoryItem[];
+  office_supplies?: InventoryItem[];
+  hygiene_cleaning?: InventoryItem[];
+  warehouse?: InventoryItem[];
+  library?: InventoryItem[];
+}
+
+export type FormSectionPermission = 'general' | 'infrastructure' | 'technology' | 'cultural' | 'maintenance' | 'users' | 'furniture' | 'inventory';
 
 export interface Role {
   id: string;
@@ -107,13 +133,16 @@ export interface SchoolCensusSubmission {
   technology?: TechnologyData;
   cultural?: CulturalData;
   maintenance?: MaintenanceData;
+  furniture?: FurnitureData;
+  inventory?: InventoryData;
   teachingModalities?: TeachingModality[];
+
   dynamicData?: {
     [sectionId: string]: {
       [fieldId: string]: any;
     }
   };
-  submittedAt: Date;
+  submittedAt?: Date;
   submittedBy?: string;
 }
 
@@ -127,6 +156,7 @@ export interface HomeSettings {
   facebookUrl?: string;
   instagramUrl?: string;
   twitterUrl?: string;
+  primaryColor?: string;
 }
 
 

@@ -28,7 +28,16 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import type { School, FormSectionConfig, FormFieldConfig, SchoolCensusSubmission, Classroom } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from "@/components/ui/card";
-import { Loader2, Building, HardHat, Laptop, Palette, Wrench, PlusCircle, Trash2 } from "lucide-react";
+import {
+    Loader2, Building, HardHat, Laptop, Wifi,
+    Wrench,
+    Users,
+    Armchair,
+    BookOpen,
+    Package,
+    PlusCircle,
+    Trash2
+} from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -39,6 +48,7 @@ import { doc, getDoc, setDoc, collection, getDocs, serverTimestamp } from "fireb
 import { useAuth } from "@/hooks/useAuth";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Separator } from "@/components/ui/separator";
+import { InventorySection } from "./InventorySection";
 
 
 const classroomSchema = z.object({
@@ -67,6 +77,27 @@ const managementMemberSchema = z.object({
     email: z.string().optional(),
 });
 
+const inventoryItemSchema = z.object({
+    id: z.string().optional(),
+    description: z.string().min(1, "Descrição é obrigatória"),
+    quantity: z.number().min(0),
+    origin: z.string().optional(),
+    observation: z.string().optional(),
+});
+
+const inventorySchema = z.object({
+    permanent_tech: z.array(inventoryItemSchema).optional(),
+    audio_visual: z.array(inventoryItemSchema).optional(),
+    connected_edu: z.array(inventoryItemSchema).optional(),
+    pedagogical_games: z.array(inventoryItemSchema).optional(),
+    pedagogical_aee: z.array(inventoryItemSchema).optional(),
+    physical_edu: z.array(inventoryItemSchema).optional(),
+    office_supplies: z.array(inventoryItemSchema).optional(),
+    hygiene_cleaning: z.array(inventoryItemSchema).optional(),
+    warehouse: z.array(inventoryItemSchema).optional(),
+    library: z.array(inventoryItemSchema).optional(),
+}).optional();
+
 const formSchema = z.object({
     schoolId: z.string().min(1, "Por favor, selecione uma escola."),
     dynamicData: z.record(z.any()),
@@ -76,16 +107,19 @@ const formSchema = z.object({
     management: z.object({
         members: z.array(managementMemberSchema)
     }).optional(),
+    inventory: inventorySchema
 });
 
 
 const sectionIcons: { [key: string]: React.ElementType } = {
     general: Building,
-    infra: HardHat,
-    tech: Laptop,
-    cultural: Palette,
+    infra: Building,
+    tech: Wifi,
+    cultural: BookOpen,
     maintenance: Wrench,
-    management: HardHat, // Using HardHat for management as well for now
+    management: Users,
+    furniture: Armchair,
+    inventory: Package
 };
 
 export const gradeLevels = [
@@ -466,7 +500,19 @@ export function SchoolCensusForm() {
                     schoolId: schoolId || "",
                     dynamicData: defaultDynamicValues,
                     infrastructure: { classrooms: [] },
-                    management: { members: [] }
+                    management: { members: [] },
+                    inventory: {
+                        permanent_tech: [],
+                        audio_visual: [],
+                        connected_edu: [],
+                        pedagogical_games: [],
+                        pedagogical_aee: [],
+                        physical_edu: [],
+                        office_supplies: [],
+                        hygiene_cleaning: [],
+                        warehouse: [],
+                        library: [],
+                    }
                 };
 
                 // Only attempt to load submission data if a school is selected and user is logged in
@@ -492,6 +538,9 @@ export function SchoolCensusForm() {
                         if (existingSubmission.management?.members) {
                             initialValues.management = existingSubmission.management;
                         }
+                        if (existingSubmission.inventory) {
+                            initialValues.inventory = existingSubmission.inventory;
+                        }
                     }
                 }
                 form.reset(initialValues);
@@ -516,7 +565,19 @@ export function SchoolCensusForm() {
             schoolId,
             dynamicData: defaultValues,
             infrastructure: { classrooms: [] },
-            management: { members: [] }
+            management: { members: [] },
+            inventory: {
+                permanent_tech: [],
+                audio_visual: [],
+                connected_edu: [],
+                pedagogical_games: [],
+                pedagogical_aee: [],
+                physical_edu: [],
+                office_supplies: [],
+                hygiene_cleaning: [],
+                warehouse: [],
+                library: [],
+            }
         };
 
         const submissionDoc = await getDoc(doc(db, 'submissions', schoolId));
@@ -540,6 +601,9 @@ export function SchoolCensusForm() {
             }
             if (existingSubmission.management?.members) {
                 resetValues.management = existingSubmission.management;
+            }
+            if (existingSubmission.inventory) {
+                resetValues.inventory = existingSubmission.inventory;
             }
         }
         form.reset(resetValues);
@@ -711,6 +775,13 @@ export function SchoolCensusForm() {
                                         return (
                                             <TabsContent key={section.id} value={section.id}>
                                                 <ManagementSection control={form.control} />
+                                            </TabsContent>
+                                        )
+                                    }
+                                    if (section.id === 'inventory') {
+                                        return (
+                                            <TabsContent key={section.id} value={section.id}>
+                                                <InventorySection />
                                             </TabsContent>
                                         )
                                     }

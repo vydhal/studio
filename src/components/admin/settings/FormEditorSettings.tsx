@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { PlusCircle, Trash2, GripVertical, Loader2, AlertTriangle, RotateCcw } from "lucide-react";
+import { PlusCircle, Trash2, GripVertical, Loader2, AlertTriangle, RotateCcw, ArrowUp, ArrowDown } from "lucide-react";
 import { produce } from "immer";
 import { useToast } from "@/hooks/use-toast";
 import type { FormSectionConfig, FormFieldConfig } from "@/types";
@@ -45,11 +45,32 @@ const defaultSections: FormSectionConfig[] = [
     {
         id: 'management',
         name: 'Dados da Gestão',
-        description: 'Adicione os membros da equipe gestora (Diretores, Secretários, Coordenadores, etc).',
+        description: 'Membros da equipe de gestão (Gestores, Secretários, Coordenadores, etc.)',
         fields: []
     },
     {
-        id: 'infra_167',
+        id: 'furniture',
+        name: 'Mobilia',
+        description: 'Informações sobre o mobiliário escolar',
+        fields: [
+            { id: 'f_furn_cja03', name: 'QUANTIDADE TOTAL DE CONJUNTOS CJA03 (AMARELO)', type: 'number', required: false, sectionId: 'furniture' },
+            { id: 'f_furn_cja04', name: 'QUANTIDADE TOTAL DE CONJUNTOS CJA04 (VERMELHO)', type: 'number', required: false, sectionId: 'furniture' },
+            { id: 'f_furn_cja05', name: 'QUANTIDADE TOTAL DE CONJUNTOS CJA05 (VERDE)', type: 'number', required: false, sectionId: 'furniture' },
+            { id: 'f_furn_cja06', name: 'QUANTIDADE TOTAL DE CONJUNTOS CJA06 (AZUL)', type: 'number', required: false, sectionId: 'furniture' },
+            { id: 'f_furn_univ', name: 'QUANTIDADE TOTAL DE CONJUNTOS UNIVERSAL (BRANCO)', type: 'number', required: false, sectionId: 'furniture' },
+            { id: 'f_furn_armchair', name: 'QUANTIDADE TOTAL DE "CADEIRAS DE BRAÇO"', type: 'number', required: false, sectionId: 'furniture' },
+            { id: 'f_furn_damaged', name: 'QUANTIDADE DE CONJUNTOS DANIFICADOS QUE NECESSITAM DE SUBSTITUIÇÃO', type: 'number', required: false, sectionId: 'furniture' },
+            { id: 'f_furn_accessible', name: 'QUANTIDADE DE CARTEIRAS ADAPTADA PARA CADEIRANTE', type: 'number', required: false, sectionId: 'furniture' },
+        ]
+    },
+    {
+        id: 'inventory',
+        name: 'Inventário de Recursos',
+        description: 'Inventário detalhado de materiais e recursos pedagógicos/administrativos.',
+        fields: []
+    },
+    {
+        id: 'infrastructure',
         name: 'Infraestrutura',
         description: 'Adicione as salas de aula e seus detalhes.',
         fields: []
@@ -166,6 +187,17 @@ export function FormEditorSettings() {
         }));
     };
 
+    const moveSection = (index: number, direction: 'up' | 'down') => {
+        if (direction === 'up' && index === 0) return;
+        if (direction === 'down' && index === sections.length - 1) return;
+
+        setSections(produce(draft => {
+            const newIndex = direction === 'up' ? index - 1 : index + 1;
+            const [movedSection] = draft.splice(index, 1);
+            draft.splice(newIndex, 0, movedSection);
+        }));
+    };
+
 
     const addField = (sectionIndex: number) => {
         setSections(produce(draft => {
@@ -223,7 +255,26 @@ export function FormEditorSettings() {
                     <div key={section.id} className="p-4 border rounded-lg space-y-4 bg-muted/20">
                         <div className="flex justify-between items-center gap-4">
                             <div className="flex items-center gap-2 flex-grow">
-                                <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab" />
+                                <div className="flex flex-col gap-1 mr-2">
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-6 w-6"
+                                        onClick={() => moveSection(sectionIndex, 'up')}
+                                        disabled={sectionIndex === 0}
+                                    >
+                                        <ArrowUp className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-6 w-6"
+                                        onClick={() => moveSection(sectionIndex, 'down')}
+                                        disabled={sectionIndex === sections.length - 1}
+                                    >
+                                        <ArrowDown className="h-4 w-4" />
+                                    </Button>
+                                </div>
                                 <div className="flex-grow space-y-1">
                                     <Label htmlFor={`section-name-${section.id}`}>Nome da Seção</Label>
                                     <Input
