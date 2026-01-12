@@ -1189,7 +1189,7 @@ export function SchoolCensusForm() {
              const infraIndex = configData.findIndex(s => s.id.startsWith('infra'));
             const newSection = { id: 'professionals', name: 'Profissionais', description: 'Alocação de profissionais por turma.', fields: [] };
             if (infraIndex !== -1) {
-                formData.splice(infraIndex + 1, 0, newSection);
+                configData.splice(infraIndex + 1, 0, newSection);
             } else {
                 configData.push(newSection);
             }
@@ -1330,17 +1330,14 @@ export function SchoolCensusForm() {
   const isAdmin = useMemo(() => userProfile?.role?.permissions.includes('users') ?? false, [userProfile]);
 
   const visibleSections = useMemo(() => {
-    if (!userProfile?.role) {
-      return [];
-    }
-    
     if (isAdmin) {
       return formConfig;
     }
-    
+    if (!userProfile?.role) {
+      return [];
+    }
     const userPermissions = userProfile.role.permissions;
     return formConfig.filter(section => {
-      // Special handling for infrastructure
       if (section.id.startsWith('infra')) {
         return userPermissions.includes('infrastructure');
       }
