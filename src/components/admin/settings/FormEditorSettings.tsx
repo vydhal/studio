@@ -34,8 +34,21 @@ const defaultSections: FormSectionConfig[] = [
     { 
         id: 'general', 
         name: 'Dados Gerais e Modalidades',
-        description: 'Selecione as modalidades de ensino oferecidas.',
+        description: 'Informações gerais da unidade, gestão e modalidades de ensino.',
         fields: [
+            { id: 'f_nucleo', name: 'Núcleo', type: 'select', required: false, sectionId: 'general', options: Array.from({length: 12}, (_, i) => String(i + 1)) },
+            { id: 'f_endereco', name: 'Endereço', type: 'text', required: false, sectionId: 'general' },
+            { id: 'f_bairro', name: 'Bairro', type: 'text', required: false, sectionId: 'general' },
+            { id: 'f_cep', name: 'CEP', type: 'text', required: false, sectionId: 'general' },
+            { id: 'f_telefone', name: 'Telefone (Fone)', type: 'text', required: false, sectionId: 'general' },
+            { id: 'f_periodo_gestao', name: 'Período da Gestão', type: 'text', required: false, sectionId: 'general' },
+            { id: 'f_gestor_nome', name: 'Nome do Gestor(a)', type: 'text', required: false, sectionId: 'general' },
+            { id: 'f_secretaria_nome', name: 'Nome da Secretária da Escola', type: 'text', required: false, sectionId: 'general' },
+            { id: 'f_equipe_gestor', name: 'Equipe: Gestor', type: 'text', required: false, sectionId: 'general' },
+            { id: 'f_equipe_orientador', name: 'Equipe: Orientador', type: 'text', required: false, sectionId: 'general' },
+            { id: 'f_equipe_supervisor', name: 'Equipe: Supervisor', type: 'text', required: false, sectionId: 'general' },
+            { id: 'f_equipe_psicologa', name: 'Equipe: Psicóloga', type: 'text', required: false, sectionId: 'general' },
+            { id: 'f_equipe_pedagogo', name: 'Equipe: Pedagogo', type: 'text', required: false, sectionId: 'general' },
             { id: 'f_desk_1', name: 'Total de Carteiras na Unidade', type: 'number', required: false, sectionId: 'general' },
             { id: 'f_mod_ei', name: 'Educação Infantil', type: 'boolean', required: false, sectionId: 'general' },
             { id: 'f_mod_1', name: 'Ensino Fundamental - Anos Iniciais', type: 'boolean', required: false, sectionId: 'general' },
@@ -330,5 +343,7 @@ export function FormEditorSettings() {
         </Card>
     );
 }
+
+    
 
     

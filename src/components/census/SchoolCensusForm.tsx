@@ -235,6 +235,17 @@ const DynamicField = ({ control, fieldConfig }: { control: any, fieldConfig: For
                                 value={field.value ?? ''}
                                 onChange={e => field.onChange(e.target.value === '' ? null : e.target.valueAsNumber)}
                             />
+                        ) : fieldConfig.type === 'select' ? (
+                            <Select onValueChange={field.onChange} value={field.value ?? ''}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder={`Selecione ${fieldConfig.name}`} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {fieldConfig.options?.map(option => (
+                                        <SelectItem key={option} value={option}>{option}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         ) : (
                             <Input {...field} value={field.value ?? ''} />
                         )}
@@ -1178,7 +1189,7 @@ export function SchoolCensusForm() {
              const infraIndex = configData.findIndex(s => s.id.startsWith('infra'));
             const newSection = { id: 'professionals', name: 'Profissionais', description: 'Alocação de profissionais por turma.', fields: [] };
             if (infraIndex !== -1) {
-                configData.splice(infraIndex + 1, 0, newSection);
+                formData.splice(infraIndex + 1, 0, newSection);
             } else {
                 configData.push(newSection);
             }
@@ -1457,8 +1468,8 @@ export function SchoolCensusForm() {
                         )
                      }
                     if (section.id === 'general') {
-                       const deskField = section.fields.find(f => f.id.startsWith('f_desk'));
-                       const modalityFields = section.fields.filter(f => !f.id.startsWith('f_desk'));
+                       const managementAndIdFields = section.fields.filter(f => !f.id.startsWith('f_mod_'));
+                       const modalityFields = section.fields.filter(f => f.id.startsWith('f_mod_'));
                         return (
                         <TabsContent key={section.id} value={section.id}>
                             <Card>
@@ -1468,15 +1479,26 @@ export function SchoolCensusForm() {
                                 </CardHeader>
                                 <CardContent>
                                     <div className="space-y-6">
-                                        {deskField && <DynamicField key={deskField.id} control={form.control} fieldConfig={deskField} />}
+                                        <Card>
+                                            <CardHeader>
+                                                <CardTitle className="text-lg">Identificação e Gestão</CardTitle>
+                                            </CardHeader>
+                                            <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                                {managementAndIdFields.map(field => (
+                                                    <DynamicField key={field.id} control={form.control} fieldConfig={field} />
+                                                ))}
+                                            </CardContent>
+                                        </Card>
                                         
                                         <Separator/>
 
-                                        <p className="font-medium">Modalidades de Ensino Oferecidas</p>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                            {modalityFields.map(field => (
-                                                <DynamicField key={field.id} control={form.control} fieldConfig={field} />
-                                            ))}
+                                        <div>
+                                            <h3 className="font-medium text-lg mb-4">Modalidades de Ensino Oferecidas</h3>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                                {modalityFields.map(field => (
+                                                    <DynamicField key={field.id} control={form.control} fieldConfig={field} />
+                                                ))}
+                                            </div>
                                         </div>
                                     </div>
                                 </CardContent>
@@ -1528,3 +1550,6 @@ export function SchoolCensusForm() {
     </Card>
   );
 }
+
+
+    
