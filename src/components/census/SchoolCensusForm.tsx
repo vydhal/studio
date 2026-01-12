@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useForm, useFieldArray, Controller, useWatch, useFormContext, FormProvider } from "react-hook-form";
@@ -1368,6 +1369,10 @@ export function SchoolCensusForm() {
       );
   }
 
+  const generalSectionFields = formConfig.find(s => s.id === 'general')?.fields || [];
+  const managementFields = generalSectionFields.filter(f => f.type !== 'boolean');
+  const modalityFields = generalSectionFields.filter(f => f.type === 'boolean');
+
   return (
     <Card>
       <FormProvider {...form}>
@@ -1470,8 +1475,6 @@ export function SchoolCensusForm() {
                         )
                      }
                     if (section.id === 'general') {
-                       const managementFields = section.fields.filter(f => f.type !== 'boolean');
-                       const modalityFields = section.fields.filter(f => f.type === 'boolean');
                         return (
                         <TabsContent key={section.id} value={section.id}>
                             <div className="space-y-6">
@@ -1540,5 +1543,7 @@ export function SchoolCensusForm() {
     </Card>
   );
 }
+
+    
 
     
