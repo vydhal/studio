@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useForm, useFieldArray, Controller, useWatch, useFormContext, FormProvider } from "react-hook-form";
@@ -1481,6 +1480,7 @@ export function SchoolCensusForm() {
                                 <Card>
                                     <CardHeader>
                                         <CardTitle className="text-lg">Identificação e Gestão</CardTitle>
+                                        <CardDescription>Informações de identificação da unidade e detalhes da equipe gestora.</CardDescription>
                                     </CardHeader>
                                     <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                         {managementFields.map(field => (
@@ -1491,6 +1491,7 @@ export function SchoolCensusForm() {
                                 <Card>
                                     <CardHeader>
                                         <CardTitle className="text-lg">Modalidades de Ensino Ofertadas</CardTitle>
+                                        <CardDescription>Marque todas as modalidades de ensino oferecidas pela unidade.</CardDescription>
                                     </CardHeader>
                                     <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                         {modalityFields.map(field => (
@@ -1543,3 +1544,5 @@ export function SchoolCensusForm() {
     </Card>
   );
 }
+
+    
