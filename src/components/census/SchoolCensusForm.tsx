@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useForm, useFieldArray, Controller, useWatch, useFormContext, FormProvider } from "react-hook-form";
@@ -1471,7 +1470,7 @@ export function SchoolCensusForm() {
                         )
                      }
                     if (section.id === 'general') {
-                       const managementAndIdFields = section.fields.filter(f => f.type !== 'boolean');
+                       const managementFields = section.fields.filter(f => f.type !== 'boolean');
                        const modalityFields = section.fields.filter(f => f.type === 'boolean');
                         return (
                         <TabsContent key={section.id} value={section.id}>
@@ -1481,12 +1480,11 @@ export function SchoolCensusForm() {
                                         <CardTitle className="text-lg">Identificação e Gestão</CardTitle>
                                     </CardHeader>
                                     <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                        {managementAndIdFields.map(field => (
+                                        {managementFields.map(field => (
                                             <DynamicField key={field.id} control={form.control} fieldConfig={field} />
                                         ))}
                                     </CardContent>
                                 </Card>
-                                
                                 <Card>
                                     <CardHeader>
                                         <CardTitle className="text-lg">Modalidades de Ensino Oferecidas</CardTitle>
@@ -1542,3 +1540,5 @@ export function SchoolCensusForm() {
     </Card>
   );
 }
+
+    
