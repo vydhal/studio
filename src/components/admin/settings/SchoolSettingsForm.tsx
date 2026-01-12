@@ -27,9 +27,9 @@ const schoolListSchema = z.object({
   schoolsJson: z.string().refine((val) => {
     try {
       const parsed = JSON.parse(val);
-      return Array.isArray(parsed) && parsed.every(item => 
-        typeof item === 'object' && 
-        ('inep' in item || 'INEP' in item) && 
+      return Array.isArray(parsed) && parsed.every(item =>
+        typeof item === 'object' &&
+        ('inep' in item || 'INEP' in item) &&
         ('name' in item || 'UNIDADE EDUCACIONAL' in item || 'UNIDADE' in item)
       );
     } catch (e) {
@@ -78,15 +78,15 @@ export function SchoolSettingsForm() {
     setLoading(true);
     try {
       let parsedSchools = JSON.parse(values.schoolsJson);
-      
+
       const batch = writeBatch(db);
 
       const schoolsWithIds: School[] = parsedSchools.map((school: any, index: number) => {
         const schoolName = school.name || school['UNIDADE EDUCACIONAL'] || school['UNIDADE'];
         const schoolInep = school.inep || school['INEP'];
-        
+
         if (!schoolName || !schoolInep) {
-            throw new Error(`Objeto de escola inválido encontrado no índice ${index}.`);
+          throw new Error(`Objeto de escola inválido encontrado no índice ${index}.`);
         }
 
         const schoolId = String(schoolInep);
@@ -98,18 +98,21 @@ export function SchoolSettingsForm() {
           address: school.address || school['DS_ENDERECO'],
           number: school.number || school['NU_ENDERECO'],
           neighborhood: school.neighborhood || school['NO_BAIRRO'],
+          zipCode: school.zipCode || school['CEP'] || school['CO_CEP'],
+          email: school.email || school['EMAIL'],
+          phoneNumbers: Array.isArray(school.phoneNumbers) ? school.phoneNumbers : (school.phone || school['TELEFONE'] ? [school.phone || school['TELEFONE']] : []),
         };
 
         batch.set(schoolRef, schoolData);
-        
+
         return {
           id: schoolId,
           ...schoolData
         };
       });
-      
+
       await batch.commit();
-      
+
       form.setValue('schoolsJson', JSON.stringify(schoolsWithIds, null, 2));
 
       toast({
@@ -148,7 +151,7 @@ export function SchoolSettingsForm() {
                     <FormControl>
                       <Textarea
                         rows={15}
-                        placeholder='[{"UNIDADE EDUCACIONAL": "Nome da Escola", "INEP": "12345678", "NO_BAIRRO": "Centro"}]'
+                        placeholder='[{"UNIDADE EDUCACIONAL": "Nome da Escola", "INEP": "12345678", "NO_BAIRRO": "Centro", "CEP": "00000-000", "TELEFONE": "99999-9999"}]'
                         {...field}
                       />
                     </FormControl>

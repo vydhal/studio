@@ -7,6 +7,9 @@ export interface School {
   address?: string;
   number?: string;
   neighborhood?: string;
+  zipCode?: string;
+  email?: string;
+  phoneNumbers?: string[];
 }
 
 export interface Classroom {

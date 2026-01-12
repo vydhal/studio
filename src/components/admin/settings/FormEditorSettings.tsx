@@ -13,15 +13,15 @@ import { produce } from "immer";
 import { useToast } from "@/hooks/use-toast";
 import type { FormSectionConfig, FormFieldConfig } from "@/types";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { db } from "@/lib/firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
@@ -30,31 +30,61 @@ import { doc, getDoc, setDoc } from "firebase/firestore";
 const FORM_CONFIG_DOC_ID = 'formConfig';
 
 const defaultSections: FormSectionConfig[] = [
-    { 
-        id: 'general', 
+    {
+        id: 'general',
         name: 'Dados Gerais e Modalidades',
         description: 'Selecione as modalidades de ensino oferecidas.',
         fields: [
-            { id: 'f_desk_1', name: 'Total de Carteiras na Unidade', type: 'number', required: false, sectionId: 'general' },
             { id: 'f_mod_1', name: 'Anos Iniciais', type: 'boolean', required: true, sectionId: 'general' },
             { id: 'f_mod_2', name: 'Anos Finais', type: 'boolean', required: true, sectionId: 'general' },
             { id: 'f_mod_3', name: 'EJA', type: 'boolean', required: true, sectionId: 'general' },
-        ] 
+        ]
     },
-    { 
-        id: 'infra_167', 
+    {
+        id: 'management',
+        name: 'Dados da Gestão',
+        description: 'Informações de contato da equipe gestora.',
+        fields: [
+            // Gestor
+            { id: 'f_mgr_name', name: 'Nome do Gestor(a)', type: 'text', required: true, sectionId: 'management' },
+            { id: 'f_mgr_phone', name: 'Telefone do Gestor(a)', type: 'text', required: true, sectionId: 'management' },
+            { id: 'f_mgr_email', name: 'E-mail do Gestor(a)', type: 'text', required: true, sectionId: 'management' },
+            // Secretária
+            { id: 'f_sec_name', name: 'Nome da Secretária', type: 'text', required: true, sectionId: 'management' },
+            { id: 'f_sec_phone', name: 'Telefone da Secretária', type: 'text', required: false, sectionId: 'management' },
+            { id: 'f_sec_email', name: 'E-mail da Secretária', type: 'text', required: false, sectionId: 'management' },
+            // Orientador
+            { id: 'f_ori_name', name: 'Nome do Orientador(a)', type: 'text', required: false, sectionId: 'management' },
+            { id: 'f_ori_phone', name: 'Telefone do Orientador(a)', type: 'text', required: false, sectionId: 'management' },
+            { id: 'f_ori_email', name: 'E-mail do Orientador(a)', type: 'text', required: false, sectionId: 'management' },
+            // Supervisor
+            { id: 'f_sup_name', name: 'Nome do Supervisor(a)', type: 'text', required: false, sectionId: 'management' },
+            { id: 'f_sup_phone', name: 'Telefone do Supervisor(a)', type: 'text', required: false, sectionId: 'management' },
+            { id: 'f_sup_email', name: 'E-mail do Supervisor(a)', type: 'text', required: false, sectionId: 'management' },
+            // Psicóloga
+            { id: 'f_psy_name', name: 'Nome do Psicólogo(a)', type: 'text', required: false, sectionId: 'management' },
+            { id: 'f_psy_phone', name: 'Telefone do Psicólogo(a)', type: 'text', required: false, sectionId: 'management' },
+            { id: 'f_psy_email', name: 'E-mail do Psicólogo(a)', type: 'text', required: false, sectionId: 'management' },
+            // Pedagogo
+            { id: 'f_ped_name', name: 'Nome do Pedagogo(a)', type: 'text', required: false, sectionId: 'management' },
+            { id: 'f_ped_phone', name: 'Telefone do Pedagogo(a)', type: 'text', required: false, sectionId: 'management' },
+            { id: 'f_ped_email', name: 'E-mail do Pedagogo(a)', type: 'text', required: false, sectionId: 'management' },
+        ]
+    },
+    {
+        id: 'infra_167',
         name: 'Infraestrutura',
         description: 'Adicione as salas de aula e seus detalhes.',
         fields: []
     },
-    { 
-        id: 'tech', 
+    {
+        id: 'tech',
         name: 'Tecnologia',
         description: 'Detalhes sobre os recursos tecnológicos da escola.',
         fields: [
             { id: 'f_tech_1', name: 'Possui Internet?', type: 'boolean', required: false, sectionId: 'tech' },
             { id: 'f_tech_2', name: 'Velocidade (Mbps)', type: 'number', required: false, sectionId: 'tech' }
-        ] 
+        ]
     },
 ];
 
@@ -89,8 +119,8 @@ export function FormEditorSettings() {
 
     const saveConfig = async () => {
         if (!db) {
-             toast({ title: "Erro de Conexão", description: "Banco de dados não disponível.", variant: "destructive" });
-             return;
+            toast({ title: "Erro de Conexão", description: "Banco de dados não disponível.", variant: "destructive" });
+            return;
         }
         setLoading(true);
         const docRef = doc(db, 'settings', FORM_CONFIG_DOC_ID);
@@ -127,9 +157,9 @@ export function FormEditorSettings() {
             draft.splice(sectionIndex, 1);
         }));
     };
-    
+
     const updateSection = (sectionIndex: number, key: keyof FormSectionConfig, value: string) => {
-         setSections(produce(draft => {
+        setSections(produce(draft => {
             (draft[sectionIndex] as any)[key] = value;
         }));
     };
@@ -153,7 +183,7 @@ export function FormEditorSettings() {
             draft[sectionIndex].fields.splice(fieldIndex, 1);
         }));
     };
-    
+
     const updateField = (sectionIndex: number, fieldIndex: number, key: keyof FormFieldConfig, value: any) => {
         setSections(produce(draft => {
             (draft[sectionIndex].fields[fieldIndex] as any)[key] = value;
@@ -162,7 +192,7 @@ export function FormEditorSettings() {
 
     if (loading) {
         return (
-             <Card>
+            <Card>
                 <CardHeader>
                     <CardTitle>Editor de Formulário do Censo</CardTitle>
                     <CardDescription>
@@ -194,7 +224,7 @@ export function FormEditorSettings() {
                                 <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab" />
                                 <div className="flex-grow space-y-1">
                                     <Label htmlFor={`section-name-${section.id}`}>Nome da Seção</Label>
-                                    <Input 
+                                    <Input
                                         id={`section-name-${section.id}`}
                                         value={section.name}
                                         className="font-semibold text-lg"
@@ -211,7 +241,7 @@ export function FormEditorSettings() {
                                 <AlertDialogContent>
                                     <AlertDialogHeader>
                                         <AlertDialogTitle className="flex items-center gap-2">
-                                            <AlertTriangle className="text-destructive"/>
+                                            <AlertTriangle className="text-destructive" />
                                             Confirmar Exclusão
                                         </AlertDialogTitle>
                                         <AlertDialogDescription>
@@ -229,7 +259,7 @@ export function FormEditorSettings() {
                         </div>
                         <div className="pl-6 space-y-2">
                             <Label htmlFor={`section-desc-${section.id}`}>Descrição da Seção</Label>
-                             <Input 
+                            <Input
                                 id={`section-desc-${section.id}`}
                                 value={section.description}
                                 placeholder="Descrição da seção (opcional)"
@@ -237,67 +267,67 @@ export function FormEditorSettings() {
                             />
                         </div>
 
-                        { !section.id.startsWith('infra') && (
-                        <div className="space-y-4 pt-4 border-t mt-4">
-                            <h4 className="font-medium pl-6">Campos da Seção</h4>
-                             {section.fields.length === 0 && (
-                                <p className="text-sm text-muted-foreground pl-6">Nenhum campo nesta seção ainda.</p>
-                            )}
-                            {section.fields.map((field, fieldIndex) => (
-                                <div key={field.id} className="flex items-end gap-2 ml-6 border-l-2 pl-4 py-2 bg-background rounded-l-md">
-                                    <div className="flex-1 space-y-2">
-                                        <Label htmlFor={`field-name-${field.id}`}>Nome do Campo</Label>
-                                        <Input 
-                                            id={`field-name-${field.id}`} 
-                                            value={field.name}
-                                            onChange={(e) => updateField(sectionIndex, fieldIndex, 'name', e.target.value)}
-                                        />
+                        {!section.id.startsWith('infra') && (
+                            <div className="space-y-4 pt-4 border-t mt-4">
+                                <h4 className="font-medium pl-6">Campos da Seção</h4>
+                                {section.fields.length === 0 && (
+                                    <p className="text-sm text-muted-foreground pl-6">Nenhum campo nesta seção ainda.</p>
+                                )}
+                                {section.fields.map((field, fieldIndex) => (
+                                    <div key={field.id} className="flex items-end gap-2 ml-6 border-l-2 pl-4 py-2 bg-background rounded-l-md">
+                                        <div className="flex-1 space-y-2">
+                                            <Label htmlFor={`field-name-${field.id}`}>Nome do Campo</Label>
+                                            <Input
+                                                id={`field-name-${field.id}`}
+                                                value={field.name}
+                                                onChange={(e) => updateField(sectionIndex, fieldIndex, 'name', e.target.value)}
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor={`field-type-${field.id}`}>Tipo de Campo</Label>
+                                            <Select
+                                                value={field.type}
+                                                onValueChange={(value: FormFieldConfig['type']) => updateField(sectionIndex, fieldIndex, 'type', value)}
+                                            >
+                                                <SelectTrigger id={`field-type-${field.id}`} className="w-[180px]">
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="text">Texto</SelectItem>
+                                                    <SelectItem value="number">Número</SelectItem>
+                                                    <SelectItem value="boolean">Sim/Não (Checkbox)</SelectItem>
+                                                    <SelectItem value="date">Data</SelectItem>
+                                                    <SelectItem value="select">Lista de Opções</SelectItem>
+                                                    <SelectItem value="file" disabled>Upload de Arquivo</SelectItem>
+                                                    <SelectItem value="rating" disabled>Avaliação (Rating)</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div className="flex flex-col items-center space-y-2 ml-4">
+                                            <Label>Obrigatório</Label>
+                                            <Switch
+                                                checked={field.required}
+                                                onCheckedChange={(checked) => updateField(sectionIndex, fieldIndex, 'required', checked)}
+                                            />
+                                        </div>
+                                        <Button variant="ghost" size="icon" onClick={() => removeField(sectionIndex, fieldIndex)}>
+                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                        </Button>
                                     </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor={`field-type-${field.id}`}>Tipo de Campo</Label>
-                                        <Select 
-                                            value={field.type} 
-                                            onValueChange={(value: FormFieldConfig['type']) => updateField(sectionIndex, fieldIndex, 'type', value)}
-                                        >
-                                            <SelectTrigger id={`field-type-${field.id}`} className="w-[180px]">
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="text">Texto</SelectItem>
-                                                <SelectItem value="number">Número</SelectItem>
-                                                <SelectItem value="boolean">Sim/Não (Checkbox)</SelectItem>
-                                                <SelectItem value="date">Data</SelectItem>
-                                                <SelectItem value="select">Lista de Opções</SelectItem>
-                                                <SelectItem value="file" disabled>Upload de Arquivo</SelectItem>
-                                                <SelectItem value="rating" disabled>Avaliação (Rating)</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div className="flex flex-col items-center space-y-2 ml-4">
-                                        <Label>Obrigatório</Label>
-                                        <Switch 
-                                            checked={field.required} 
-                                            onCheckedChange={(checked) => updateField(sectionIndex, fieldIndex, 'required', checked)}
-                                        />
-                                    </div>
-                                    <Button variant="ghost" size="icon" onClick={() => removeField(sectionIndex, fieldIndex)}>
-                                        <Trash2 className="h-4 w-4 text-destructive" />
-                                    </Button>
-                                </div>
-                            ))}
-                            <Button variant="outline" size="sm" className="mt-2 ml-6" onClick={() => addField(sectionIndex)}>
-                                <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Campo
-                            </Button>
-                        </div>
+                                ))}
+                                <Button variant="outline" size="sm" className="mt-2 ml-6" onClick={() => addField(sectionIndex)}>
+                                    <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Campo
+                                </Button>
+                            </div>
                         )}
                     </div>
                 ))}
-                 <Button variant="outline" onClick={addSection}>
+                <Button variant="outline" onClick={addSection}>
                     <PlusCircle className="mr-2 h-4 w-4" /> Nova Seção
                 </Button>
             </CardContent>
             <CardFooter>
-                 <Button onClick={saveConfig} disabled={loading}>
+                <Button onClick={saveConfig} disabled={loading}>
                     {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Salvar Alterações
                 </Button>
@@ -306,4 +336,3 @@ export function FormEditorSettings() {
     );
 }
 
-    

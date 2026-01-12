@@ -3,12 +3,12 @@
 
 import React, { useState } from 'react';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import type { SchoolCensusSubmission, School, FormSectionConfig } from "@/types";
@@ -18,12 +18,12 @@ import { ptBR } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ArrowRight, CheckCircle, Circle, MoreHorizontal, File, Download } from "lucide-react";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
 } from "@/components/ui/dialog";
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -32,8 +32,8 @@ import { useAppSettings } from '@/context/AppContext';
 
 
 interface SubmissionsTableProps {
-  submissions: SchoolCensusSubmission[];
-  schoolMap: Map<string, School>;
+    submissions: SchoolCensusSubmission[];
+    schoolMap: Map<string, School>;
 }
 
 const StatusIcon = ({ status }: { status?: 'completed' | 'pending' }) => {
@@ -46,7 +46,7 @@ const StatusIcon = ({ status }: { status?: 'completed' | 'pending' }) => {
 const getOverallStatus = (submission: SchoolCensusSubmission, totalSections: number): { label: string; variant: "default" | "secondary" | "destructive" | "outline" | null | undefined; completedCount: number } => {
     const sections = [submission.general, submission.infrastructure, submission.technology, submission.cultural, submission.maintenance];
     const completedCount = sections.filter(s => s?.status === 'completed').length;
-    
+
     if (completedCount === totalSections) {
         return { label: 'Completo', variant: 'default', completedCount };
     }
@@ -78,7 +78,7 @@ const SubmissionStatusModal = ({ submission, school, overallStatus, totalSection
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Status do Censo - {school?.name}</DialogTitle>
-                     <div className="flex items-center gap-4 pt-2">
+                    <div className="flex items-center gap-4 pt-2">
                         <Progress value={(overallStatus.completedCount / totalSections) * 100} className="w-full" />
                         <span className="text-sm font-semibold text-muted-foreground whitespace-nowrap">{overallStatus.completedCount} de {totalSections} preenchidas</span>
                     </div>
@@ -103,73 +103,77 @@ const SubmissionStatusModal = ({ submission, school, overallStatus, totalSection
 
 
 export function SubmissionsTable({ submissions, schoolMap }: SubmissionsTableProps) {
-  const { settings } = useAppSettings();
+    const { settings } = useAppSettings();
 
-  if (submissions.length === 0) {
-      return (
-          <div className="p-6 text-center text-muted-foreground">
-              Nenhuma submissão encontrada. Preencha o formulário para uma escola para começar.
-          </div>
-      )
-  }
-  
-  // Assuming the number of sections defined in the form config is what we should count against.
-  // We'll have to find a way to get the formConfig here. A simple way for now is to assume 5 sections.
-  const totalSections = 5; 
-
-  return (
-    <Table>
-    <TableHeader>
-        <TableRow>
-        <TableHead>Escola</TableHead>
-        <TableHead className="hidden md:table-cell">INEP</TableHead>
-        <TableHead className="hidden md:table-cell">Última Atualização</TableHead>
-        <TableHead>Status</TableHead>
-        <TableHead className="hidden md:table-cell">Progresso</TableHead>
-        <TableHead>
-            <span className="sr-only">Ações</span>
-        </TableHead>
-        </TableRow>
-    </TableHeader>
-    <TableBody>
-        {submissions.map((submission) => {
-        const school = schoolMap.get(submission.schoolId);
-        const overallStatus = getOverallStatus(submission, totalSections);
+    if (submissions.length === 0) {
         return (
-            <TableRow key={submission.id}>
-            <TableCell className="font-medium">{school?.name || 'Escola não encontrada'}</TableCell>
-            <TableCell className="hidden md:table-cell">{school?.inep || 'N/A'}</TableCell>
-            <TableCell className="hidden md:table-cell">{submission.submittedAt ? format(new Date(submission.submittedAt), 'dd/MM/yyyy HH:mm', { locale: ptBR }) : 'N/A'}</TableCell>
-            <TableCell>
-                <Badge variant={overallStatus.variant}>{overallStatus.label}</Badge>
-            </TableCell>
-            <TableCell className="hidden md:table-cell">
-                 <SubmissionStatusModal submission={submission} school={school} overallStatus={overallStatus} totalSections={totalSections} />
-            </TableCell>
-            <TableCell>
-                 <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button aria-haspopup="true" size="icon" variant="ghost">
-                        <MoreHorizontal className="h-4 w-4" />
-                        <span className="sr-only">Toggle menu</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                      <DropdownMenuItem asChild>
-                         <Link href={`/admin/submissions/${submission.schoolId}`}>Ver Detalhes</Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link href={`/census?schoolId=${submission.schoolId}`}>Editar Formulário</Link>
-                      </DropdownMenuItem>
-                       <DropdownMenuItem disabled>Exportar PDF</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-            </TableCell>
-            </TableRow>
-        );
-        })}
-    </TableBody>
-    </Table>
-  );
+            <div className="p-6 text-center text-muted-foreground">
+                Nenhuma submissão encontrada. Preencha o formulário para uma escola para começar.
+            </div>
+        )
+    }
+
+    // Assuming the number of sections defined in the form config is what we should count against.
+    // We'll have to find a way to get the formConfig here. A simple way for now is to assume 5 sections.
+    const totalSections = 5;
+
+    return (
+        <Table>
+            <TableHeader>
+                <TableRow>
+                    <TableHead>Escola</TableHead>
+                    <TableHead className="hidden md:table-cell">INEP</TableHead>
+                    <TableHead className="hidden md:table-cell">Gestor</TableHead>
+                    <TableHead className="hidden md:table-cell">Última Atualização</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="hidden md:table-cell">Progresso</TableHead>
+                    <TableHead>
+                        <span className="sr-only">Ações</span>
+                    </TableHead>
+                </TableRow>
+            </TableHeader>
+            <TableBody>
+                {submissions.map((submission) => {
+                    const school = schoolMap.get(submission.schoolId);
+                    const overallStatus = getOverallStatus(submission, totalSections);
+                    const managerName = submission.dynamicData?.management?.f_mgr_name || 'Não informado';
+
+                    return (
+                        <TableRow key={submission.id}>
+                            <TableCell className="font-medium">{school?.name || 'Escola não encontrada'}</TableCell>
+                            <TableCell className="hidden md:table-cell">{school?.inep || 'N/A'}</TableCell>
+                            <TableCell className="hidden md:table-cell">{managerName}</TableCell>
+                            <TableCell className="hidden md:table-cell">{submission.submittedAt ? format(new Date(submission.submittedAt), 'dd/MM/yyyy HH:mm', { locale: ptBR }) : 'N/A'}</TableCell>
+                            <TableCell>
+                                <Badge variant={overallStatus.variant}>{overallStatus.label}</Badge>
+                            </TableCell>
+                            <TableCell className="hidden md:table-cell">
+                                <SubmissionStatusModal submission={submission} school={school} overallStatus={overallStatus} totalSections={totalSections} />
+                            </TableCell>
+                            <TableCell>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button aria-haspopup="true" size="icon" variant="ghost">
+                                            <MoreHorizontal className="h-4 w-4" />
+                                            <span className="sr-only">Toggle menu</span>
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                                        <DropdownMenuItem asChild>
+                                            <Link href={`/admin/submissions/${submission.schoolId}`}>Ver Detalhes</Link>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem asChild>
+                                            <Link href={`/census?schoolId=${submission.schoolId}`}>Editar Formulário</Link>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem disabled>Exportar PDF</DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </TableCell>
+                        </TableRow>
+                    );
+                })}
+            </TableBody>
+        </Table>
+    );
 }
