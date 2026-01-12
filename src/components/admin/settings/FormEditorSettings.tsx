@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { PlusCircle, Trash2, GripVertical, Loader2, AlertTriangle } from "lucide-react";
+import { PlusCircle, Trash2, GripVertical, Loader2, AlertTriangle, RotateCcw } from "lucide-react";
 import { produce } from "immer";
 import { useToast } from "@/hooks/use-toast";
 import type { FormSectionConfig, FormFieldConfig } from "@/types";
@@ -138,6 +138,31 @@ export function FormEditorSettings() {
             });
         } finally {
             setLoading(false);
+        }
+    };
+
+    const resetToDefaults = async () => {
+        if (confirm("Tem certeza? Isso irá substituir todas as configurações atuais do formulário pelos padrões recomendados (incluindo a nova seção de Gestão).")) {
+            setSections(defaultSections);
+
+            if (!db) return;
+            setLoading(true);
+            const docRef = doc(db, 'settings', FORM_CONFIG_DOC_ID);
+            try {
+                await setDoc(docRef, { sections: defaultSections });
+                toast({
+                    title: "Redefinido!",
+                    description: "As configurações foram restauradas para o padrão.",
+                });
+            } catch (error) {
+                toast({
+                    title: "Erro!",
+                    description: "Erro ao salvar configurações padrão.",
+                    variant: "destructive",
+                });
+            } finally {
+                setLoading(false);
+            }
         }
     };
 
@@ -331,8 +356,10 @@ export function FormEditorSettings() {
                     {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Salvar Alterações
                 </Button>
+                <Button variant="outline" onClick={resetToDefaults} disabled={loading} className="ml-auto text-muted-foreground hover:text-foreground">
+                    <RotateCcw className="mr-2 h-4 w-4" /> Restaurar Padrões
+                </Button>
             </CardFooter>
         </Card>
     );
 }
-
