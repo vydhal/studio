@@ -49,6 +49,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Separator } from "@/components/ui/separator";
 import { InventorySection } from "./InventorySection";
+import { ManagementSection } from "./ManagementSection";
 
 
 const classroomSchema = z.object({
@@ -297,131 +298,7 @@ const InfrastructureSection = ({ control }: { control: any }) => {
     );
 };
 
-const ManagementSection = ({ control }: { control: any }) => {
-    const { fields, append, remove } = useFieldArray({
-        control,
-        name: "management.members",
-    });
 
-    const addMember = () => {
-        append({
-            id: `member_${Date.now()}`,
-            name: '',
-            role: '',
-            phone: '',
-            email: ''
-        });
-    };
-
-    const roles = [
-        "Gestor(a)",
-        "Diretor(a)",
-        "Vice-Diretor(a)",
-        "Secretário(a)",
-        "Coordenador(a) Pedagógico",
-        "Orientador(a) Educacional",
-        "Supervisor(a)",
-        "Psicólogo(a)",
-        "Outro"
-    ];
-
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Equipe Gestora</CardTitle>
-                <CardDescription>Adicione os membros da equipe de gestão escolar.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {fields.map((item, index) => (
-                        <Card key={item.id} className="relative bg-muted/20">
-                            <CardContent className="pt-6 space-y-4">
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    className="absolute top-2 right-2 h-6 w-6"
-                                    onClick={() => remove(index)}
-                                >
-                                    <Trash2 className="h-4 w-4 text-destructive" />
-                                </Button>
-
-                                <FormField
-                                    control={control}
-                                    name={`management.members.${index}.name`}
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Nome Completo</FormLabel>
-                                            <FormControl><Input {...field} placeholder="Nome do profissional" /></FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-
-                                <FormField
-                                    control={control}
-                                    name={`management.members.${index}.role`}
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Cargo/Função</FormLabel>
-                                            <Select onValueChange={field.onChange} value={field.value}>
-                                                <FormControl>
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="Selecione..." />
-                                                    </SelectTrigger>
-                                                </FormControl>
-                                                <SelectContent>
-                                                    {roles.map(role => (
-                                                        <SelectItem key={role} value={role}>{role}</SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-
-                                <FormField
-                                    control={control}
-                                    name={`management.members.${index}.phone`}
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Telefone</FormLabel>
-                                            <FormControl><Input {...field} placeholder="(00) 00000-0000" /></FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-
-                                <FormField
-                                    control={control}
-                                    name={`management.members.${index}.email`}
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>E-mail</FormLabel>
-                                            <FormControl><Input {...field} placeholder="email@escola.com" /></FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            </CardContent>
-                        </Card>
-                    ))}
-
-                    <Button
-                        type="button"
-                        variant="outline"
-                        onClick={addMember}
-                        className="h-full min-h-[150px] border-dashed flex flex-col gap-2"
-                    >
-                        <PlusCircle className="h-8 w-8 text-muted-foreground" />
-                        <span>Adicionar Membro</span>
-                    </Button>
-                </div>
-            </CardContent>
-        </Card>
-    );
-};
 
 
 
@@ -556,6 +433,32 @@ export function SchoolCensusForm() {
     }, [searchParams, form, generateDefaultValues, appLoading, toast, user]);
 
 
+    const [searchTerm, setSearchTerm] = useState("");
+
+    useEffect(() => {
+        if (userProfile?.schoolId) {
+            const preselectSchool = async () => {
+                // Determine if we need to set the value. 
+                // We only do this if it's not already set to avoid loops or conflicts with URL params
+                const currentSchoolId = form.getValues('schoolId');
+                if (currentSchoolId !== userProfile.schoolId) {
+                    form.setValue('schoolId', userProfile.schoolId);
+                    await handleSchoolChange(userProfile.schoolId!);
+                }
+            }
+            preselectSchool();
+        }
+    }, [userProfile, form]);
+
+    const filteredSchools = useMemo(() => {
+        if (!schools) return [];
+        return schools.filter(school =>
+            school.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            school.inep.includes(searchTerm)
+        );
+    }, [schools, searchTerm]);
+
+
     const handleSchoolChange = async (schoolId: string) => {
         if (!db || !user) return;
         router.push(`/census?schoolId=${schoolId}`, { scroll: false });
@@ -629,7 +532,7 @@ export function SchoolCensusForm() {
         try {
             const submissionRef = doc(db, 'submissions', schoolId);
 
-            const statusUpdates: { [key: string]: { status: 'completed' } } = {};
+            const statusUpdates: { [key: string]: 'completed' | 'pending' } = {};
 
             // **FIX:** Iterate over the full `formConfig` instead of `visibleSections`
             // to ensure all submitted data is checked for completion status.
@@ -646,16 +549,54 @@ export function SchoolCensusForm() {
                     if (management && management.members.length > 0) {
                         isCompleted = true;
                     }
+                } else if (sectionId === 'inventory') {
+                    // Check if any inventory category has items
+                    const inventoryData = values.inventory;
+                    if (inventoryData && Object.values(inventoryData).some((items: any) => Array.isArray(items) && items.length > 0)) {
+                        isCompleted = true;
+                    }
                 } else {
                     const sectionData = dynamicData[originalSectionId];
                     if (sectionData && Object.values(sectionData).some(v => v !== '' && v !== false && v !== null && v !== undefined)) {
                         isCompleted = true;
                     }
                 }
+
                 if (isCompleted) {
-                    // The key for status update should match the section type (general, infra, etc.)
-                    // not the dynamic section ID (e.g. infra_167). We extract it.
-                    statusUpdates[sectionId] = { status: 'completed' };
+                    statusUpdates[sectionId] = 'completed';
+                }
+            });
+
+            // Prepare specific section data with status merged
+            const infrastructureData = infrastructure ? {
+                ...infrastructure,
+                status: statusUpdates['infra'] || 'pending'
+            } : undefined;
+
+            const managementData = management ? {
+                ...management,
+                status: statusUpdates['management'] || 'pending'
+            } : undefined;
+
+            const inventoryData = values.inventory ? {
+                ...values.inventory,
+                status: statusUpdates['inventory'] || 'pending'
+            } : undefined;
+
+            // For other sections that are just status markers (Cultural, Maintenance, etc. if they don't have separate objects yet)
+            // If they are in dynamicData, they are saved in dynamicData.
+            // If they are top-level properties (like general, cultural, maintenance, furniture, technology), 
+            // we need to construct them if they don't exist in 'values' but are needed for status tracking.
+
+            // Assuming 'general', 'technology', 'cultural', 'maintenance', 'furniture' are handled via dynamicData for *content*,
+            // but the interface expectation might be a top-level object for *status*.
+            // Looking at types: `general: GeneralData` which has `status`.
+            // But `values` from formSchema puts their content in `dynamicData`.
+
+            const otherSections: any = {};
+            ['general', 'technology', 'cultural', 'maintenance', 'furniture'].forEach(key => {
+                if (statusUpdates[key]) {
+                    otherSections[key] = { status: statusUpdates[key] };
                 }
             });
 
@@ -663,9 +604,10 @@ export function SchoolCensusForm() {
                 id: schoolId,
                 schoolId: schoolId,
                 dynamicData,
-                infrastructure,
-                management,
-                ...statusUpdates,
+                infrastructure: infrastructureData,
+                management: managementData,
+                inventory: inventoryData,
+                ...otherSections, // Merge other simple status objects
                 submittedAt: serverTimestamp(),
                 submittedBy: user?.uid || 'unknown'
             };
@@ -723,22 +665,38 @@ export function SchoolCensusForm() {
                             name="schoolId"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Selecione a escola que está sendo recenseada</FormLabel>
-                                    <Select onValueChange={(value) => {
-                                        field.onChange(value);
-                                        handleSchoolChange(value);
-                                    }} value={field.value}>
+                                    <FormLabel>Selecione a escola</FormLabel>
+                                    <Select
+                                        onValueChange={(value) => {
+                                            field.onChange(value);
+                                            handleSchoolChange(value);
+                                        }}
+                                        defaultValue={field.value}
+                                        value={field.value}
+                                        disabled={!!userProfile?.schoolId}
+                                    >
                                         <FormControl>
                                             <SelectTrigger>
                                                 <SelectValue placeholder="Selecione uma escola" />
                                             </SelectTrigger>
                                         </FormControl>
                                         <SelectContent>
-                                            {schools.map((school) => (
+                                            <div className="p-2 sticky top-0 bg-background z-10">
+                                                <Input
+                                                    placeholder="Buscar escola..."
+                                                    value={searchTerm}
+                                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                                    className="w-full"
+                                                />
+                                            </div>
+                                            {filteredSchools.map((school) => (
                                                 <SelectItem key={school.id} value={school.id}>
                                                     {school.name} (INEP: {school.inep})
                                                 </SelectItem>
                                             ))}
+                                            {filteredSchools.length === 0 && (
+                                                <div className="p-2 text-sm text-muted-foreground text-center">Nenhuma escola encontrada</div>
+                                            )}
                                         </SelectContent>
                                     </Select>
                                     <FormMessage />

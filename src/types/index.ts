@@ -103,7 +103,7 @@ export interface InventoryData {
   library?: InventoryItem[];
 }
 
-export type FormSectionPermission = 'general' | 'infrastructure' | 'technology' | 'cultural' | 'maintenance' | 'users' | 'furniture' | 'inventory';
+export type FormSectionPermission = 'general' | 'infrastructure' | 'tech' | 'cultural' | 'maintenance' | 'users' | 'furniture' | 'inventory' | 'management';
 
 export interface Role {
   id: string;
@@ -118,6 +118,7 @@ export interface UserProfile {
   roleId: string; // Foreign key to Role
   role: Role | null; // Populated role object
   password?: string;
+  schoolId?: string; // Optional: Assigns user to a specific school
 }
 
 

@@ -9,33 +9,34 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogFooter, DialogClose, DialogTitle } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import type { UserProfile, Role, FormSectionPermission } from "@/types";
+import type { UserProfile, Role, FormSectionPermission, School } from "@/types";
 import { PlusCircle, MoreHorizontal } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { db, auth } from '@/lib/firebase';
-import { collection, onSnapshot, addDoc, doc, setDoc, deleteDoc, writeBatch } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, doc, setDoc, deleteDoc, writeBatch, getDocs, query, orderBy } from 'firebase/firestore';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { useAuth } from '@/hooks/useAuth';
 
 
 const roleSchema = z.object({
-  id: z.string().optional(),
-  name: z.string().min(2, "Nome do perfil é obrigatório."),
-  permissions: z.array(z.string()).min(1, "Selecione ao menos uma permissão."),
+    id: z.string().optional(),
+    name: z.string().min(2, "Nome do perfil é obrigatório."),
+    permissions: z.array(z.string()).min(1, "Selecione ao menos uma permissão."),
 });
 
 const userSchema = z.object({
-  id: z.string().optional(),
-  name: z.string().min(2, "Nome do usuário é obrigatório."),
-  email: z.string().email("Email inválido."),
-  password: z.string().min(6, "A senha deve ter no mínimo 6 caracteres.").optional(),
-  roleId: z.string().min(1, "Selecione um perfil."),
+    id: z.string().optional(),
+    name: z.string().min(2, "Nome do usuário é obrigatório."),
+    email: z.string().email("Email inválido."),
+    password: z.string().min(6, "A senha deve ter no mínimo 6 caracteres.").optional(),
+    roleId: z.string().min(1, "Selecione um perfil."),
+    schoolId: z.string().optional(),
 }).refine(data => data.id || data.password, {
     message: "A senha é obrigatória para novos usuários.",
     path: ["password"],
@@ -44,286 +45,335 @@ const userSchema = z.object({
 
 const formSections: { id: FormSectionPermission; label: string }[] = [
     { id: 'general', label: 'Dados Gerais' },
+    { id: 'management', label: 'Equipe Gestora' },
     { id: 'infrastructure', label: 'Infraestrutura' },
-    { id: 'technology', label: 'Tecnologia' },
+    { id: 'furniture', label: 'Mobília' },
+    { id: 'inventory', label: 'Inventário' },
+    { id: 'tech', label: 'Tecnologia' },
     { id: 'cultural', label: 'Cultural' },
     { id: 'maintenance', label: 'Manutenção' },
     { id: 'users', label: 'Gerenciar Usuários' },
 ];
 
 export function UserManagementClient() {
-  const { toast } = useToast();
-  const [users, setUsers] = useState<UserProfile[]>([]);
-  const [roles, setRoles] = useState<Role[]>([]);
-  const [isUserModalOpen, setUserModalOpen] = useState(false);
-  const [isRoleModalOpen, setRoleModalOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
-  const [editingRole, setEditingRole] = useState<Role | null>(null);
-  const { userProfile, loading: authLoading } = useAuth();
-  const hasUsersPermission = userProfile?.role?.permissions.includes('users');
+    const { toast } = useToast();
+    const [users, setUsers] = useState<UserProfile[]>([]);
+    const [roles, setRoles] = useState<Role[]>([]);
+    const [schools, setSchools] = useState<School[]>([]);
+    const [isUserModalOpen, setUserModalOpen] = useState(false);
+    const [isRoleModalOpen, setRoleModalOpen] = useState(false);
+    const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
+    const [editingRole, setEditingRole] = useState<Role | null>(null);
+    const { userProfile, loading: authLoading } = useAuth();
+    const hasUsersPermission = userProfile?.role?.permissions.includes('users');
 
 
-  useEffect(() => {
-    // Only admins can view user/role data. Wait for auth to resolve.
-    if (authLoading || !hasUsersPermission || !db) {
-        return;
-    }
-    
-    const usersUnsub = onSnapshot(collection(db, 'users'), snapshot => {
-        setUsers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as UserProfile)));
-    }, (error) => console.error("Error listening to users:", error));
+    useEffect(() => {
+        // Only admins can view user/role data. Wait for auth to resolve.
+        if (authLoading || !hasUsersPermission || !db) {
+            return;
+        }
 
-    const rolesUnsub = onSnapshot(collection(db, 'roles'), snapshot => {
-        setRoles(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Role)));
-    }, (error) => console.error("Error listening to roles:", error));
+        const usersUnsub = onSnapshot(collection(db, 'users'), snapshot => {
+            setUsers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as UserProfile)));
+        }, (error) => console.error("Error listening to users:", error));
 
-    return () => {
-        usersUnsub();
-        rolesUnsub();
-    };
-  }, [authLoading, hasUsersPermission]);
+        const rolesUnsub = onSnapshot(collection(db, 'roles'), snapshot => {
+            setRoles(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Role)));
+        }, (error) => console.error("Error listening to roles:", error));
 
-  const roleForm = useForm<z.infer<typeof roleSchema>>({
-    resolver: zodResolver(roleSchema),
-    defaultValues: { name: "", permissions: [] },
-  });
-
-  const userForm = useForm<z.infer<typeof userSchema>>({
-    resolver: zodResolver(userSchema),
-    defaultValues: { name: "", email: "", roleId: "" },
-  });
-
-  const handleEditUser = (user: UserProfile) => {
-    setEditingUser(user);
-    userForm.reset({...user, password: ''}); // Don't show password
-    setUserModalOpen(true);
-  };
-
-  const handleEditRole = (role: Role) => {
-    setEditingRole(role);
-    roleForm.reset(role);
-    setRoleModalOpen(true);
-  };
-  
-  const handleDeleteUser = async (userId: string) => {
-    if (!db) return;
-    // Note: This only deletes the Firestore record.
-    // For a production app, you'd want a Cloud Function to delete the Auth user too.
-    await deleteDoc(doc(db, "users", userId));
-    toast({ title: "Usuário excluído com sucesso." });
-  }
-
-  const handleDeleteRole = async (roleId: string) => {
-    if (!db) return;
-    // TODO: Check if role is in use before deleting
-    await deleteDoc(doc(db, "roles", roleId));
-    toast({ title: "Perfil excluído com sucesso." });
-  }
-
-  const onUserSubmit = async (values: z.infer<typeof userSchema>) => {
-    if(!db) return;
-    toast({ title: `Salvando usuário...` });
-
-    try {
-        if (editingUser) {
-            // Updating existing user
-            const userRef = doc(db, 'users', editingUser.id);
-            const { name, roleId } = values;
-            await setDoc(userRef, { name, roleId }, { merge: true });
-        } else {
-            // Creating new user
-            if (!values.password) {
-                toast({ title: "Erro", description: "Senha é obrigatória para novos usuários.", variant: "destructive"});
-                return;
+        const fetchSchools = async () => {
+            try {
+                const schoolsQuery = query(collection(db, 'schools'), orderBy('name'));
+                const snapshot = await getDocs(schoolsQuery);
+                setSchools(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as School)));
+            } catch (error) {
+                console.error("Error fetching schools:", error);
             }
-             // This is a simplified user creation flow.
-             // In a real app, you might send an invitation email instead.
-            const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
-            const user = userCredential.user;
-            await updateProfile(user, { displayName: values.name });
+        };
+        fetchSchools();
 
-            // Now create the user profile document in Firestore
-            const userRef = doc(db, 'users', user.uid);
-            const { name, email, roleId } = values;
-            await setDoc(userRef, { name, email, roleId });
-        }
-        setUserModalOpen(false);
-        setEditingUser(null);
-        userForm.reset({ name: "", email: "", roleId: "", password: "" });
-        toast({ title: `Usuário ${editingUser ? 'atualizado' : 'criado'} com sucesso!` });
-    } catch (e: any) {
-        let message = "Erro ao salvar usuário";
-        if (e.code === 'auth/email-already-in-use') {
-            message = "Este email já está sendo utilizado por outro usuário.";
-        }
-        toast({ title: message, variant: "destructive"});
+        return () => {
+            usersUnsub();
+            rolesUnsub();
+        };
+    }, [authLoading, hasUsersPermission]);
+
+    const roleForm = useForm<z.infer<typeof roleSchema>>({
+        resolver: zodResolver(roleSchema),
+        defaultValues: { name: "", permissions: [] },
+    });
+
+    const userForm = useForm<z.infer<typeof userSchema>>({
+        resolver: zodResolver(userSchema),
+        defaultValues: { name: "", email: "", roleId: "", schoolId: "" },
+    });
+
+    const handleEditUser = (user: UserProfile) => {
+        setEditingUser(user);
+        userForm.reset({ ...user, password: '', schoolId: user.schoolId || 'none' }); // Don't show password
+        setUserModalOpen(true);
+    };
+
+    const handleEditRole = (role: Role) => {
+        setEditingRole(role);
+        roleForm.reset(role);
+        setRoleModalOpen(true);
+    };
+
+    const handleDeleteUser = async (userId: string) => {
+        if (!db) return;
+        // Note: This only deletes the Firestore record.
+        // For a production app, you'd want a Cloud Function to delete the Auth user too.
+        await deleteDoc(doc(db, "users", userId));
+        toast({ title: "Usuário excluído com sucesso." });
     }
-  };
 
-  const onRoleSubmit = async (values: z.infer<typeof roleSchema>) => {
-    if(!db) return;
-    toast({ title: `Salvando perfil...` });
-    try {
-        if (editingRole) {
-            const roleRef = doc(db, 'roles', editingRole.id);
-            await setDoc(roleRef, values, { merge: true });
-        } else {
-            const docRef = doc(collection(db, 'roles'));
-            await setDoc(docRef, {...values, id: docRef.id });
-        }
-        setRoleModalOpen(false);
-        setEditingRole(null);
-        roleForm.reset({ name: "", permissions: [] });
-        toast({ title: `Perfil ${editingRole ? 'atualizado' : 'criado'} com sucesso!` });
-    } catch(e) {
-         toast({ title: "Erro ao salvar perfil", variant: "destructive"});
+    const handleDeleteRole = async (roleId: string) => {
+        if (!db) return;
+        // TODO: Check if role is in use before deleting
+        await deleteDoc(doc(db, "roles", roleId));
+        toast({ title: "Perfil excluído com sucesso." });
     }
-  };
 
-  return (
-    <Tabs defaultValue="users">
-        <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="users">Gerenciar Usuários</TabsTrigger>
-            <TabsTrigger value="roles">Gerenciar Perfis</TabsTrigger>
-        </TabsList>
+    const onUserSubmit = async (values: z.infer<typeof userSchema>) => {
+        if (!db) return;
+        toast({ title: `Salvando usuário...` });
 
-        <TabsContent value="users" className="space-y-4">
-             <Card>
-                <CardHeader>
-                    <div className="flex justify-between items-center">
-                        <div>
-                            <CardTitle>Usuários</CardTitle>
-                            <CardDescription>Adicione, edite e remova usuários do sistema.</CardDescription>
+        try {
+            if (editingUser) {
+                // Updating existing user
+                const userRef = doc(db, 'users', editingUser.id);
+                const { name, roleId, schoolId } = values;
+                const dataToUpdate = {
+                    name,
+                    roleId,
+                    schoolId: schoolId === 'none' ? null : schoolId
+                };
+                await setDoc(userRef, dataToUpdate, { merge: true });
+            } else {
+                // Creating new user
+                if (!values.password) {
+                    toast({ title: "Erro", description: "Senha é obrigatória para novos usuários.", variant: "destructive" });
+                    return;
+                }
+                // This is a simplified user creation flow.
+                // In a real app, you might send an invitation email instead.
+                const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+                const user = userCredential.user;
+                await updateProfile(user, { displayName: values.name });
+
+                // Now create the user profile document in Firestore
+                const userRef = doc(db, 'users', user.uid);
+                const { name, email, roleId, schoolId } = values;
+                await setDoc(userRef, {
+                    name,
+                    email,
+                    roleId,
+                    schoolId: schoolId === 'none' ? null : schoolId
+                });
+            }
+            setUserModalOpen(false);
+            setEditingUser(null);
+            userForm.reset({ name: "", email: "", roleId: "", password: "" });
+            toast({ title: `Usuário ${editingUser ? 'atualizado' : 'criado'} com sucesso!` });
+        } catch (e: any) {
+            let message = "Erro ao salvar usuário";
+            if (e.code === 'auth/email-already-in-use') {
+                message = "Este email já está sendo utilizado por outro usuário.";
+            }
+            toast({ title: message, variant: "destructive" });
+        }
+    };
+
+    const onRoleSubmit = async (values: z.infer<typeof roleSchema>) => {
+        if (!db) return;
+        toast({ title: `Salvando perfil...` });
+        try {
+            if (editingRole) {
+                const roleRef = doc(db, 'roles', editingRole.id);
+                await setDoc(roleRef, values, { merge: true });
+            } else {
+                const docRef = doc(collection(db, 'roles'));
+                await setDoc(docRef, { ...values, id: docRef.id });
+            }
+            setRoleModalOpen(false);
+            setEditingRole(null);
+            roleForm.reset({ name: "", permissions: [] });
+            toast({ title: `Perfil ${editingRole ? 'atualizado' : 'criado'} com sucesso!` });
+        } catch (e) {
+            toast({ title: "Erro ao salvar perfil", variant: "destructive" });
+        }
+    };
+
+    return (
+        <Tabs defaultValue="users">
+            <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="users">Gerenciar Usuários</TabsTrigger>
+                <TabsTrigger value="roles">Gerenciar Perfis</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="users" className="space-y-4">
+                <Card>
+                    <CardHeader>
+                        <div className="flex justify-between items-center">
+                            <div>
+                                <CardTitle>Usuários</CardTitle>
+                                <CardDescription>Adicione, edite e remova usuários do sistema.</CardDescription>
+                            </div>
+                            <Button onClick={() => { setEditingUser(null); userForm.reset({ name: "", email: "", roleId: "" }); setUserModalOpen(true); }}>
+                                <PlusCircle className="mr-2 h-4 w-4" /> Novo Usuário
+                            </Button>
                         </div>
-                         <Button onClick={() => { setEditingUser(null); userForm.reset({ name: "", email: "", roleId: "" }); setUserModalOpen(true); }}>
-                            <PlusCircle className="mr-2 h-4 w-4" /> Novo Usuário
-                        </Button>
-                    </div>
-                </CardHeader>
-                <CardContent>
-                    <UsersTable users={users} roles={roles} onEdit={handleEditUser} onDelete={handleDeleteUser} />
-                </CardContent>
-            </Card>
-        </TabsContent>
-        <TabsContent value="roles" className="space-y-4">
-            <Card>
-                <CardHeader>
-                    <div className="flex justify-between items-center">
-                        <div>
-                            <CardTitle>Perfis de Acesso</CardTitle>
-                            <CardDescription>Crie perfis e defina as permissões de cada um.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <UsersTable users={users} roles={roles} onEdit={handleEditUser} onDelete={handleDeleteUser} />
+                    </CardContent>
+                </Card>
+            </TabsContent>
+            <TabsContent value="roles" className="space-y-4">
+                <Card>
+                    <CardHeader>
+                        <div className="flex justify-between items-center">
+                            <div>
+                                <CardTitle>Perfis de Acesso</CardTitle>
+                                <CardDescription>Crie perfis e defina as permissões de cada um.</CardDescription>
+                            </div>
+                            <Button onClick={() => { setEditingRole(null); roleForm.reset({ name: "", permissions: [] }); setRoleModalOpen(true); }}>
+                                <PlusCircle className="mr-2 h-4 w-4" /> Novo Perfil
+                            </Button>
                         </div>
-                        <Button onClick={() => { setEditingRole(null); roleForm.reset({ name: "", permissions: [] }); setRoleModalOpen(true);}}>
-                            <PlusCircle className="mr-2 h-4 w-4" /> Novo Perfil
-                        </Button>
-                    </div>
-                </CardHeader>
-                <CardContent>
-                    <RolesTable roles={roles} onEdit={handleEditRole} onDelete={handleDeleteRole} />
-                </CardContent>
-            </Card>
-        </TabsContent>
+                    </CardHeader>
+                    <CardContent>
+                        <RolesTable roles={roles} onEdit={handleEditRole} onDelete={handleDeleteRole} />
+                    </CardContent>
+                </Card>
+            </TabsContent>
 
-        {/* User Modal */}
-        <Dialog open={isUserModalOpen} onOpenChange={setUserModalOpen}>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>{editingUser ? 'Editar' : 'Novo'} Usuário</DialogTitle>
-                     <DialogDescription>
-                        A criação de um novo usuário o adicionará ao Firebase Authentication e criará um perfil no Firestore.
-                    </DialogDescription>
-                </DialogHeader>
-                <Form {...userForm}>
-                    <form onSubmit={userForm.handleSubmit(onUserSubmit)} className="space-y-4">
-                        <FormField control={userForm.control} name="name" render={({ field }) => (
-                            <FormItem><FormLabel>Nome</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                        )} />
-                        <FormField control={userForm.control} name="email" render={({ field }) => (
-                            <FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" {...field} disabled={!!editingUser} /></FormControl><FormMessage /></FormItem>
-                        )} />
-                        {!editingUser && (
-                            <FormField control={userForm.control} name="password" render={({ field }) => (
-                                <FormItem><FormLabel>Senha</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem>
+            {/* User Modal */}
+            <Dialog open={isUserModalOpen} onOpenChange={setUserModalOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{editingUser ? 'Editar' : 'Novo'} Usuário</DialogTitle>
+                        <DialogDescription>
+                            A criação de um novo usuário o adicionará ao Firebase Authentication e criará um perfil no Firestore.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <Form {...userForm}>
+                        <form onSubmit={userForm.handleSubmit(onUserSubmit)} className="space-y-4">
+                            <FormField control={userForm.control} name="name" render={({ field }) => (
+                                <FormItem><FormLabel>Nome</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                             )} />
-                        )}
-                        <FormField control={userForm.control} name="roleId" render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Perfil</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                    <FormControl><SelectTrigger><SelectValue placeholder="Selecione um perfil" /></SelectTrigger></FormControl>
-                                    <SelectContent>
-                                        {roles.map(role => <SelectItem key={role.id} value={role.id}>{role.name}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                            </FormItem>
-                        )} />
-                        <DialogFooter>
-                            <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
-                            <Button type="submit">Salvar</Button>
-                        </DialogFooter>
-                    </form>
-                </Form>
-            </DialogContent>
-        </Dialog>
-
-        {/* Role Modal */}
-        <Dialog open={isRoleModalOpen} onOpenChange={setRoleModalOpen}>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>{editingRole ? 'Editar' : 'Novo'} Perfil</DialogTitle>
-                </DialogHeader>
-                <Form {...roleForm}>
-                    <form onSubmit={roleForm.handleSubmit(onRoleSubmit)} className="space-y-4">
-                        <FormField control={roleForm.control} name="name" render={({ field }) => (
-                             <FormItem><FormLabel>Nome do Perfil</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                        )} />
-                        <FormField
-                            control={roleForm.control}
-                            name="permissions"
-                            render={() => (
+                            <FormField control={userForm.control} name="email" render={({ field }) => (
+                                <FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" {...field} disabled={!!editingUser} /></FormControl><FormMessage /></FormItem>
+                            )} />
+                            {!editingUser && (
+                                <FormField control={userForm.control} name="password" render={({ field }) => (
+                                    <FormItem><FormLabel>Senha</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem>
+                                )} />
+                            )}
+                            <FormField control={userForm.control} name="roleId" render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Permissões da Seção</FormLabel>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        {formSections.map((item) => (
-                                            <FormField
-                                                key={item.id}
-                                                control={roleForm.control}
-                                                name="permissions"
-                                                render={({ field }) => {
-                                                    return (
-                                                        <FormItem key={item.id} className="flex flex-row items-start space-x-3 space-y-0">
-                                                            <FormControl>
-                                                                <Checkbox
-                                                                    checked={field.value?.includes(item.id)}
-                                                                    onCheckedChange={(checked) => {
-                                                                        return checked
-                                                                        ? field.onChange([...(field.value || []), item.id])
-                                                                        : field.onChange((field.value || []).filter((value) => value !== item.id))
-                                                                    }}
-                                                                />
-                                                            </FormControl>
-                                                            <FormLabel className="font-normal">{item.label}</FormLabel>
-                                                        </FormItem>
-                                                    )
-                                                }}
-                                            />
-                                        ))}
-                                    </div>
+                                    <FormLabel>Perfil</FormLabel>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <FormControl><SelectTrigger><SelectValue placeholder="Selecione um perfil" /></SelectTrigger></FormControl>
+                                        <SelectContent>
+                                            {roles.map(role => <SelectItem key={role.id} value={role.id}>{role.name}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
                                     <FormMessage />
                                 </FormItem>
-                            )}
-                        />
-                         <DialogFooter>
-                            <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
-                            <Button type="submit">Salvar</Button>
-                        </DialogFooter>
-                    </form>
-                </Form>
-            </DialogContent>
-        </Dialog>
-    </Tabs>
-  );
+                            )} />
+
+                            <FormField control={userForm.control} name="schoolId" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Unidade Educacional (Opcional)</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value || "none"}>
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Selecione uma escola (ou Nenhuma para Admin Geral)" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            <SelectItem value="none">Nenhuma (Acesso Geral)</SelectItem>
+                                            {schools.map(school => (
+                                                <SelectItem key={school.id} value={school.id}>{school.name}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormDescription>
+                                        Se selecionado, o usuário só terá acesso aos dados desta escola.
+                                    </FormDescription>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+
+                            <DialogFooter>
+                                <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+                                <Button type="submit">Salvar</Button>
+                            </DialogFooter>
+                        </form>
+                    </Form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Role Modal */}
+            <Dialog open={isRoleModalOpen} onOpenChange={setRoleModalOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{editingRole ? 'Editar' : 'Novo'} Perfil</DialogTitle>
+                    </DialogHeader>
+                    <Form {...roleForm}>
+                        <form onSubmit={roleForm.handleSubmit(onRoleSubmit)} className="space-y-4">
+                            <FormField control={roleForm.control} name="name" render={({ field }) => (
+                                <FormItem><FormLabel>Nome do Perfil</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                            )} />
+                            <FormField
+                                control={roleForm.control}
+                                name="permissions"
+                                render={() => (
+                                    <FormItem>
+                                        <FormLabel>Permissões da Seção</FormLabel>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            {formSections.map((item) => (
+                                                <FormField
+                                                    key={item.id}
+                                                    control={roleForm.control}
+                                                    name="permissions"
+                                                    render={({ field }) => {
+                                                        return (
+                                                            <FormItem key={item.id} className="flex flex-row items-start space-x-3 space-y-0">
+                                                                <FormControl>
+                                                                    <Checkbox
+                                                                        checked={field.value?.includes(item.id)}
+                                                                        onCheckedChange={(checked) => {
+                                                                            return checked
+                                                                                ? field.onChange([...(field.value || []), item.id])
+                                                                                : field.onChange((field.value || []).filter((value) => value !== item.id))
+                                                                        }}
+                                                                    />
+                                                                </FormControl>
+                                                                <FormLabel className="font-normal">{item.label}</FormLabel>
+                                                            </FormItem>
+                                                        )
+                                                    }}
+                                                />
+                                            ))}
+                                        </div>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <DialogFooter>
+                                <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+                                <Button type="submit">Salvar</Button>
+                            </DialogFooter>
+                        </form>
+                    </Form>
+                </DialogContent>
+            </Dialog>
+        </Tabs>
+    );
 }
 
 function UsersTable({ users, roles, onEdit, onDelete }: { users: UserProfile[], roles: Role[], onEdit: (user: UserProfile) => void, onDelete: (id: string) => void }) {
@@ -345,7 +395,7 @@ function UsersTable({ users, roles, onEdit, onDelete }: { users: UserProfile[], 
                         <TableCell>{user.email}</TableCell>
                         <TableCell>{roleMap.get(user.roleId) || 'N/A'}</TableCell>
                         <TableCell className="text-right">
-                           <DropdownMenu>
+                            <DropdownMenu>
                                 <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
                                     <DropdownMenuItem onClick={() => onEdit(user)}>Editar</DropdownMenuItem>
@@ -378,7 +428,7 @@ function RolesTable({ roles, onEdit, onDelete }: { roles: Role[], onEdit: (role:
                         <TableCell className="font-medium">{role.name}</TableCell>
                         <TableCell className="text-muted-foreground">{role.permissions.map(p => permissionLabels.get(p) || p).join(', ')}</TableCell>
                         <TableCell className="text-right">
-                             <DropdownMenu>
+                            <DropdownMenu>
                                 <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
                                     <DropdownMenuItem onClick={() => onEdit(role)}>Editar</DropdownMenuItem>

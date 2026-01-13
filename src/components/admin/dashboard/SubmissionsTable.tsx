@@ -29,6 +29,7 @@ import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Progress } from '@/components/ui/progress';
 import { useAppSettings } from '@/context/AppContext';
+import { useAuth } from '@/hooks/useAuth';
 
 
 interface SubmissionsTableProps {
@@ -44,7 +45,16 @@ const StatusIcon = ({ status }: { status?: 'completed' | 'pending' }) => {
 }
 
 const getOverallStatus = (submission: SchoolCensusSubmission, totalSections: number): { label: string; variant: "default" | "secondary" | "destructive" | "outline" | null | undefined; completedCount: number } => {
-    const sections = [submission.general, submission.infrastructure, submission.technology, submission.cultural, submission.maintenance, submission.furniture];
+    const sections = [
+        submission.general,
+        submission.infrastructure,
+        submission.technology,
+        submission.cultural,
+        submission.maintenance,
+        submission.furniture,
+        submission.management,
+        submission.inventory
+    ];
     const completedCount = sections.filter(s => s?.status === 'completed').length;
 
     if (completedCount === totalSections) {
@@ -64,6 +74,8 @@ const SubmissionStatusModal = ({ submission, school, overallStatus, totalSection
         { name: 'Cultural', status: submission.cultural?.status },
         { name: 'Manutenção', status: submission.maintenance?.status },
         { name: 'Mobilia', status: submission.furniture?.status },
+        { name: 'Equipe Gestora', status: submission.management?.status },
+        { name: 'Inventário', status: submission.inventory?.status },
     ];
 
     return (
@@ -105,6 +117,14 @@ const SubmissionStatusModal = ({ submission, school, overallStatus, totalSection
 
 export function SubmissionsTable({ submissions, schoolMap }: SubmissionsTableProps) {
     const { settings } = useAppSettings();
+    // Access access profile data to filter dashboard
+    const { userProfile } = useAuth();
+
+    // Filter submissions if user is assigned to a specific school
+    const filteredSubmissions = submissions.filter(submission => {
+        if (!userProfile?.schoolId) return true;
+        return submission.schoolId === userProfile.schoolId;
+    });
 
     if (submissions.length === 0) {
         return (
@@ -115,9 +135,8 @@ export function SubmissionsTable({ submissions, schoolMap }: SubmissionsTablePro
     }
 
     // Assuming the number of sections defined in the form config is what we should count against.
-    // We'll have to find a way to get the formConfig here. A simple way for now is to assume 5 sections.
-    // We'll have to find a way to get the formConfig here. A simple way for now is to assume 6 sections.
-    const totalSections = 6;
+    // We'll have to find a way to get the formConfig here. A simple way for now is to assume 8 sections.
+    const totalSections = 8;
 
     return (
         <Table>
@@ -135,7 +154,7 @@ export function SubmissionsTable({ submissions, schoolMap }: SubmissionsTablePro
                 </TableRow>
             </TableHeader>
             <TableBody>
-                {submissions.map((submission) => {
+                {filteredSubmissions.map((submission) => {
                     const school = schoolMap.get(submission.schoolId);
                     const overallStatus = getOverallStatus(submission, totalSections);
 

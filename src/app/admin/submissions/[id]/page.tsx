@@ -14,16 +14,16 @@ const getSchools = (): School[] => {
 };
 
 const getFormConfig = (): FormSectionConfig[] => {
-    // This is a server component, so we can't use localStorage here.
-    return [];
+  // This is a server component, so we can't use localStorage here.
+  return [];
 }
 
 
 // This page is now mostly a shell, the client component will fetch the real data.
-export default async function SubmissionDetailPage({ params }: { params: { id: string } }) {
-    
-    // The ID of the submission is the School ID.
-    const schoolId = params.id;
+export default async function SubmissionDetailPage({ params }: { params: Promise<{ id: string }> }) {
 
-    return <SubmissionDetail schoolId={schoolId} />;
+  // The ID of the submission is the School ID.
+  const { id: schoolId } = await params;
+
+  return <SubmissionDetail schoolId={schoolId} />;
 }
